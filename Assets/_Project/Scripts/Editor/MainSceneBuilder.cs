@@ -15,6 +15,7 @@ public static class MainSceneBuilder
     private const string CreatureFolder = "Assets/_Project/Data/Creatures";
     private const string TypeChartPath = "Assets/_Project/Data/TypeChart.asset";
     private const string RunConfigPath = "Assets/_Project/Data/RunConfig.asset";
+    private const string SynergyConfigPath = "Assets/_Project/Data/SynergyConfig.asset";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
     private static Font _font;
@@ -253,6 +254,7 @@ public static class MainSceneBuilder
             Debug.LogError("TypeChart 에셋이 없습니다. 먼저 MonsterCamp > Create Initial Creature Data 를 실행하세요.");
         }
         so.FindProperty("_typeChart").objectReferenceValue = typeChart;
+        so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
         SetArray(so.FindProperty("_playerViews"), playerViews);
         SetArray(so.FindProperty("_enemyViews"), enemyViews);
         so.FindProperty("_enemyLabel").objectReferenceValue = enemyLabel;
@@ -338,9 +340,14 @@ public static class MainSceneBuilder
             shopSlots[i] = CreateSlot(shopRow, "ShopSlot" + i, "");
         }
 
-        Text messageText = CreateText(screen.transform, "MessageText", "", 44,
-            new Vector2(0f, 0.68f), new Vector2(1f, 0.71f));
+        Text messageText = CreateText(screen.transform, "MessageText", "", 40,
+            new Vector2(0f, 0.69f), new Vector2(1f, 0.713f));
         messageText.color = new Color(1f, 0.5f, 0.45f);
+
+        // 팀 칸 바로 위: 지금 켜진 시너지
+        Text synergyText = CreateText(screen.transform, "SynergyText", "", 34,
+            new Vector2(0f, 0.667f), new Vector2(1f, 0.69f));
+        synergyText.color = new Color(0.6f, 0.95f, 0.65f);
 
         // 팀 칸: 약 300 x 290 (가장 크게). 위가 앞줄
         Color teamColor = new Color(0.22f, 0.32f, 0.3f);
@@ -379,6 +386,8 @@ public static class MainSceneBuilder
         var shop = screen.AddComponent<ShopScreen>();
         var so = new SerializedObject(shop);
         so.FindProperty("_config").objectReferenceValue = GetOrCreateShopConfig();
+        so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
+        so.FindProperty("_synergyText").objectReferenceValue = synergyText;
         so.FindProperty("_run").objectReferenceValue = run;
         so.FindProperty("_goldText").objectReferenceValue = goldText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
@@ -412,6 +421,19 @@ public static class MainSceneBuilder
     }
 
     // 상점 설정 에셋. 이미 있으면 그대로 쓴다 (조정한 값 보호).
+    // 시너지 수치 에셋. 없으면 기본값(GAME_DESIGN.md 8-1)으로 만들고, 있으면 그대로 쓴다
+    private static SynergyConfig GetOrCreateSynergyConfig()
+    {
+        var config = AssetDatabase.LoadAssetAtPath<SynergyConfig>(SynergyConfigPath);
+        if (config == null)
+        {
+            config = ScriptableObject.CreateInstance<SynergyConfig>();
+            AssetDatabase.CreateAsset(config, SynergyConfigPath);
+            AssetDatabase.SaveAssets();
+        }
+        return config;
+    }
+
     private static ShopConfig GetOrCreateShopConfig()
     {
         var config = AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath);

@@ -10,6 +10,7 @@ public class BattleScreen : MonoBehaviour
 
     [SerializeField] private RunManager _run;
     [SerializeField] private TypeChart _typeChart;
+    [SerializeField] private SynergyConfig _synergy;
     [Tooltip("0~1 앞줄, 2~4 뒷줄")]
     [SerializeField] private CreatureUnitView[] _playerViews;
     [SerializeField] private CreatureUnitView[] _enemyViews;
@@ -23,6 +24,8 @@ public class BattleScreen : MonoBehaviour
 
     private readonly List<BattleUnit> _players = new List<BattleUnit>();
     private readonly List<BattleUnit> _enemies = new List<BattleUnit>();
+    private readonly List<CreatureData> _teamCreatures = new List<CreatureData>();
+    private readonly int[] _typeCounts = new int[TypeSynergy.TypeCount];
     private float _speed = 1f;
     private bool _running;
 
@@ -46,6 +49,10 @@ public class BattleScreen : MonoBehaviour
             Spawn(member.Creature, Mathf.Max(1, member.Level), i, _enemyViews, _enemies);
         }
 
+        // 타입 시너지: 내 팀·적 팀 똑같이
+        ApplySynergy(_players);
+        ApplySynergy(_enemies);
+
         _enemyLabel.text = enemyTeam.IsBoss ? $"보스: {enemyTeam.DisplayName}" : enemyTeam.DisplayName;
         _bannerText.text = "";
         UpdateSpeedLabel();
@@ -66,6 +73,8 @@ public class BattleScreen : MonoBehaviour
         }
 
         float deltaTime = Time.deltaTime * _speed;
+        TickRegen(_players, deltaTime);
+        TickRegen(_enemies, deltaTime);
         Tick(_players, _enemies, deltaTime);
         Tick(_enemies, _players, deltaTime);
 
@@ -76,6 +85,31 @@ public class BattleScreen : MonoBehaviour
         else if (!AnyAlive(_players))
         {
             StartCoroutine(Finish(false));
+        }
+    }
+
+    // 팀의 타입별 마릿수(같은 크리처는 1마리)에 따라 해당 타입 크리처에게 보너스
+    private void ApplySynergy(List<BattleUnit> units)
+    {
+        _teamCreatures.Clear();
+        foreach (BattleUnit unit in units)
+        {
+            _teamCreatures.Add(unit.Data);
+        }
+        TypeSynergy.CountUnique(_teamCreatures, _typeCounts);
+
+        foreach (BattleUnit unit in units)
+        {
+            int tier = _synergy.GetTier(_typeCounts[(int)unit.Data.Type]);
+            unit.ApplySynergy(_synergy.GetBonus(unit.Data.Type, tier));
+        }
+    }
+
+    private static void TickRegen(List<BattleUnit> units, float deltaTime)
+    {
+        foreach (BattleUnit unit in units)
+        {
+            unit.TickRegen(deltaTime);
         }
     }
 

@@ -8,7 +8,10 @@ public class ShopScreen : MonoBehaviour
     private const int MergeCount = 3;
 
     [SerializeField] private ShopConfig _config;
+    [SerializeField] private SynergyConfig _synergy;
     [SerializeField] private RunManager _run;
+    [Tooltip("지금 켜진 타입 시너지 (예: 불 2/4)")]
+    [SerializeField] private Text _synergyText;
     [Tooltip("상단 표시에 있는 골드 글자")]
     [SerializeField] private Text _goldText;
     [SerializeField] private Text _messageText;
@@ -29,6 +32,10 @@ public class ShopScreen : MonoBehaviour
 
     // 합성 후보를 모을 때 재사용 (팀 칸 먼저, 그다음 대기석)
     private readonly List<(SlotArea area, int index)> _mergeCandidates = new List<(SlotArea, int)>();
+    // 시너지 표시용 (팀 칸만)
+    private readonly List<CreatureData> _teamCreatures = new List<CreatureData>();
+    private readonly int[] _typeCounts = new int[TypeSynergy.TypeCount];
+    private readonly System.Text.StringBuilder _synergyBuilder = new System.Text.StringBuilder();
 
     // 새 런 시작: 대기석·팀 비우기
     public void ResetRun()
@@ -326,5 +333,36 @@ public class ShopScreen : MonoBehaviour
                 _teamSlots[i].Clear();
             }
         }
+
+        UpdateSynergyText();
+    }
+
+    // 팀 칸 크리처만 세서 켜진 시너지를 "불 2/4 · 물 3/4" 형태로 표시
+    private void UpdateSynergyText()
+    {
+        _teamCreatures.Clear();
+        foreach (CreatureInstance creature in _team)
+        {
+            _teamCreatures.Add(creature?.Data);
+        }
+        TypeSynergy.CountUnique(_teamCreatures, _typeCounts);
+
+        _synergyBuilder.Clear();
+        for (int type = 0; type < _typeCounts.Length; type++)
+        {
+            int count = _typeCounts[type];
+            if (_synergy.GetTier(count) == 0)
+            {
+                continue;
+            }
+            if (_synergyBuilder.Length > 0)
+            {
+                _synergyBuilder.Append(" · ");
+            }
+            _synergyBuilder.Append(TypeSynergy.GetTypeName((CreatureType)type))
+                .Append(' ').Append(count).Append('/').Append(_synergy.GetNextThreshold(count));
+        }
+
+        _synergyText.text = _synergyBuilder.Length > 0 ? "시너지  " + _synergyBuilder : "";
     }
 }
