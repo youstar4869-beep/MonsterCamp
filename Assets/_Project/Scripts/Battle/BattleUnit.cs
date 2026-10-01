@@ -26,7 +26,7 @@ public class BattleUnit
         Cooldown = AttackInterval;
 
         _view = view;
-        _view.Show(data);
+        _view.Show(data, level);
     }
 
     public void TakeDamage(int damage)

@@ -7,8 +7,8 @@ using UnityEngine.UI;
 public class BattleScreen : MonoBehaviour
 {
     private const int FrontRowCount = 2;
-    // 합성(TODO 7) 전까지는 모두 Lv1
-    private const int DefaultLevel = 1;
+    // 테스트 적 팀 레벨 (라운드별 적 팀은 TODO 8)
+    private const int TestEnemyLevel = 1;
 
     [SerializeField] private ScreenFlow _flow;
     [SerializeField] private TypeChart _typeChart;
@@ -30,11 +30,24 @@ public class BattleScreen : MonoBehaviour
     private bool _running;
 
     // 상점에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null)
-    public void StartBattle(CreatureData[] playerTeam)
+    public void StartBattle(CreatureInstance[] playerTeam)
     {
         StopAllCoroutines();
-        Spawn(playerTeam, _playerViews, _players);
-        Spawn(_testEnemyTeam, _enemyViews, _enemies);
+
+        _players.Clear();
+        for (int i = 0; i < _playerViews.Length; i++)
+        {
+            CreatureInstance creature = i < playerTeam.Length ? playerTeam[i] : null;
+            Spawn(creature?.Data, creature?.Level ?? 1, i, _playerViews, _players);
+        }
+
+        _enemies.Clear();
+        for (int i = 0; i < _enemyViews.Length; i++)
+        {
+            CreatureData creature = i < _testEnemyTeam.Length ? _testEnemyTeam[i] : null;
+            Spawn(creature, TestEnemyLevel, i, _enemyViews, _enemies);
+        }
+
         _bannerText.text = "";
         UpdateSpeedLabel();
         _running = true;
@@ -141,19 +154,15 @@ public class BattleScreen : MonoBehaviour
         _flow.Show(GameScreen.Result);
     }
 
-    private static void Spawn(CreatureData[] team, CreatureUnitView[] views, List<BattleUnit> units)
+    // 빈 칸(creature == null)이면 칸만 비워 둔다
+    private static void Spawn(CreatureData creature, int level, int slotIndex, CreatureUnitView[] views, List<BattleUnit> units)
     {
-        units.Clear();
-        for (int i = 0; i < views.Length; i++)
+        if (creature == null)
         {
-            CreatureData creature = i < team.Length ? team[i] : null;
-            if (creature == null)
-            {
-                views[i].Hide();
-                continue;
-            }
-            units.Add(new BattleUnit(creature, i, DefaultLevel, views[i]));
+            views[slotIndex].Hide();
+            return;
         }
+        units.Add(new BattleUnit(creature, slotIndex, level, views[slotIndex]));
     }
 
     private void UpdateSpeedLabel()

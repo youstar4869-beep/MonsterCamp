@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShopConfig
   _startGold: 10
   _refreshCost: 1
-  _sellPrice: 1
   _tierPrices: 010000000200000003000000
+  _levelSellPrices: 010000000300000009000000
   _creaturePool:
   - {fileID: 11400000, guid: 32076891a449935468bd3f1d20b8b7ce, type: 2}
   - {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}

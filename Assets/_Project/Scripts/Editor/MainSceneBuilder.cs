@@ -267,9 +267,13 @@ public static class MainSceneBuilder
 
         var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         iconGo.transform.SetParent(unit.transform, false);
-        Stretch(iconGo.GetComponent<RectTransform>(), new Vector2(0.15f, 0.26f), new Vector2(0.85f, 0.82f));
+        Stretch(iconGo.GetComponent<RectTransform>(), new Vector2(0.15f, 0.26f), new Vector2(0.85f, 0.73f));
         var icon = iconGo.GetComponent<Image>();
         icon.preserveAspect = true;
+
+        // 체력바 바로 아래 레벨 별
+        Text levelText = CreateText(unit.transform, "Level", "", 32, new Vector2(0f, 0.74f), new Vector2(1f, 0.85f));
+        levelText.color = new Color(1f, 0.85f, 0.2f);
 
         Text nameText = CreateText(unit.transform, "Name", "", 30, new Vector2(0.03f, 0.04f), new Vector2(0.97f, 0.24f));
 
@@ -283,6 +287,7 @@ public static class MainSceneBuilder
         var so = new SerializedObject(view);
         so.FindProperty("_icon").objectReferenceValue = icon;
         so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.FindProperty("_levelText").objectReferenceValue = levelText;
         so.FindProperty("_healthFill").objectReferenceValue = healthFill.GetComponent<RectTransform>();
         so.ApplyModifiedPropertiesWithoutUndo();
         unit.SetActive(false);
@@ -444,16 +449,19 @@ public static class MainSceneBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
-    // 배경 버튼 + 그림 + 이름 + 가격(또는 판매 안내). 비어 있으면 emptyLabel 표시
+    // 배경 버튼 + 레벨 별 + 그림 + 이름 + 가격(또는 판매 안내) + 반짝임 덮개. 비어 있으면 emptyLabel 표시
     private static CreatureSlotView CreateSlot(Transform parent, string name, string emptyLabel)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(CreatureSlotView));
         go.transform.SetParent(parent, false);
         go.GetComponent<Image>().color = new Color(0.25f, 0.28f, 0.34f);
 
+        Text levelText = CreateText(go.transform, "Level", "", 34, new Vector2(0f, 0.83f), new Vector2(1f, 0.98f));
+        levelText.color = new Color(1f, 0.85f, 0.2f);
+
         var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         iconGo.transform.SetParent(go.transform, false);
-        Stretch(iconGo.GetComponent<RectTransform>(), new Vector2(0.15f, 0.4f), new Vector2(0.85f, 0.92f));
+        Stretch(iconGo.GetComponent<RectTransform>(), new Vector2(0.15f, 0.4f), new Vector2(0.85f, 0.83f));
         var icon = iconGo.GetComponent<Image>();
         icon.preserveAspect = true;
         icon.raycastTarget = false;
@@ -462,12 +470,22 @@ public static class MainSceneBuilder
         Text priceText = CreateText(go.transform, "Price", "", 28, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.2f));
         priceText.color = new Color(1f, 0.85f, 0.3f);
 
+        // 가장 위에 그려지도록 마지막에 만든다
+        var flashGo = new GameObject("Flash", typeof(RectTransform), typeof(Image));
+        flashGo.transform.SetParent(go.transform, false);
+        Stretch(flashGo.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        var flash = flashGo.GetComponent<Image>();
+        flash.color = Color.clear;
+        flash.raycastTarget = false;
+
         var view = go.GetComponent<CreatureSlotView>();
         var so = new SerializedObject(view);
         so.FindProperty("_button").objectReferenceValue = go.GetComponent<Button>();
         so.FindProperty("_icon").objectReferenceValue = icon;
         so.FindProperty("_nameText").objectReferenceValue = nameText;
         so.FindProperty("_priceText").objectReferenceValue = priceText;
+        so.FindProperty("_levelText").objectReferenceValue = levelText;
+        so.FindProperty("_flash").objectReferenceValue = flash;
         so.FindProperty("_emptyLabel").stringValue = emptyLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
         return view;

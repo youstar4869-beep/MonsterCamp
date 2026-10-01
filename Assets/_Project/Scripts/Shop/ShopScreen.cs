@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 상점·배치 화면: 골드, 상점 칸, 새로고침, 대기석, 판매, 팀 배치(끌어서 옮기기)
+// 상점·배치 화면: 골드, 상점 칸, 새로고침, 대기석, 판매, 팀 배치(끌어서 옮기기), 합성
 public class ShopScreen : MonoBehaviour
 {
+    private const int MergeCount = 3;
+
     [SerializeField] private ShopConfig _config;
     [SerializeField] private ScreenFlow _flow;
     [SerializeField] private BattleScreen _battle;
@@ -19,17 +22,20 @@ public class ShopScreen : MonoBehaviour
 
     private CreatureData[] _offers;
     // 칸 위치를 유지하기 위해 빈 칸은 null
-    private CreatureData[] _bench;
-    private CreatureData[] _team;
+    private CreatureInstance[] _bench;
+    private CreatureInstance[] _team;
     private int _gold;
     private SlotDragHandler _dragSource;
+
+    // 합성 후보를 모을 때 재사용 (팀 칸 먼저, 그다음 대기석)
+    private readonly List<(SlotArea area, int index)> _mergeCandidates = new List<(SlotArea, int)>();
 
     // 트레이너 선택 → 상점으로 넘어갈 때 호출 (새 런 시작)
     public void StartRun()
     {
         _offers = new CreatureData[_shopSlots.Length];
-        _bench = new CreatureData[_benchSlots.Length];
-        _team = new CreatureData[_teamSlots.Length];
+        _bench = new CreatureInstance[_benchSlots.Length];
+        _team = new CreatureInstance[_teamSlots.Length];
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
         _gold = _config.StartGold;
@@ -60,8 +66,12 @@ public class ShopScreen : MonoBehaviour
             return;
         }
 
+        // 같은 Lv1이 이미 2마리 있으면 사자마자 합쳐지므로 대기석 자리가 필요 없다
+        CollectSame(creature, 1);
+        bool mergesNow = _mergeCandidates.Count >= MergeCount - 1;
+
         int benchIndex = System.Array.IndexOf(_bench, null);
-        if (benchIndex < 0)
+        if (benchIndex < 0 && !mergesNow)
         {
             ShowMessage("대기석이 꽉 찼어요");
             return;
@@ -75,10 +85,20 @@ public class ShopScreen : MonoBehaviour
         }
 
         _gold -= price;
-        _bench[benchIndex] = creature;
         _offers[index] = null;
         ShowMessage("");
-        UpdateView();
+
+        if (mergesNow)
+        {
+            // 산 크리처를 대기석에 두지 않고 가진 2마리와 바로 합친다
+            MergeCandidates(MergeCount - 1);
+        }
+        else
+        {
+            _bench[benchIndex] = new CreatureInstance(creature);
+            UpdateView();
+        }
+        MergeAll();
     }
 
     public void SellAt(int index)
@@ -89,8 +109,8 @@ public class ShopScreen : MonoBehaviour
             return;
         }
 
+        _gold += _config.GetSellPrice(_bench[index]);
         _bench[index] = null;
-        _gold += _config.SellPrice;
         ShowMessage("");
         UpdateView();
     }
@@ -116,13 +136,14 @@ public class ShopScreen : MonoBehaviour
     // 끌기 시작. 빈 칸이거나 이미 다른 칸을 끌고 있으면 false
     public bool BeginDrag(SlotDragHandler source)
     {
-        if (_dragSource != null || GetSlots(source.Area)[source.Index] == null)
+        CreatureInstance creature = GetSlots(source.Area)[source.Index];
+        if (_dragSource != null || creature == null)
         {
             return false;
         }
 
         _dragSource = source;
-        _dragIcon.sprite = GetSlots(source.Area)[source.Index].Sprite;
+        _dragIcon.sprite = creature.Data.Sprite;
         _dragIcon.gameObject.SetActive(true);
         return true;
     }
@@ -140,8 +161,8 @@ public class ShopScreen : MonoBehaviour
             return;
         }
 
-        CreatureData[] from = GetSlots(_dragSource.Area);
-        CreatureData[] to = GetSlots(target.Area);
+        CreatureInstance[] from = GetSlots(_dragSource.Area);
+        CreatureInstance[] to = GetSlots(target.Area);
         (from[_dragSource.Index], to[target.Index]) = (to[target.Index], from[_dragSource.Index]);
         ShowMessage("");
         UpdateView();
@@ -153,9 +174,97 @@ public class ShopScreen : MonoBehaviour
         _dragIcon.gameObject.SetActive(false);
     }
 
-    private CreatureData[] GetSlots(SlotArea area)
+    // 같은 크리처·같은 레벨이 3마리 모이면 1마리로 합치고 레벨 +1.
+    // Lv2가 새로 3마리가 될 수 있으므로 더 합칠 게 없을 때까지 반복한다.
+    private void MergeAll()
+    {
+        while (TryMergeOnce())
+        {
+        }
+    }
+
+    private bool TryMergeOnce()
+    {
+        foreach (CreatureInstance owned in EnumerateOwned())
+        {
+            if (owned.Level >= CreatureData.MaxLevel)
+            {
+                continue;
+            }
+
+            CollectSame(owned.Data, owned.Level);
+            if (_mergeCandidates.Count < MergeCount)
+            {
+                continue;
+            }
+
+            MergeCandidates(MergeCount);
+            return true;
+        }
+        return false;
+    }
+
+    // _mergeCandidates 앞에서 count마리를 1마리로 합친다.
+    // 첫 번째 후보를 남긴다. 팀 칸부터 모았으므로 팀 칸에 있던 자리가 우선
+    private void MergeCandidates(int count)
+    {
+        (SlotArea keepArea, int keepIndex) = _mergeCandidates[0];
+        GetSlots(keepArea)[keepIndex].Level++;
+        for (int i = 1; i < count; i++)
+        {
+            (SlotArea area, int index) = _mergeCandidates[i];
+            GetSlots(area)[index] = null;
+        }
+
+        UpdateView();
+        GetSlotViews(keepArea)[keepIndex].Flash();
+    }
+
+    private void CollectSame(CreatureData data, int level)
+    {
+        _mergeCandidates.Clear();
+        AddSame(SlotArea.Team, data, level);
+        AddSame(SlotArea.Bench, data, level);
+    }
+
+    private void AddSame(SlotArea area, CreatureData data, int level)
+    {
+        CreatureInstance[] slots = GetSlots(area);
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i] != null && slots[i].Data == data && slots[i].Level == level)
+            {
+                _mergeCandidates.Add((area, i));
+            }
+        }
+    }
+
+    private IEnumerable<CreatureInstance> EnumerateOwned()
+    {
+        foreach (CreatureInstance creature in _team)
+        {
+            if (creature != null)
+            {
+                yield return creature;
+            }
+        }
+        foreach (CreatureInstance creature in _bench)
+        {
+            if (creature != null)
+            {
+                yield return creature;
+            }
+        }
+    }
+
+    private CreatureInstance[] GetSlots(SlotArea area)
     {
         return area == SlotArea.Team ? _team : _bench;
+    }
+
+    private CreatureSlotView[] GetSlotViews(SlotArea area)
+    {
+        return area == SlotArea.Team ? _teamSlots : _benchSlots;
     }
 
     private void RollOffers()
@@ -180,7 +289,7 @@ public class ShopScreen : MonoBehaviour
         {
             if (_offers[i] != null)
             {
-                _shopSlots[i].Show(_offers[i], $"{_config.GetPrice(_offers[i])}G");
+                _shopSlots[i].Show(_offers[i], 0, $"{_config.GetPrice(_offers[i])}G");
             }
             else
             {
@@ -190,9 +299,10 @@ public class ShopScreen : MonoBehaviour
 
         for (int i = 0; i < _benchSlots.Length; i++)
         {
-            if (_bench[i] != null)
+            CreatureInstance creature = _bench[i];
+            if (creature != null)
             {
-                _benchSlots[i].Show(_bench[i], $"판매 +{_config.SellPrice}G");
+                _benchSlots[i].Show(creature.Data, creature.Level, $"판매 +{_config.GetSellPrice(creature)}G");
             }
             else
             {
@@ -202,9 +312,10 @@ public class ShopScreen : MonoBehaviour
 
         for (int i = 0; i < _teamSlots.Length; i++)
         {
-            if (_team[i] != null)
+            CreatureInstance creature = _team[i];
+            if (creature != null)
             {
-                _teamSlots[i].Show(_team[i], "");
+                _teamSlots[i].Show(creature.Data, creature.Level, "");
             }
             else
             {
