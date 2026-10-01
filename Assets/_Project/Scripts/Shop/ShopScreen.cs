@@ -5,6 +5,8 @@ using UnityEngine.UI;
 public class ShopScreen : MonoBehaviour
 {
     [SerializeField] private ShopConfig _config;
+    [SerializeField] private ScreenFlow _flow;
+    [SerializeField] private BattleScreen _battle;
     [SerializeField] private Text _goldText;
     [SerializeField] private Text _messageText;
     [SerializeField] private Text _refreshLabel;
@@ -91,6 +93,24 @@ public class ShopScreen : MonoBehaviour
         _gold += _config.SellPrice;
         ShowMessage("");
         UpdateView();
+    }
+
+    // "전투 시작" 버튼
+    public void StartBattle()
+    {
+        if (_dragSource != null)
+        {
+            return;
+        }
+        if (System.Array.TrueForAll(_team, creature => creature == null))
+        {
+            ShowMessage("팀 칸에 크리처를 놓아 주세요");
+            return;
+        }
+
+        ShowMessage("");
+        _flow.Show(GameScreen.Battle);
+        _battle.StartBattle(_team);
     }
 
     // 끌기 시작. 빈 칸이거나 이미 다른 칸을 끌고 있으면 false
