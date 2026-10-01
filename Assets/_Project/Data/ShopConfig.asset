@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 270a4688b980cdc4490e2065c9df9f55, type: 3}
+  m_Name: ShopConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ShopConfig
+  _startGold: 10
+  _refreshCost: 1
+  _sellPrice: 1
+  _tierPrices: 010000000200000003000000
+  _creaturePool:
+  - {fileID: 11400000, guid: 32076891a449935468bd3f1d20b8b7ce, type: 2}
+  - {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
+  - {fileID: 11400000, guid: f6bb2043f730504409a6129c0ed91b9c, type: 2}
+  - {fileID: 11400000, guid: 13c737b48fa59924285c4d52f4f14650, type: 2}
+  - {fileID: 11400000, guid: 667a03eaf5128d64083da2cc526ef56a, type: 2}
+  - {fileID: 11400000, guid: 25d9644f135e19b44a839014aa986052, type: 2}
+  - {fileID: 11400000, guid: 6be89559101692e4f8b11162b62f16a2, type: 2}
+  - {fileID: 11400000, guid: 30660ef43addc1d49bc1b0a1f996f471, type: 2}
+  - {fileID: 11400000, guid: 75097a7cfb6753044adb07460960cba7, type: 2}
+  - {fileID: 11400000, guid: 0fc5511a7cf81774d89ee1472f65eb3d, type: 2}
+  - {fileID: 11400000, guid: ff963342f51d17d4b887faef275f905c, type: 2}
+  - {fileID: 11400000, guid: 9c0e3d2bbca384645b94224c973317d6, type: 2}
+  - {fileID: 11400000, guid: 0645507553a0629479dd0ff054f84a9c, type: 2}
+  - {fileID: 11400000, guid: 0c5b99ed4a4090945ab49b3a5b861c28, type: 2}
+  - {fileID: 11400000, guid: 7e8ba82b7b39e004bb1cb1139b6109a2, type: 2}
