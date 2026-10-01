@@ -1,0 +1,63 @@
+# Unity 생성 폴더
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/.utmp/
+
+# Asset Store 도구
+/[Aa]ssets/AssetStoreTools*
+
+# Addressables 빌드 결과
+/[Aa]ssets/[Ss]treamingAssets/aa*
+
+# IDE / 에디터
+.vs/
+.vscode/
+.idea/
+.gradle/
+.consulo/
+ExportedObj/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# 디버그 심볼 .meta
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# 크래시 리포트
+sysinfo.txt
+crashlytics-build.properties
+
+# 빌드 결과물 / 서명 키
+*.apk
+*.aab
+*.apk.meta
+*.aab.meta
+*.unitypackage
+*.app
+*.keystore
+*.jks
+
+# OS
+.DS_Store
+Thumbs.db
