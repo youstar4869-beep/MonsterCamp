@@ -159,44 +159,69 @@ public static class MainSceneBuilder
         return button;
     }
 
-    // 상점·배치 화면 (세로 기준, 위에서부터)
-    // 제목 / 골드·새로고침 / 상점 5칸 / 메시지 / (팀 배치 자리, 비어 있음) / 대기석 6칸 / 전투 시작
+    // 상점·배치 화면 (세로 1920 기준, 위에서부터)
+    // 제목 / 골드·새로고침 / 상점 5칸 / 메시지 / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 전투 시작
     private static ShopScreen BuildShopUI(GameObject screen)
     {
-        Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.91f), new Vector2(1f, 0.98f));
-        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.02f), new Vector2(0.85f, 0.11f));
+        Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.935f), new Vector2(1f, 0.985f));
+        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.015f), new Vector2(0.85f, 0.105f));
 
         Text goldText = CreateText(screen.transform, "GoldText", "골드", 56,
-            new Vector2(0.05f, 0.84f), new Vector2(0.5f, 0.9f));
+            new Vector2(0.05f, 0.875f), new Vector2(0.5f, 0.93f));
         goldText.alignment = TextAnchor.MiddleLeft;
 
         var refresh = new GameObject("RefreshButton", typeof(RectTransform), typeof(Image), typeof(Button));
         refresh.transform.SetParent(screen.transform, false);
-        Stretch(refresh.GetComponent<RectTransform>(), new Vector2(0.55f, 0.845f), new Vector2(0.95f, 0.895f));
+        Stretch(refresh.GetComponent<RectTransform>(), new Vector2(0.55f, 0.875f), new Vector2(0.95f, 0.93f));
         refresh.GetComponent<Image>().color = new Color(0.4f, 0.75f, 0.95f);
         Text refreshLabel = CreateText(refresh.transform, "Text", "새로고침", 48, Vector2.zero, Vector2.one);
         refreshLabel.color = Color.black;
 
-        Transform shopRow = CreateRow(screen.transform, "ShopSlots", new Vector2(0.03f, 0.62f), new Vector2(0.97f, 0.82f));
+        // 상점 칸: 약 190 x 290
+        Transform shopRow = CreateRow(screen.transform, "ShopSlots", new Vector2(0.03f, 0.715f), new Vector2(0.97f, 0.865f));
         var shopSlots = new CreatureSlotView[5];
         for (int i = 0; i < shopSlots.Length; i++)
         {
-            shopSlots[i] = CreateSlot(shopRow, "ShopSlot" + i);
+            shopSlots[i] = CreateSlot(shopRow, "ShopSlot" + i, "");
         }
 
         Text messageText = CreateText(screen.transform, "MessageText", "", 44,
-            new Vector2(0f, 0.57f), new Vector2(1f, 0.61f));
+            new Vector2(0f, 0.68f), new Vector2(1f, 0.71f));
         messageText.color = new Color(1f, 0.5f, 0.45f);
 
-        CreateText(screen.transform, "BenchLabel", "대기석 (눌러서 판매)", 40,
-            new Vector2(0f, 0.255f), new Vector2(1f, 0.285f));
+        // 팀 칸: 약 300 x 290 (가장 크게). 위가 앞줄(적과 가까운 쪽)
+        Color teamColor = new Color(0.22f, 0.32f, 0.3f);
+        Transform frontRow = CreateRow(screen.transform, "TeamFrontRow", new Vector2(0.2f, 0.515f), new Vector2(0.8f, 0.665f));
+        Transform backRow = CreateRow(screen.transform, "TeamBackRow", new Vector2(0.03f, 0.355f), new Vector2(0.97f, 0.505f));
+        var teamSlots = new CreatureSlotView[5];
+        for (int i = 0; i < teamSlots.Length; i++)
+        {
+            bool front = i < 2;
+            teamSlots[i] = CreateSlot(front ? frontRow : backRow, "TeamSlot" + i, front ? "앞줄" : "뒷줄");
+            teamSlots[i].GetComponent<Image>().color = teamColor;
+        }
 
-        Transform benchRow = CreateRow(screen.transform, "BenchSlots", new Vector2(0.03f, 0.13f), new Vector2(0.97f, 0.25f));
+        CreateText(screen.transform, "BenchLabel", "대기석 (끌어서 배치 / 눌러서 판매)", 38,
+            new Vector2(0f, 0.31f), new Vector2(1f, 0.345f));
+
+        // 대기석 칸: 약 160 x 330
+        Transform benchRow = CreateRow(screen.transform, "BenchSlots", new Vector2(0.03f, 0.13f), new Vector2(0.97f, 0.305f));
         var benchSlots = new CreatureSlotView[6];
         for (int i = 0; i < benchSlots.Length; i++)
         {
-            benchSlots[i] = CreateSlot(benchRow, "BenchSlot" + i);
+            benchSlots[i] = CreateSlot(benchRow, "BenchSlot" + i, "");
         }
+
+        // 끄는 그림은 가장 위에 그려지도록 마지막에 만든다
+        var dragIconGo = new GameObject("DragIcon", typeof(RectTransform), typeof(Image));
+        dragIconGo.transform.SetParent(screen.transform, false);
+        var dragRect = dragIconGo.GetComponent<RectTransform>();
+        dragRect.anchorMin = dragRect.anchorMax = new Vector2(0.5f, 0.5f);
+        dragRect.sizeDelta = new Vector2(200, 200);
+        var dragIcon = dragIconGo.GetComponent<Image>();
+        dragIcon.raycastTarget = false;
+        dragIcon.preserveAspect = true;
+        dragIconGo.SetActive(false);
 
         var shop = screen.AddComponent<ShopScreen>();
         var so = new SerializedObject(shop);
@@ -206,7 +231,18 @@ public static class MainSceneBuilder
         so.FindProperty("_refreshLabel").objectReferenceValue = refreshLabel;
         SetArray(so.FindProperty("_shopSlots"), shopSlots);
         SetArray(so.FindProperty("_benchSlots"), benchSlots);
+        SetArray(so.FindProperty("_teamSlots"), teamSlots);
+        so.FindProperty("_dragIcon").objectReferenceValue = dragIcon;
         so.ApplyModifiedPropertiesWithoutUndo();
+
+        for (int i = 0; i < benchSlots.Length; i++)
+        {
+            AddDragHandler(benchSlots[i], shop, SlotArea.Bench, i);
+        }
+        for (int i = 0; i < teamSlots.Length; i++)
+        {
+            AddDragHandler(teamSlots[i], shop, SlotArea.Team, i);
+        }
 
         UnityEventTools.AddVoidPersistentListener(refresh.GetComponent<Button>().onClick, shop.Refresh);
         for (int i = 0; i < shopSlots.Length; i++)
@@ -266,8 +302,18 @@ public static class MainSceneBuilder
         return go.transform;
     }
 
-    // 배경 버튼 + 그림 + 이름 + 가격(또는 판매 안내)
-    private static CreatureSlotView CreateSlot(Transform parent, string name)
+    private static void AddDragHandler(CreatureSlotView slot, ShopScreen shop, SlotArea area, int index)
+    {
+        var handler = slot.gameObject.AddComponent<SlotDragHandler>();
+        var so = new SerializedObject(handler);
+        so.FindProperty("_shop").objectReferenceValue = shop;
+        so.FindProperty("_area").enumValueIndex = (int)area;
+        so.FindProperty("_index").intValue = index;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    // 배경 버튼 + 그림 + 이름 + 가격(또는 판매 안내). 비어 있으면 emptyLabel 표시
+    private static CreatureSlotView CreateSlot(Transform parent, string name, string emptyLabel)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(CreatureSlotView));
         go.transform.SetParent(parent, false);
@@ -290,6 +336,7 @@ public static class MainSceneBuilder
         so.FindProperty("_icon").objectReferenceValue = icon;
         so.FindProperty("_nameText").objectReferenceValue = nameText;
         so.FindProperty("_priceText").objectReferenceValue = priceText;
+        so.FindProperty("_emptyLabel").stringValue = emptyLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
         return view;
     }
