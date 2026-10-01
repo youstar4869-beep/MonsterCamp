@@ -8,8 +8,8 @@ public class ShopScreen : MonoBehaviour
     private const int MergeCount = 3;
 
     [SerializeField] private ShopConfig _config;
-    [SerializeField] private ScreenFlow _flow;
-    [SerializeField] private BattleScreen _battle;
+    [SerializeField] private RunManager _run;
+    [Tooltip("상단 표시에 있는 골드 글자")]
     [SerializeField] private Text _goldText;
     [SerializeField] private Text _messageText;
     [SerializeField] private Text _refreshLabel;
@@ -30,15 +30,20 @@ public class ShopScreen : MonoBehaviour
     // 합성 후보를 모을 때 재사용 (팀 칸 먼저, 그다음 대기석)
     private readonly List<(SlotArea area, int index)> _mergeCandidates = new List<(SlotArea, int)>();
 
-    // 트레이너 선택 → 상점으로 넘어갈 때 호출 (새 런 시작)
-    public void StartRun()
+    // 새 런 시작: 대기석·팀 비우기
+    public void ResetRun()
     {
         _offers = new CreatureData[_shopSlots.Length];
         _bench = new CreatureInstance[_benchSlots.Length];
         _team = new CreatureInstance[_teamSlots.Length];
+    }
+
+    // 라운드 시작: 골드를 다시 채우고 상점을 새로 뽑는다. 대기석·팀은 그대로
+    public void StartRound()
+    {
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
-        _gold = _config.StartGold;
+        _gold = _config.RoundGold;
         RollOffers();
         ShowMessage("");
         UpdateView();
@@ -129,8 +134,7 @@ public class ShopScreen : MonoBehaviour
         }
 
         ShowMessage("");
-        _flow.Show(GameScreen.Battle);
-        _battle.StartBattle(_team);
+        _run.BeginBattle(_team);
     }
 
     // 끌기 시작. 빈 칸이거나 이미 다른 칸을 끌고 있으면 false

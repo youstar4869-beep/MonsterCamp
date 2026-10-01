@@ -14,6 +14,8 @@ public class ScreenFlow : MonoBehaviour
 {
     // GameScreen 순서대로 넣는다.
     [SerializeField] private GameObject[] _screens;
+    [Tooltip("라운드·목숨·골드 상단 표시. 상점과 전투 화면에서만 보인다")]
+    [SerializeField] private GameObject _hud;
 
     private void Start()
     {
@@ -26,6 +28,7 @@ public class ScreenFlow : MonoBehaviour
         {
             _screens[i].SetActive(i == (int)screen);
         }
+        _hud.SetActive(screen == GameScreen.Shop || screen == GameScreen.Battle);
     }
 
     // 버튼 OnClick에서 호출 (인스펙터는 enum 인자를 지원하지 않아 int로 받는다)

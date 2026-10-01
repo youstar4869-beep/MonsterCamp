@@ -7,20 +7,17 @@ using UnityEngine.UI;
 public class BattleScreen : MonoBehaviour
 {
     private const int FrontRowCount = 2;
-    // 테스트 적 팀 레벨 (라운드별 적 팀은 TODO 8)
-    private const int TestEnemyLevel = 1;
 
-    [SerializeField] private ScreenFlow _flow;
+    [SerializeField] private RunManager _run;
     [SerializeField] private TypeChart _typeChart;
-    [Tooltip("테스트용 적 팀 (0~1 앞줄, 2~4 뒷줄). 라운드별 적 팀은 TODO 8에서")]
-    [SerializeField] private CreatureData[] _testEnemyTeam;
     [Tooltip("0~1 앞줄, 2~4 뒷줄")]
     [SerializeField] private CreatureUnitView[] _playerViews;
     [SerializeField] private CreatureUnitView[] _enemyViews;
+    [Tooltip("적 팀 이름 (보스면 '보스:' 표시)")]
+    [SerializeField] private Text _enemyLabel;
     [SerializeField] private Text _bannerText;
     [SerializeField] private Text _speedLabel;
-    [SerializeField] private Text _resultTitle;
-    [Tooltip("승리/패배 표시 후 결과 화면으로 넘어가기까지 (초)")]
+    [Tooltip("승리/패배 표시 후 다음으로 넘어가기까지 (초)")]
     [SerializeField] private float _resultDelay = 1.5f;
     [SerializeField] private float _fastSpeed = 2f;
 
@@ -29,8 +26,9 @@ public class BattleScreen : MonoBehaviour
     private float _speed = 1f;
     private bool _running;
 
-    // 상점에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null)
-    public void StartBattle(CreatureInstance[] playerTeam)
+    // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
+    // 매 전투 새 BattleUnit을 만들므로 체력은 항상 가득 찬 상태로 시작한다
+    public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam)
     {
         StopAllCoroutines();
 
@@ -44,10 +42,11 @@ public class BattleScreen : MonoBehaviour
         _enemies.Clear();
         for (int i = 0; i < _enemyViews.Length; i++)
         {
-            CreatureData creature = i < _testEnemyTeam.Length ? _testEnemyTeam[i] : null;
-            Spawn(creature, TestEnemyLevel, i, _enemyViews, _enemies);
+            EnemyTeamData.Member member = i < enemyTeam.SlotCount ? enemyTeam.GetMember(i) : default;
+            Spawn(member.Creature, Mathf.Max(1, member.Level), i, _enemyViews, _enemies);
         }
 
+        _enemyLabel.text = enemyTeam.IsBoss ? $"보스: {enemyTeam.DisplayName}" : enemyTeam.DisplayName;
         _bannerText.text = "";
         UpdateSpeedLabel();
         _running = true;
@@ -148,10 +147,9 @@ public class BattleScreen : MonoBehaviour
     private IEnumerator Finish(bool won)
     {
         _running = false;
-        _bannerText.text = won ? "승리!" : "패배...";
+        _bannerText.text = won ? "승리!" : "패배... 목숨 -1";
         yield return new WaitForSeconds(_resultDelay);
-        _resultTitle.text = won ? "승리" : "패배";
-        _flow.Show(GameScreen.Result);
+        _run.OnBattleEnd(won);
     }
 
     // 빈 칸(creature == null)이면 칸만 비워 둔다

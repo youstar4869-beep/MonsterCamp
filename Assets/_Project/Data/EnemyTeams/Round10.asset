@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3484fc0860d06f43b134f9eaee206ad, type: 3}
+  m_Name: Round10
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyTeamData
+  _displayName: "\uD3ED\uD48D \uC655\uC88C"
+  _isBoss: 1
+  _members:
+  - Creature: {fileID: 11400000, guid: 32076891a449935468bd3f1d20b8b7ce, type: 2}
+    Level: 2
+  - Creature: {fileID: 11400000, guid: 667a03eaf5128d64083da2cc526ef56a, type: 2}
+    Level: 2
+  - Creature: {fileID: 11400000, guid: 6be89559101692e4f8b11162b62f16a2, type: 2}
+    Level: 2
+  - Creature: {fileID: 11400000, guid: 9c0e3d2bbca384645b94224c973317d6, type: 2}
+    Level: 2
+  - Creature: {fileID: 11400000, guid: 0645507553a0629479dd0ff054f84a9c, type: 2}
+    Level: 2

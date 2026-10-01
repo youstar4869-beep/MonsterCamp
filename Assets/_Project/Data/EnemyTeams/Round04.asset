@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3484fc0860d06f43b134f9eaee206ad, type: 3}
+  m_Name: Round04
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyTeamData
+  _displayName: "\uC232 \uC5B4\uADC0"
+  _isBoss: 0
+  _members:
+  - Creature: {fileID: 11400000, guid: 25d9644f135e19b44a839014aa986052, type: 2}
+    Level: 1
+  - Creature: {fileID: 11400000, guid: 0c5b99ed4a4090945ab49b3a5b861c28, type: 2}
+    Level: 1
+  - Creature: {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
+    Level: 1
+  - Creature: {fileID: 11400000, guid: 0fc5511a7cf81774d89ee1472f65eb3d, type: 2}
+    Level: 1
+  - Creature: {fileID: 0}
+    Level: 1

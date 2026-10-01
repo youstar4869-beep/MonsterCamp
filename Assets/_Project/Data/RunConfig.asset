@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d94279bd4d36ed40b7e3ae0d9b84216, type: 3}
+  m_Name: RunConfig
+  m_EditorClassIdentifier: Assembly-CSharp::RunConfig
+  _maxLives: 3
+  _rounds:
+  - {fileID: 11400000, guid: 9db2d08f7ad99204aa0510ffc1d4d873, type: 2}
+  - {fileID: 11400000, guid: c65dd32e93b69aa4b80cfe66b75d8df7, type: 2}
+  - {fileID: 11400000, guid: 6955e13a90a73e94b8f47cad34506bdf, type: 2}
+  - {fileID: 11400000, guid: 6531239c14a7cb5429028dedd9b7ca5c, type: 2}
+  - {fileID: 11400000, guid: 9bc38cbdc19f23f44abf8ed77872710e, type: 2}
+  - {fileID: 11400000, guid: d450a7215eae667429fb287d52c5d6c7, type: 2}
+  - {fileID: 11400000, guid: 29f6a50f681e1f442990aee4439f3f4c, type: 2}
+  - {fileID: 11400000, guid: 86662d84d30ffba48a4ec506f27aad6b, type: 2}
+  - {fileID: 11400000, guid: 4569cf118646aa5458efd5937b57712c, type: 2}
+  - {fileID: 11400000, guid: 7fe6ed43e88a7174d97c1e8844300a3a, type: 2}

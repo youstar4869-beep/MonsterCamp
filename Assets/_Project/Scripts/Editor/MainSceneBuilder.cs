@@ -14,6 +14,7 @@ public static class MainSceneBuilder
     private const string ShopConfigPath = "Assets/_Project/Data/ShopConfig.asset";
     private const string CreatureFolder = "Assets/_Project/Data/Creatures";
     private const string TypeChartPath = "Assets/_Project/Data/TypeChart.asset";
+    private const string RunConfigPath = "Assets/_Project/Data/RunConfig.asset";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
     private static Font _font;
@@ -41,6 +42,7 @@ public static class MainSceneBuilder
         Transform canvas = CreateCanvas();
 
         var flow = new GameObject("ScreenFlow").AddComponent<ScreenFlow>();
+        var run = new GameObject("RunManager").AddComponent<RunManager>();
 
         GameObject title = CreateScreen(canvas, "TitleScreen", "몬스터 캠프");
         GameObject trainer = CreateScreen(canvas, "TrainerSelectScreen", "트레이너 선택");
@@ -48,30 +50,47 @@ public static class MainSceneBuilder
         GameObject battle = CreateScreen(canvas, "BattleScreen", "전투");
         GameObject result = CreateScreen(canvas, "ResultScreen", "결과");
 
+        // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
+        GameObject hud = CreateHud(canvas, out Text roundText, out Text livesText, out Text goldText);
+
         AddButton(title, "시작", flow, GameScreen.TrainerSelect);
-        AddButton(result, "다음 라운드", flow, GameScreen.Shop);
+
+        // 결과 화면: 클리어/게임 오버 + 설명 + 타이틀로
+        Text resultTitle = result.transform.Find("Title").GetComponent<Text>();
+        Text resultDetail = CreateText(result.transform, "Detail", "", 56, new Vector2(0.05f, 0.62f), new Vector2(0.95f, 0.72f));
         AddButton(result, "타이틀로", flow, GameScreen.Title);
 
-        BattleScreen battleScreen = BuildBattleUI(battle, flow, result.transform.Find("Title").GetComponent<Text>());
+        BattleScreen battleScreen = BuildBattleUI(battle, run);
 
-        // 팀이 비었는지 확인한 뒤 전투 화면으로 넘어간다
+        // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, flow, battleScreen);
+        ShopScreen shopScreen = BuildShopUI(shop, run, goldText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
-        Button startRunButton = AddButton(trainer, "선택 완료", flow, GameScreen.Shop);
-        // 화면을 켠 다음 새 런 시작 (순서 유지)
-        UnityEventTools.AddVoidPersistentListener(startRunButton.onClick, shopScreen.StartRun);
+        // 새 런 시작 (1라운드 상점으로 이동은 RunManager가 한다)
+        Button startRunButton = CreateButton(trainer, "선택 완료");
+        UnityEventTools.AddVoidPersistentListener(startRunButton.onClick, run.StartRun);
+
+        var runConfig = AssetDatabase.LoadAssetAtPath<RunConfig>(RunConfigPath);
+        if (runConfig == null)
+        {
+            Debug.LogError("RunConfig 에셋이 없습니다. 먼저 MonsterCamp > Create Round Data 를 실행하세요.");
+        }
+        var serializedRun = new SerializedObject(run);
+        serializedRun.FindProperty("_config").objectReferenceValue = runConfig;
+        serializedRun.FindProperty("_flow").objectReferenceValue = flow;
+        serializedRun.FindProperty("_shop").objectReferenceValue = shopScreen;
+        serializedRun.FindProperty("_battle").objectReferenceValue = battleScreen;
+        serializedRun.FindProperty("_roundText").objectReferenceValue = roundText;
+        serializedRun.FindProperty("_livesText").objectReferenceValue = livesText;
+        serializedRun.FindProperty("_resultTitle").objectReferenceValue = resultTitle;
+        serializedRun.FindProperty("_resultDetail").objectReferenceValue = resultDetail;
+        serializedRun.ApplyModifiedPropertiesWithoutUndo();
 
         // GameScreen enum 순서와 같아야 한다.
         var serializedFlow = new SerializedObject(flow);
-        SerializedProperty screens = serializedFlow.FindProperty("_screens");
-        GameObject[] ordered = { title, trainer, shop, battle, result };
-        screens.arraySize = ordered.Length;
-        for (int i = 0; i < ordered.Length; i++)
-        {
-            screens.GetArrayElementAtIndex(i).objectReferenceValue = ordered[i];
-        }
+        SetArray(serializedFlow.FindProperty("_screens"), new Object[] { title, trainer, shop, battle, result });
+        serializedFlow.FindProperty("_hud").objectReferenceValue = hud;
         serializedFlow.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -141,6 +160,28 @@ public static class MainSceneBuilder
         return screen;
     }
 
+    // 상단 표시: 라운드 / 목숨 / 골드 (상점·전투 화면에서만 보인다)
+    private static GameObject CreateHud(Transform canvas, out Text roundText, out Text livesText, out Text goldText)
+    {
+        var hud = new GameObject("Hud", typeof(RectTransform), typeof(Image));
+        hud.transform.SetParent(canvas, false);
+        Stretch(hud.GetComponent<RectTransform>(), new Vector2(0f, 0.945f), Vector2.one);
+        var background = hud.GetComponent<Image>();
+        background.color = new Color(0.06f, 0.07f, 0.1f);
+        background.raycastTarget = false;
+
+        roundText = CreateText(hud.transform, "RoundText", "", 44, new Vector2(0.03f, 0f), new Vector2(0.42f, 1f));
+        roundText.alignment = TextAnchor.MiddleLeft;
+        livesText = CreateText(hud.transform, "LivesText", "", 44, new Vector2(0.42f, 0f), new Vector2(0.7f, 1f));
+        livesText.color = new Color(1f, 0.45f, 0.5f);
+        goldText = CreateText(hud.transform, "GoldText", "", 44, new Vector2(0.7f, 0f), new Vector2(0.97f, 1f));
+        goldText.alignment = TextAnchor.MiddleRight;
+        goldText.color = new Color(1f, 0.85f, 0.3f);
+
+        hud.SetActive(false);
+        return hud;
+    }
+
     // 화면 전환 버튼
     private static Button AddButton(GameObject screen, string label, ScreenFlow flow, GameScreen target)
     {
@@ -169,17 +210,18 @@ public static class MainSceneBuilder
     }
 
     // 전투 화면 (세로 1920 기준, 위에서부터)
-    // 제목 / 적 뒷줄 3칸 / 적 앞줄 2칸 / 승패 문구 / 내 팀 앞줄 2칸 / 내 팀 뒷줄 3칸 / 배속 버튼
+    // (상단 표시) / 적 팀 이름 / 적 뒷줄 3칸 / 적 앞줄 2칸 / 승패 문구 / 내 팀 앞줄 2칸 / 내 팀 뒷줄 3칸 / 배속 버튼
     // 두 팀의 앞줄이 가운데에서 마주 본다 (내 팀은 배치 화면과 같은 모양)
-    private static BattleScreen BuildBattleUI(GameObject screen, ScreenFlow flow, Text resultTitle)
+    private static BattleScreen BuildBattleUI(GameObject screen, RunManager run)
     {
-        Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.935f), new Vector2(1f, 0.985f));
+        // 제목 자리는 상단 표시가 차지한다
+        screen.transform.Find("Title").gameObject.SetActive(false);
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.25f, 0.015f), new Vector2(0.75f, 0.105f));
 
         Color playerColor = new Color(0.22f, 0.32f, 0.45f);
         Color enemyColor = new Color(0.45f, 0.24f, 0.24f);
 
-        CreateText(screen.transform, "EnemyLabel", "적 팀", 40, new Vector2(0f, 0.895f), new Vector2(1f, 0.93f));
+        Text enemyLabel = CreateText(screen.transform, "EnemyLabel", "적 팀", 40, new Vector2(0f, 0.895f), new Vector2(1f, 0.935f));
         Transform enemyBack = CreateRow(screen.transform, "EnemyBackRow", new Vector2(0.03f, 0.745f), new Vector2(0.97f, 0.89f));
         Transform enemyFront = CreateRow(screen.transform, "EnemyFrontRow", new Vector2(0.2f, 0.595f), new Vector2(0.8f, 0.74f));
 
@@ -204,43 +246,22 @@ public static class MainSceneBuilder
 
         var battle = screen.AddComponent<BattleScreen>();
         var so = new SerializedObject(battle);
-        so.FindProperty("_flow").objectReferenceValue = flow;
+        so.FindProperty("_run").objectReferenceValue = run;
         var typeChart = AssetDatabase.LoadAssetAtPath<TypeChart>(TypeChartPath);
         if (typeChart == null)
         {
             Debug.LogError("TypeChart 에셋이 없습니다. 먼저 MonsterCamp > Create Initial Creature Data 를 실행하세요.");
         }
         so.FindProperty("_typeChart").objectReferenceValue = typeChart;
-        SetArray(so.FindProperty("_testEnemyTeam"), LoadTestEnemyTeam());
         SetArray(so.FindProperty("_playerViews"), playerViews);
         SetArray(so.FindProperty("_enemyViews"), enemyViews);
+        so.FindProperty("_enemyLabel").objectReferenceValue = enemyLabel;
         so.FindProperty("_bannerText").objectReferenceValue = bannerText;
         so.FindProperty("_speedLabel").objectReferenceValue = speedLabel;
-        so.FindProperty("_resultTitle").objectReferenceValue = resultTitle;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(speedButton.onClick, battle.ToggleSpeed);
         return battle;
-    }
-
-    // 테스트용 적 팀: 앞줄 돌멩군·불똥이, 뒷줄 퐁당이 (나머지 칸은 비움)
-    private static Object[] LoadTestEnemyTeam()
-    {
-        string[] ids = { "Pebblet", "Embit", "Plopper", null, null };
-        var team = new Object[ids.Length];
-        for (int i = 0; i < ids.Length; i++)
-        {
-            if (ids[i] == null)
-            {
-                continue;
-            }
-            team[i] = AssetDatabase.LoadAssetAtPath<CreatureData>($"{CreatureFolder}/{ids[i]}.asset");
-            if (team[i] == null)
-            {
-                Debug.LogError($"테스트 적 크리처를 찾을 수 없습니다: {ids[i]}. 먼저 MonsterCamp > Create Initial Creature Data 를 실행하세요.");
-            }
-        }
-        return team;
     }
 
     // 전투 칸: 바탕(빈 칸 표시) + 크리처(체력바, 그림, 이름). 크리처가 죽으면 크리처만 사라진다
@@ -295,19 +316,16 @@ public static class MainSceneBuilder
     }
 
     // 상점·배치 화면 (세로 1920 기준, 위에서부터)
-    // 제목 / 골드·새로고침 / 상점 5칸 / 메시지 / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 전투 시작
-    private static ShopScreen BuildShopUI(GameObject screen, ScreenFlow flow, BattleScreen battle)
+    // (상단 표시: 라운드·목숨·골드) / 새로고침 / 상점 5칸 / 메시지 / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 전투 시작
+    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, Text goldText)
     {
-        Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.935f), new Vector2(1f, 0.985f));
+        // 제목 자리는 상단 표시가 차지한다
+        screen.transform.Find("Title").gameObject.SetActive(false);
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.015f), new Vector2(0.85f, 0.105f));
-
-        Text goldText = CreateText(screen.transform, "GoldText", "골드", 56,
-            new Vector2(0.05f, 0.875f), new Vector2(0.5f, 0.93f));
-        goldText.alignment = TextAnchor.MiddleLeft;
 
         var refresh = new GameObject("RefreshButton", typeof(RectTransform), typeof(Image), typeof(Button));
         refresh.transform.SetParent(screen.transform, false);
-        Stretch(refresh.GetComponent<RectTransform>(), new Vector2(0.55f, 0.875f), new Vector2(0.95f, 0.93f));
+        Stretch(refresh.GetComponent<RectTransform>(), new Vector2(0.3f, 0.875f), new Vector2(0.7f, 0.935f));
         refresh.GetComponent<Image>().color = new Color(0.4f, 0.75f, 0.95f);
         Text refreshLabel = CreateText(refresh.transform, "Text", "새로고침", 48, Vector2.zero, Vector2.one);
         refreshLabel.color = Color.black;
@@ -361,8 +379,7 @@ public static class MainSceneBuilder
         var shop = screen.AddComponent<ShopScreen>();
         var so = new SerializedObject(shop);
         so.FindProperty("_config").objectReferenceValue = GetOrCreateShopConfig();
-        so.FindProperty("_flow").objectReferenceValue = flow;
-        so.FindProperty("_battle").objectReferenceValue = battle;
+        so.FindProperty("_run").objectReferenceValue = run;
         so.FindProperty("_goldText").objectReferenceValue = goldText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.FindProperty("_refreshLabel").objectReferenceValue = refreshLabel;
