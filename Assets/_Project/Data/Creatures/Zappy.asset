@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: Zappy
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uCC0C\uB9BF\uC0C8"
+  _type: 3
+  _tier: 1
+  _maxHealth: 85
+  _attack: 9
+  _attackSpeed: 1.3
+  _skillDescription: "\uC804\uD22C \uC2DC\uC791 \uD6C4 3\uCD08\uAC04 \uACF5\uACA9
+    \uC18D\uB3C4 2\uBC30"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 306e05ec874d2f14f9aae37a3042ee02, type: 3}

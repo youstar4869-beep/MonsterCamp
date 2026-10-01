@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22217cb83d256b04ba6d538bc4b293d1, type: 3}
+  m_Name: TypeChart
+  m_EditorClassIdentifier: Assembly-CSharp::TypeChart
+  _advantageMultiplier: 1.5
+  _disadvantageMultiplier: 0.75
+  _advantages:
+  - Strong: 0
+    Weak: 2
+  - Strong: 2
+    Weak: 1
+  - Strong: 1
+    Weak: 0
+  - Strong: 3
+    Weak: 1
+  - Strong: 4
+    Weak: 3

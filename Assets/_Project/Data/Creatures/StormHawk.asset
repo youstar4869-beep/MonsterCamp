@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: StormHawk
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uB1CC\uC6B4\uB9E4"
+  _type: 3
+  _tier: 3
+  _maxHealth: 205
+  _attack: 22
+  _attackSpeed: 1.3
+  _skillDescription: "3\uBC88\uC9F8 \uACF5\uACA9\uB9C8\uB2E4 \uB4B7\uC904 \uC801
+    1\uB9C8\uB9AC\uC5D0\uAC8C \uACF5\uACA9\uB825 150% \uD53C\uD574"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 5d4fb11dddde04d458484929a125a6f6, type: 3}
