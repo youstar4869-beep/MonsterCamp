@@ -4,18 +4,22 @@ using UnityEngine.EventSystems;
 public enum SlotArea
 {
     Bench,
-    Team
+    Team,
+    // 아이템 보관함
+    Items
 }
 
-// 대기석·팀 칸에 붙여서 손가락으로 끌어 옮기기
-[RequireComponent(typeof(CreatureSlotView))]
+// 대기석·팀·아이템 보관함 칸에 붙여서 손가락으로 끌어 옮기기
+[RequireComponent(typeof(CanvasGroup))]
 public class SlotDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
+    private const float FadedAlpha = 0.4f;
+
     [SerializeField] private ShopScreen _shop;
     [SerializeField] private SlotArea _area;
     [SerializeField] private int _index;
 
-    private CreatureSlotView _view;
+    private CanvasGroup _canvasGroup;
     private bool _dragging;
 
     public SlotArea Area => _area;
@@ -23,7 +27,7 @@ public class SlotDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private void Awake()
     {
-        _view = GetComponent<CreatureSlotView>();
+        _canvasGroup = GetComponent<CanvasGroup>();
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -36,7 +40,8 @@ public class SlotDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             return;
         }
 
-        _view.SetFaded(true);
+        // 끌고 있는 동안 원래 칸을 흐리게
+        _canvasGroup.alpha = FadedAlpha;
         _shop.MoveDrag(eventData.position);
     }
 
@@ -56,7 +61,7 @@ public class SlotDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         }
 
         _dragging = false;
-        _view.SetFaded(false);
+        _canvasGroup.alpha = 1f;
         _shop.EndDrag();
     }
 

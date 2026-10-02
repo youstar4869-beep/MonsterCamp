@@ -14,6 +14,8 @@ public class ShopConfig : ScriptableObject
     [Tooltip("Lv1~3 판매 가격")]
     [SerializeField] private int[] _levelSellPrices = { 1, 3, 9 };
     [SerializeField] private CreatureData[] _creaturePool;
+    [Tooltip("상점 아이템 칸에 나오는 아이템 목록 (가격은 각 아이템 에셋)")]
+    [SerializeField] private ItemData[] _itemPool;
 
     public int RoundGold => _roundGold;
     public int RefreshCost => _refreshCost;
@@ -33,5 +35,10 @@ public class ShopConfig : ScriptableObject
     public CreatureData GetRandomCreature()
     {
         return _creaturePool[Random.Range(0, _creaturePool.Length)];
+    }
+
+    public ItemData GetRandomItem()
+    {
+        return _itemPool.Length > 0 ? _itemPool[Random.Range(0, _itemPool.Length)] : null;
     }
 }

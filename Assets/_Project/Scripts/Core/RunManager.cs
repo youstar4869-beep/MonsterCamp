@@ -22,6 +22,9 @@ public class RunManager : MonoBehaviour
     private int _round;
     private int _lives;
     private TrainerData _trainer;
+    // 행운 동전: 이번 전투에서 이기면 받을 골드 / 다음 라운드에 더할 골드
+    private int _winGold;
+    private int _pendingGold;
 
     // 트레이너 선택 화면의 "선택 완료"
     public void StartRun(TrainerData trainer)
@@ -29,6 +32,7 @@ public class RunManager : MonoBehaviour
         _trainer = trainer;
         _round = 1;
         _lives = _config.MaxLives;
+        _pendingGold = 0;
         _trainerText.text = $"트레이너: {trainer.DisplayName}";
         _shop.ResetRun();
         StartRound();
@@ -37,6 +41,16 @@ public class RunManager : MonoBehaviour
     // 상점의 "전투 시작" (팀이 비어 있지 않은 것은 상점에서 확인)
     public void BeginBattle(CreatureInstance[] team)
     {
+        // 전투에 나가는 팀 칸 크리처의 행운 동전만 센다 (여러 개면 더함)
+        _winGold = 0;
+        foreach (CreatureInstance creature in team)
+        {
+            if (creature?.Item != null)
+            {
+                _winGold += creature.Item.WinGold;
+            }
+        }
+
         _flow.Show(GameScreen.Battle);
         _battle.StartBattle(team, _config.GetEnemyTeam(_round), _trainer);
     }
@@ -45,6 +59,8 @@ public class RunManager : MonoBehaviour
     public void OnBattleEnd(bool won)
     {
         bool lastRound = _round >= _config.RoundCount;
+        // 골드는 라운드 시작 때 다시 채우므로, 이겨서 받은 골드는 다음 라운드 골드에 더한다
+        _pendingGold = won ? _winGold : 0;
 
         if (won)
         {
@@ -76,8 +92,9 @@ public class RunManager : MonoBehaviour
     private void StartRound()
     {
         _flow.Show(GameScreen.Shop);
-        // 상인: 라운드 골드 +1
-        _shop.StartRound(_trainer.RoundGoldBonus);
+        // 상인: 라운드 골드 +1, 행운 동전: 지난 전투 승리 시 +1
+        _shop.StartRound(_trainer.RoundGoldBonus + _pendingGold);
+        _pendingGold = 0;
         UpdateHud();
     }
 

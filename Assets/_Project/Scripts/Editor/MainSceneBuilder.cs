@@ -18,6 +18,7 @@ public static class MainSceneBuilder
     private const string RunConfigPath = "Assets/_Project/Data/RunConfig.asset";
     private const string SynergyConfigPath = "Assets/_Project/Data/SynergyConfig.asset";
     private const string TrainerFolder = "Assets/_Project/Data/Trainers";
+    private const string ItemFolder = "Assets/_Project/Data/Items";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
     private static Font _font;
@@ -407,19 +408,24 @@ public static class MainSceneBuilder
         }
         slot.GetComponent<Image>().raycastTarget = false;
 
+        // 오른쪽 위 작은 아이템 아이콘 (처음엔 숨김)
+        ItemIconView itemIcon = CreateItemIcon(unit.transform, new Vector2(0.74f, 0.6f), new Vector2(0.97f, 0.84f), 30);
+
         var view = unit.GetComponent<CreatureUnitView>();
         var so = new SerializedObject(view);
         so.FindProperty("_icon").objectReferenceValue = icon;
         so.FindProperty("_nameText").objectReferenceValue = nameText;
         so.FindProperty("_levelText").objectReferenceValue = levelText;
         so.FindProperty("_healthFill").objectReferenceValue = healthFill.GetComponent<RectTransform>();
+        so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
         so.ApplyModifiedPropertiesWithoutUndo();
         unit.SetActive(false);
         return view;
     }
 
     // 상점·배치 화면 (세로 1920 기준, 위에서부터)
-    // (상단 표시: 라운드·목숨·골드) / 새로고침 / 상점 5칸 / 메시지 / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 전투 시작
+    // (상단 표시: 라운드·목숨·골드) / 트레이너·새로고침 / 상점 크리처 5칸 + 아이템 1칸 / 메시지 / 시너지
+    // / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 아이템 보관함 3칸 + 전투 시작
     private static ShopScreen BuildShopUI(GameObject screen, RunManager run, Text goldText, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
@@ -430,7 +436,8 @@ public static class MainSceneBuilder
 
         // 제목 자리는 상단 표시가 차지한다
         screen.transform.Find("Title").gameObject.SetActive(false);
-        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.015f), new Vector2(0.85f, 0.105f));
+        // 전투 시작 버튼은 오른쪽 아래 (왼쪽 아래는 아이템 보관함)
+        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.56f, 0.015f), new Vector2(0.97f, 0.115f));
 
         var refresh = new GameObject("RefreshButton", typeof(RectTransform), typeof(Image), typeof(Button));
         refresh.transform.SetParent(screen.transform, false);
@@ -439,13 +446,15 @@ public static class MainSceneBuilder
         Text refreshLabel = CreateText(refresh.transform, "Text", "새로고침", 48, Vector2.zero, Vector2.one);
         refreshLabel.color = Color.black;
 
-        // 상점 칸: 약 190 x 290
+        // 상점 칸: 크리처 5칸 + 아이템 1칸, 각 약 155 x 290
         Transform shopRow = CreateRow(screen.transform, "ShopSlots", new Vector2(0.03f, 0.715f), new Vector2(0.97f, 0.865f));
         var shopSlots = new CreatureSlotView[5];
         for (int i = 0; i < shopSlots.Length; i++)
         {
             shopSlots[i] = CreateSlot(shopRow, "ShopSlot" + i, "");
         }
+        ItemSlotView shopItemSlot = CreateItemSlot(shopRow, "ShopItemSlot", "");
+        shopItemSlot.GetComponent<Image>().color = new Color(0.32f, 0.26f, 0.4f);
 
         Text messageText = CreateText(screen.transform, "MessageText", "", 40,
             new Vector2(0f, 0.69f), new Vector2(1f, 0.713f));
@@ -479,7 +488,15 @@ public static class MainSceneBuilder
             benchSlots[i] = CreateSlot(benchRow, "BenchSlot" + i, "");
         }
 
-        // 끄는 그림은 가장 위에 그려지도록 마지막에 만든다
+        // 아이템 보관함 3칸 (왼쪽 아래): 크리처에게 끌어서 장착
+        Transform itemRow = CreateRow(screen.transform, "ItemSlots", new Vector2(0.03f, 0.015f), new Vector2(0.53f, 0.115f));
+        var itemSlots = new ItemSlotView[3];
+        for (int i = 0; i < itemSlots.Length; i++)
+        {
+            itemSlots[i] = CreateItemSlot(itemRow, "ItemSlot" + i, "보관함");
+        }
+
+        // 끄는 그림은 가장 위에 그려지도록 마지막에 만든다 (아이템은 색 네모 + 글자)
         var dragIconGo = new GameObject("DragIcon", typeof(RectTransform), typeof(Image));
         dragIconGo.transform.SetParent(screen.transform, false);
         var dragRect = dragIconGo.GetComponent<RectTransform>();
@@ -488,6 +505,8 @@ public static class MainSceneBuilder
         var dragIcon = dragIconGo.GetComponent<Image>();
         dragIcon.raycastTarget = false;
         dragIcon.preserveAspect = true;
+        Text dragLabel = CreateText(dragIconGo.transform, "Label", "", 100, Vector2.zero, Vector2.one);
+        dragLabel.color = Color.black;
         dragIconGo.SetActive(false);
 
         var shop = screen.AddComponent<ShopScreen>();
@@ -502,7 +521,10 @@ public static class MainSceneBuilder
         SetArray(so.FindProperty("_shopSlots"), shopSlots);
         SetArray(so.FindProperty("_benchSlots"), benchSlots);
         SetArray(so.FindProperty("_teamSlots"), teamSlots);
+        so.FindProperty("_shopItemSlot").objectReferenceValue = shopItemSlot;
+        SetArray(so.FindProperty("_itemSlots"), itemSlots);
         so.FindProperty("_dragIcon").objectReferenceValue = dragIcon;
+        so.FindProperty("_dragLabel").objectReferenceValue = dragLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         for (int i = 0; i < benchSlots.Length; i++)
@@ -513,8 +535,13 @@ public static class MainSceneBuilder
         {
             AddDragHandler(teamSlots[i], shop, SlotArea.Team, i);
         }
+        for (int i = 0; i < itemSlots.Length; i++)
+        {
+            AddDragHandler(itemSlots[i], shop, SlotArea.Items, i);
+        }
 
         UnityEventTools.AddVoidPersistentListener(refresh.GetComponent<Button>().onClick, shop.Refresh);
+        UnityEventTools.AddVoidPersistentListener(shopItemSlot.GetComponent<Button>().onClick, shop.BuyItem);
         for (int i = 0; i < shopSlots.Length; i++)
         {
             UnityEventTools.AddIntPersistentListener(shopSlots[i].GetComponent<Button>().onClick, shop.BuyAt, i);
@@ -527,7 +554,6 @@ public static class MainSceneBuilder
         return shop;
     }
 
-    // 상점 설정 에셋. 이미 있으면 그대로 쓴다 (조정한 값 보호).
     // 시너지 수치 에셋. 없으면 기본값(GAME_DESIGN.md 8-1)으로 만들고, 있으면 그대로 쓴다
     private static SynergyConfig GetOrCreateSynergyConfig()
     {
@@ -541,34 +567,88 @@ public static class MainSceneBuilder
         return config;
     }
 
+    // 상점 설정 에셋. 이미 있으면 그대로 쓴다 (조정한 값 보호).
+    // 아이템 목록이 비어 있을 때만 아이템 6종을 채운다
     private static ShopConfig GetOrCreateShopConfig()
     {
         var config = AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath);
-        if (config != null)
+        if (config == null)
         {
-            return config;
-        }
+            string[] guids = AssetDatabase.FindAssets("t:CreatureData", new[] { CreatureFolder });
+            if (guids.Length == 0)
+            {
+                Debug.LogError("크리처 데이터가 없습니다. 먼저 MonsterCamp > Create Initial Creature Data 를 실행하세요.");
+            }
 
-        string[] guids = AssetDatabase.FindAssets("t:CreatureData", new[] { CreatureFolder });
-        if (guids.Length == 0)
-        {
-            Debug.LogError("크리처 데이터가 없습니다. 먼저 MonsterCamp > Create Initial Creature Data 를 실행하세요.");
-        }
+            config = ScriptableObject.CreateInstance<ShopConfig>();
+            AssetDatabase.CreateAsset(config, ShopConfigPath);
 
-        config = ScriptableObject.CreateInstance<ShopConfig>();
-        AssetDatabase.CreateAsset(config, ShopConfigPath);
+            var creatures = new Object[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+            {
+                creatures[i] = AssetDatabase.LoadAssetAtPath<CreatureData>(AssetDatabase.GUIDToAssetPath(guids[i]));
+            }
+            var newSo = new SerializedObject(config);
+            SetArray(newSo.FindProperty("_creaturePool"), creatures);
+            newSo.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         var so = new SerializedObject(config);
-        SerializedProperty pool = so.FindProperty("_creaturePool");
-        pool.arraySize = guids.Length;
-        for (int i = 0; i < guids.Length; i++)
+        SerializedProperty itemPool = so.FindProperty("_itemPool");
+        if (itemPool.arraySize == 0)
         {
-            pool.GetArrayElementAtIndex(i).objectReferenceValue =
-                AssetDatabase.LoadAssetAtPath<CreatureData>(AssetDatabase.GUIDToAssetPath(guids[i]));
+            SetArray(itemPool, GetOrCreateItems());
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
-        so.ApplyModifiedPropertiesWithoutUndo();
         AssetDatabase.SaveAssets();
         return config;
+    }
+
+    // 아이템 6종 에셋. 없는 것만 기본값(GAME_DESIGN.md 9-1)으로 만든다 (조정한 값 보호)
+    private static Object[] GetOrCreateItems()
+    {
+        Directory.CreateDirectory(ItemFolder);
+        AssetDatabase.Refresh();
+
+        return new Object[]
+        {
+            GetOrCreateItem("SharpClaw", "날카로운 발톱", "발", new Color(0.95f, 0.45f, 0.35f),
+                "공격력 +20%", ItemEffect.AttackBonus, 0.2f),
+            GetOrCreateItem("HardShell", "단단한 껍질", "껍", new Color(0.65f, 0.5f, 0.35f),
+                "체력 +25%", ItemEffect.HealthBonus, 0.25f),
+            GetOrCreateItem("ThunderFeather", "번개 깃털", "깃", new Color(0.55f, 0.8f, 1f),
+                "공격 속도 +20%", ItemEffect.SpeedBonus, 0.2f),
+            GetOrCreateItem("HealingBerry", "회복 열매", "열", new Color(0.45f, 0.85f, 0.45f),
+                "전투 중 1초마다 최대 체력 3% 회복", ItemEffect.Regen, 0.03f),
+            GetOrCreateItem("ThornArmor", "가시 갑옷", "가", new Color(0.7f, 0.5f, 0.9f),
+                "받은 피해의 20%를 공격자에게 되돌림", ItemEffect.Thorns, 0.2f),
+            GetOrCreateItem("LuckyCoin", "행운 동전", "동", new Color(1f, 0.8f, 0.2f),
+                "전투에서 이기면 골드 +1 (다음 라운드)", ItemEffect.WinGold, 1f),
+        };
+    }
+
+    private static ItemData GetOrCreateItem(string id, string name, string iconLabel, Color iconColor,
+        string description, ItemEffect effect, float value)
+    {
+        string path = $"{ItemFolder}/{id}.asset";
+        var item = AssetDatabase.LoadAssetAtPath<ItemData>(path);
+        if (item != null)
+        {
+            return item;
+        }
+
+        item = ScriptableObject.CreateInstance<ItemData>();
+        AssetDatabase.CreateAsset(item, path);
+        var so = new SerializedObject(item);
+        so.FindProperty("_displayName").stringValue = name;
+        so.FindProperty("_iconLabel").stringValue = iconLabel;
+        so.FindProperty("_iconColor").colorValue = iconColor;
+        so.FindProperty("_description").stringValue = description;
+        so.FindProperty("_effect").enumValueIndex = (int)effect;
+        so.FindProperty("_value").floatValue = value;
+        so.FindProperty("_price").intValue = 3;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return item;
     }
 
     private static Transform CreateRow(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
@@ -585,7 +665,8 @@ public static class MainSceneBuilder
         return go.transform;
     }
 
-    private static void AddDragHandler(CreatureSlotView slot, ShopScreen shop, SlotArea area, int index)
+    // 끌기 처리 (CanvasGroup은 RequireComponent로 같이 붙는다)
+    private static void AddDragHandler(Component slot, ShopScreen shop, SlotArea area, int index)
     {
         var handler = slot.gameObject.AddComponent<SlotDragHandler>();
         var so = new SerializedObject(handler);
@@ -616,6 +697,9 @@ public static class MainSceneBuilder
         Text priceText = CreateText(go.transform, "Price", "", 28, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.2f));
         priceText.color = new Color(1f, 0.85f, 0.3f);
 
+        // 오른쪽 위 작은 아이템 아이콘 (장착했을 때만 보임)
+        ItemIconView itemIcon = CreateItemIcon(go.transform, new Vector2(0.7f, 0.64f), new Vector2(0.97f, 0.86f), 30);
+
         // 가장 위에 그려지도록 마지막에 만든다
         var flashGo = new GameObject("Flash", typeof(RectTransform), typeof(Image));
         flashGo.transform.SetParent(go.transform, false);
@@ -631,9 +715,54 @@ public static class MainSceneBuilder
         so.FindProperty("_nameText").objectReferenceValue = nameText;
         so.FindProperty("_priceText").objectReferenceValue = priceText;
         so.FindProperty("_levelText").objectReferenceValue = levelText;
+        so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
         so.FindProperty("_flash").objectReferenceValue = flash;
         so.FindProperty("_emptyLabel").stringValue = emptyLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
+        return view;
+    }
+
+    // 아이템 칸: 배경 버튼 + 아이콘(색 네모 + 글자) + 이름 + 가격. 비어 있으면 emptyLabel 표시
+    private static ItemSlotView CreateItemSlot(Transform parent, string name, string emptyLabel)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(ItemSlotView));
+        go.transform.SetParent(parent, false);
+        go.GetComponent<Image>().color = new Color(0.25f, 0.28f, 0.34f);
+
+        ItemIconView icon = CreateItemIcon(go.transform, new Vector2(0.22f, 0.42f), new Vector2(0.78f, 0.92f), 64);
+        Text nameText = CreateText(go.transform, "Name", "", 28, new Vector2(0.03f, 0.2f), new Vector2(0.97f, 0.42f));
+        Text priceText = CreateText(go.transform, "Price", "", 28, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.2f));
+        priceText.color = new Color(1f, 0.85f, 0.3f);
+
+        var view = go.GetComponent<ItemSlotView>();
+        var so = new SerializedObject(view);
+        so.FindProperty("_button").objectReferenceValue = go.GetComponent<Button>();
+        so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.FindProperty("_priceText").objectReferenceValue = priceText;
+        so.FindProperty("_emptyLabel").stringValue = emptyLabel;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return view;
+    }
+
+    // 아이템 아이콘: 색 네모 + 한 글자 (처음엔 숨김)
+    private static ItemIconView CreateItemIcon(Transform parent, Vector2 anchorMin, Vector2 anchorMax, int fontSize)
+    {
+        var go = new GameObject("ItemIcon", typeof(RectTransform), typeof(Image), typeof(ItemIconView));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>(), anchorMin, anchorMax);
+        var background = go.GetComponent<Image>();
+        background.raycastTarget = false;
+
+        Text label = CreateText(go.transform, "Label", "", fontSize, Vector2.zero, Vector2.one);
+        label.color = Color.black;
+
+        var view = go.GetComponent<ItemIconView>();
+        var so = new SerializedObject(view);
+        so.FindProperty("_background").objectReferenceValue = background;
+        so.FindProperty("_label").objectReferenceValue = label;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        go.SetActive(false);
         return view;
     }
 

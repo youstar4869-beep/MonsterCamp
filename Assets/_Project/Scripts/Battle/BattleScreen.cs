@@ -40,17 +40,17 @@ public class BattleScreen : MonoBehaviour
         for (int i = 0; i < _playerViews.Length; i++)
         {
             CreatureInstance creature = i < playerTeam.Length ? playerTeam[i] : null;
-            Spawn(creature?.Data, creature?.Level ?? 1, i, _playerViews, _players);
+            Spawn(creature?.Data, creature?.Level ?? 1, creature?.Item, i, _playerViews, _players);
         }
 
         _enemies.Clear();
         for (int i = 0; i < _enemyViews.Length; i++)
         {
             EnemyTeamData.Member member = i < enemyTeam.SlotCount ? enemyTeam.GetMember(i) : default;
-            Spawn(member.Creature, Mathf.Max(1, member.Level), i, _enemyViews, _enemies);
+            Spawn(member.Creature, Mathf.Max(1, member.Level), null, i, _enemyViews, _enemies);
         }
 
-        // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력은 내 팀만 (시너지와 겹쳐서 적용)
+        // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력·아이템은 내 팀만 (시너지와 겹쳐서 적용)
         ApplyBonuses(_players, trainer);
         ApplyBonuses(_enemies, null);
 
@@ -90,7 +90,8 @@ public class BattleScreen : MonoBehaviour
     }
 
     // 팀의 타입별 마릿수(같은 크리처는 1마리)에 따라 해당 타입 크리처에게 보너스
-    // 트레이너 능력은 시너지 보너스에 더해진다 (예: 불 시너지 +15% + 불꽃 조련사 +20% = +35%)
+    // 트레이너 능력·아이템은 시너지 보너스에 더해진다
+    // (예: 불 시너지 +15% + 불꽃 조련사 +20% + 날카로운 발톱 +20% = 공격력 +55%)
     private void ApplyBonuses(List<BattleUnit> units, TrainerData trainer)
     {
         _teamCreatures.Clear();
@@ -107,6 +108,10 @@ public class BattleScreen : MonoBehaviour
             if (trainer != null)
             {
                 trainer.AddBattleBonus(unit.Data.Type, ref bonus);
+            }
+            if (unit.Item != null)
+            {
+                unit.Item.AddBattleBonus(ref bonus);
             }
             unit.ApplyBonus(bonus);
         }
@@ -138,8 +143,18 @@ public class BattleScreen : MonoBehaviour
                     return;
                 }
 
-                target.TakeDamage(CalculateDamage(attacker, target));
+                int dealt = target.TakeDamage(CalculateDamage(attacker, target));
                 attacker.Cooldown += attacker.AttackInterval;
+
+                // 가시 갑옷: 받은 피해의 일부를 공격자에게 (되돌린 피해는 다시 되돌아가지 않는다)
+                if (target.ThornsPercent > 0f)
+                {
+                    attacker.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(dealt * target.ThornsPercent)));
+                    if (!attacker.IsAlive)
+                    {
+                        break;
+                    }
+                }
             }
         }
     }
@@ -194,14 +209,14 @@ public class BattleScreen : MonoBehaviour
     }
 
     // 빈 칸(creature == null)이면 칸만 비워 둔다
-    private static void Spawn(CreatureData creature, int level, int slotIndex, CreatureUnitView[] views, List<BattleUnit> units)
+    private static void Spawn(CreatureData creature, int level, ItemData item, int slotIndex, CreatureUnitView[] views, List<BattleUnit> units)
     {
         if (creature == null)
         {
             views[slotIndex].Hide();
             return;
         }
-        units.Add(new BattleUnit(creature, slotIndex, level, views[slotIndex]));
+        units.Add(new BattleUnit(creature, slotIndex, level, item, views[slotIndex]));
     }
 
     private void UpdateSpeedLabel()
