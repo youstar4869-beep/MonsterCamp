@@ -202,7 +202,7 @@ public static class MainSceneBuilder
         Button newGameButton = CreateButton(screen, "새 게임");
         AddButton(screen, "도감", flow, GameScreen.Codex);
         Button replayButton = CreateFreeButton(screen.transform, "튜토리얼 다시 보기",
-            new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.065f), new Color(0.5f, 0.53f, 0.6f));
+            new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.08f), new Color(0.5f, 0.53f, 0.6f));
         replayButton.GetComponentInChildren<Text>().resizeTextMaxSize = 34;
 
         Text messageText = CreateText(screen.transform, "MessageText", "", 40, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
@@ -253,7 +253,33 @@ public static class MainSceneBuilder
         go.GetComponent<Image>().color = color;
         Text text = CreateText(go.transform, "Text", label, 52, Vector2.zero, Vector2.one);
         text.color = Color.black;
-        return go.GetComponent<Button>();
+        Button button = go.GetComponent<Button>();
+        AddPressFeedback(button);
+        return button;
+    }
+
+    // 누름 효과: 누르는 동안 더 어둡게 + 살짝 작게
+    private static void AddPressFeedback(Button button)
+    {
+        ColorBlock colors = button.colors;
+        colors.pressedColor = new Color(0.7f, 0.7f, 0.7f);
+        button.colors = colors;
+        button.gameObject.AddComponent<ButtonPressFeedback>();
+    }
+
+    // 보이는 크기는 그대로 두고 눌리는 범위만 넓힌다 (투명한 판, 1080x1920 기준 픽셀).
+    // 버튼이 작을 때 손가락으로 누르기 쉽게 48dp(약 120px) 이상으로 맞추는 데 쓴다
+    private static void AddHitArea(Component target, float left, float bottom, float right, float top)
+    {
+        var go = new GameObject("HitArea", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(target.transform, false);
+        go.transform.SetAsFirstSibling();
+        var rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = new Vector2(-left, -bottom);
+        rect.offsetMax = new Vector2(right, top);
+        go.GetComponent<Image>().color = Color.clear;
     }
 
     // 크리처 정보 창: 어두운 바탕(누르면 닫힘) + 가운데 창
@@ -264,7 +290,7 @@ public static class MainSceneBuilder
         RectTransform window = CreatePanel(root, "Window", new Color(0.16f, 0.18f, 0.24f), true);
         Stretch(window, new Vector2(0.06f, 0.22f), new Vector2(0.94f, 0.8f));
 
-        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.74f, 0.9f), new Vector2(0.97f, 0.98f),
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.74f, 0.875f), new Vector2(0.97f, 0.985f),
             new Color(0.7f, 0.72f, 0.78f));
         closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = 40;
 
@@ -334,7 +360,7 @@ public static class MainSceneBuilder
         Stretch(window, new Vector2(0.04f, 0.2f), new Vector2(0.96f, 0.82f));
 
         CreateText(window, "Title", "타입 시너지", 64, new Vector2(0.05f, 0.88f), new Vector2(0.72f, 0.98f));
-        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.75f, 0.9f), new Vector2(0.97f, 0.98f),
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.75f, 0.88f), new Vector2(0.97f, 0.985f),
             new Color(0.7f, 0.72f, 0.78f));
         closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = 40;
 
@@ -438,7 +464,7 @@ public static class MainSceneBuilder
             new Color(0.95f, 0.75f, 0.25f));
 
         // 오른쪽 위 건너뛰기 (항상 맨 위)
-        Button skipButton = CreateFreeButton(overlay.transform, "건너뛰기", new Vector2(0.76f, 0.89f), new Vector2(0.98f, 0.94f),
+        Button skipButton = CreateFreeButton(overlay.transform, "건너뛰기", new Vector2(0.76f, 0.88f), new Vector2(0.98f, 0.945f),
             new Color(0.75f, 0.77f, 0.82f));
         skipButton.GetComponentInChildren<Text>().resizeTextMaxSize = 38;
 
@@ -777,6 +803,8 @@ public static class MainSceneBuilder
         Text unlockLabel = unlockButton.GetComponentInChildren<Text>();
         unlockLabel.resizeTextMaxSize = 30;
         unlockLabel.fontSize = 30;
+        // 버튼 높이가 약 60px라 위쪽(이름·설명 글자 쪽)으로 눌리는 범위를 넓힌다
+        AddHitArea(unlockButton, 0f, 6f, 0f, 60f);
 
         var view = go.GetComponent<CodexEntryView>();
         var so = new SerializedObject(view);
@@ -1055,7 +1083,9 @@ public static class MainSceneBuilder
         SetupText(text.GetComponent<Text>(), label, 60);
         text.GetComponent<Text>().color = Color.black;
 
-        return go.GetComponent<Button>();
+        Button button = go.GetComponent<Button>();
+        AddPressFeedback(button);
+        return button;
     }
 
     // 전투 화면 (세로 1920 기준, 위에서부터)
@@ -1225,8 +1255,9 @@ public static class MainSceneBuilder
 
         var refresh = new GameObject("RefreshButton", typeof(RectTransform), typeof(Image), typeof(Button));
         refresh.transform.SetParent(screen.transform, false);
-        Stretch(refresh.GetComponent<RectTransform>(), new Vector2(0.3f, 0.875f), new Vector2(0.7f, 0.935f));
+        Stretch(refresh.GetComponent<RectTransform>(), new Vector2(0.3f, 0.87f), new Vector2(0.7f, 0.935f));
         refresh.GetComponent<Image>().color = new Color(0.4f, 0.75f, 0.95f);
+        AddPressFeedback(refresh.GetComponent<Button>());
         Text refreshLabel = CreateText(refresh.transform, "Text", "새로고침", 48, Vector2.zero, Vector2.one);
         refreshLabel.color = Color.black;
 
@@ -1251,9 +1282,13 @@ public static class MainSceneBuilder
         synergyText.raycastTarget = true;
         Button synergyTextButton = synergyText.gameObject.AddComponent<Button>();
         synergyTextButton.targetGraphic = synergyText;
+        // 시너지 줄은 높이가 약 50px라 위쪽(메시지 줄, 눌리지 않음)으로 눌리는 범위를 넓힌다 (아래는 팀 칸)
+        AddHitArea(synergyText, 0f, 0f, 0f, 40f);
         Button synergyButton = CreateFreeButton(screen.transform, "시너지",
             new Vector2(0.82f, 0.664f), new Vector2(0.98f, 0.694f), new Color(0.45f, 0.75f, 0.5f));
         synergyButton.GetComponentInChildren<Text>().resizeTextMaxSize = 34;
+        // 시너지 버튼 아래·위는 비어 있어(팀 앞줄은 0.2~0.8) 눌리는 범위를 약 140px로
+        AddHitArea(synergyButton, 0f, 46f, 0f, 38f);
 
         // 팀 칸: 약 300 x 290 (가장 크게). 위가 앞줄
         Color teamColor = new Color(0.22f, 0.32f, 0.3f);
@@ -1313,6 +1348,8 @@ public static class MainSceneBuilder
         Button goldButton = goldText.gameObject.AddComponent<Button>();
         goldButton.targetGraphic = goldText;
         UnityEventTools.AddVoidPersistentListener(goldButton.onClick, shop.ShowGoldHelp);
+        // 상단 표시 높이(약 105px)보다 아래로 조금 더 눌리게
+        AddHitArea(goldText, 0f, 20f, 0f, 0f);
 
         var so = new SerializedObject(shop);
         so.FindProperty("_config").objectReferenceValue = GetOrCreateShopConfig();
