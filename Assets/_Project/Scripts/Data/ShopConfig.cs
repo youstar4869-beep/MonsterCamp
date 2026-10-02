@@ -41,4 +41,31 @@ public class ShopConfig : ScriptableObject
     {
         return _itemPool.Length > 0 ? _itemPool[Random.Range(0, _itemPool.Length)] : null;
     }
+
+    // 저장 파일의 에셋 이름으로 찾기. 없으면 null
+    public CreatureData FindCreature(string id)
+    {
+        return FindByName(_creaturePool, id);
+    }
+
+    public ItemData FindItem(string id)
+    {
+        return FindByName(_itemPool, id);
+    }
+
+    private static T FindByName<T>(T[] assets, string id) where T : Object
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return null;
+        }
+        foreach (T asset in assets)
+        {
+            if (asset != null && asset.name == id)
+            {
+                return asset;
+            }
+        }
+        return null;
+    }
 }

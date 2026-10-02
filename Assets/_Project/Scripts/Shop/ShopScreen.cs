@@ -66,6 +66,85 @@ public class ShopScreen : MonoBehaviour
         UpdateView();
     }
 
+    // ---------- 저장 / 불러오기 ----------
+
+    // 지금 상점 단계 상태를 저장 데이터에 쓴다 (골드, 팀, 대기석, 보관함, 상점 목록)
+    public void WriteSave(RunSaveData data)
+    {
+        data.gold = _gold;
+        data.team = ToSave(_team);
+        data.bench = ToSave(_bench);
+        data.items = new string[_items.Length];
+        for (int i = 0; i < _items.Length; i++)
+        {
+            data.items[i] = IdOf(_items[i]);
+        }
+        data.shopCreatures = new string[_offers.Length];
+        for (int i = 0; i < _offers.Length; i++)
+        {
+            data.shopCreatures[i] = IdOf(_offers[i]);
+        }
+        data.shopItem = IdOf(_itemOffer);
+    }
+
+    // 저장 데이터로 상점 단계를 되살린다. 찾을 수 없는 크리처·아이템은 빈 칸으로 둔다
+    public void LoadSave(RunSaveData data)
+    {
+        ResetRun();
+        FromSave(data.team, _team);
+        FromSave(data.bench, _bench);
+        for (int i = 0; i < _items.Length && data.items != null && i < data.items.Length; i++)
+        {
+            _items[i] = _config.FindItem(data.items[i]);
+        }
+        for (int i = 0; i < _offers.Length && data.shopCreatures != null && i < data.shopCreatures.Length; i++)
+        {
+            _offers[i] = _config.FindCreature(data.shopCreatures[i]);
+        }
+        _itemOffer = _config.FindItem(data.shopItem);
+        _gold = Mathf.Max(0, data.gold);
+
+        _dragSource = null;
+        _dragIcon.gameObject.SetActive(false);
+        ShowMessage("");
+        UpdateView();
+    }
+
+    private static CreatureSaveData[] ToSave(CreatureInstance[] slots)
+    {
+        var result = new CreatureSaveData[slots.Length];
+        for (int i = 0; i < slots.Length; i++)
+        {
+            CreatureInstance creature = slots[i];
+            result[i] = new CreatureSaveData
+            {
+                creature = IdOf(creature?.Data),
+                level = creature?.Level ?? 0,
+                item = IdOf(creature?.Item)
+            };
+        }
+        return result;
+    }
+
+    private void FromSave(CreatureSaveData[] saved, CreatureInstance[] slots)
+    {
+        for (int i = 0; i < slots.Length && saved != null && i < saved.Length; i++)
+        {
+            CreatureData data = _config.FindCreature(saved[i]?.creature);
+            if (data == null)
+            {
+                continue;
+            }
+            int level = Mathf.Clamp(saved[i].level, 1, CreatureData.MaxLevel);
+            slots[i] = new CreatureInstance(data, level) { Item = _config.FindItem(saved[i].item) };
+        }
+    }
+
+    private static string IdOf(Object asset)
+    {
+        return asset != null ? asset.name : "";
+    }
+
     // 크리처 칸과 아이템 칸을 같이 새로 뽑는다
     public void Refresh()
     {

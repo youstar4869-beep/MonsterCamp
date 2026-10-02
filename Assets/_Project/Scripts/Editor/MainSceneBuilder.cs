@@ -57,7 +57,7 @@ public static class MainSceneBuilder
         // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
         GameObject hud = CreateHud(canvas, out Text roundText, out Text livesText, out Text goldText);
 
-        AddButton(title, "시작", flow, GameScreen.TrainerSelect);
+        BuildTitleUI(title, flow, run);
 
         // 결과 화면: 클리어/게임 오버 + 설명 + 타이틀로
         Text resultTitle = result.transform.Find("Title").GetComponent<Text>();
@@ -81,6 +81,7 @@ public static class MainSceneBuilder
         }
         var serializedRun = new SerializedObject(run);
         serializedRun.FindProperty("_config").objectReferenceValue = runConfig;
+        SetArray(serializedRun.FindProperty("_trainers"), GetOrCreateTrainers());
         serializedRun.FindProperty("_flow").objectReferenceValue = flow;
         serializedRun.FindProperty("_shop").objectReferenceValue = shopScreen;
         serializedRun.FindProperty("_battle").objectReferenceValue = battleScreen;
@@ -162,6 +163,61 @@ public static class MainSceneBuilder
         layout.childForceExpandHeight = false;
 
         return screen;
+    }
+
+    // 타이틀 화면: 제목 / 안내 문구 / 이어하기(저장된 판이 있을 때만) / 새 게임 + 새 게임 확인 창
+    private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run)
+    {
+        Button continueButton = CreateButton(screen, "이어하기");
+        Button newGameButton = CreateButton(screen, "새 게임");
+
+        Text messageText = CreateText(screen.transform, "MessageText", "", 40, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
+        messageText.color = new Color(1f, 0.5f, 0.45f);
+
+        // 확인 창: 화면 전체를 어둡게 덮어 뒤의 버튼이 눌리지 않게 한다 (가장 위에 그려지도록 마지막에 만든다)
+        var panel = new GameObject("ConfirmPanel", typeof(RectTransform), typeof(Image));
+        panel.transform.SetParent(screen.transform, false);
+        Stretch(panel.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        panel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.7f);
+
+        var box = new GameObject("Box", typeof(RectTransform), typeof(Image));
+        box.transform.SetParent(panel.transform, false);
+        Stretch(box.GetComponent<RectTransform>(), new Vector2(0.08f, 0.36f), new Vector2(0.92f, 0.64f));
+        box.GetComponent<Image>().color = new Color(0.2f, 0.22f, 0.28f);
+
+        CreateText(box.transform, "Question", "진행 중인 판이 지워져요.\n새로 시작할까요?", 52,
+            new Vector2(0.05f, 0.48f), new Vector2(0.95f, 0.92f));
+        Button confirmButton = CreateFreeButton(box.transform, "새로 시작", new Vector2(0.06f, 0.1f), new Vector2(0.48f, 0.4f),
+            new Color(0.95f, 0.5f, 0.4f));
+        Button cancelButton = CreateFreeButton(box.transform, "취소", new Vector2(0.52f, 0.1f), new Vector2(0.94f, 0.4f),
+            new Color(0.7f, 0.72f, 0.78f));
+        panel.SetActive(false);
+
+        var title = screen.AddComponent<TitleScreen>();
+        var so = new SerializedObject(title);
+        so.FindProperty("_flow").objectReferenceValue = flow;
+        so.FindProperty("_run").objectReferenceValue = run;
+        so.FindProperty("_continueButton").objectReferenceValue = continueButton.gameObject;
+        so.FindProperty("_confirmPanel").objectReferenceValue = panel;
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(continueButton.onClick, title.Continue);
+        UnityEventTools.AddVoidPersistentListener(newGameButton.onClick, title.NewGame);
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, title.ConfirmNewGame);
+        UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, title.CancelNewGame);
+    }
+
+    // 위치를 직접 정하는 버튼 (ButtonArea 밖)
+    private static Button CreateFreeButton(Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax, Color color)
+    {
+        var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>(), anchorMin, anchorMax);
+        go.GetComponent<Image>().color = color;
+        Text text = CreateText(go.transform, "Text", label, 52, Vector2.zero, Vector2.one);
+        text.color = Color.black;
+        return go.GetComponent<Button>();
     }
 
     // 트레이너 선택 화면: 제목 / 카드 3장(이름·설명, 눌러서 선택) / 안내 문구 / 선택 완료
