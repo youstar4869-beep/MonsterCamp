@@ -21,6 +21,16 @@ public class CreatureData : ScriptableObject
 
     [Header("스킬")]
     [SerializeField, TextArea] private string _skillDescription;
+    [Tooltip("스킬 종류 (칸의 뜻은 SkillType 설명 참고)")]
+    [SerializeField] private SkillType _skillType;
+    [Tooltip("N번째 공격마다 또는 N초마다")]
+    [SerializeField, Min(0f)] private float _skillEvery;
+    [Tooltip("확률 (0~1)")]
+    [SerializeField, Range(0f, 1f)] private float _skillChance;
+    [Tooltip("주 수치 (비율 0.3 = 30%, 배율, 마릿수, 초 등)")]
+    [SerializeField] private float _skillValue1;
+    [Tooltip("보조 수치 (지속 시간 등)")]
+    [SerializeField] private float _skillValue2;
 
     [Header("레벨별 배율 (체력·공격력, Lv1~Lv3)")]
     [SerializeField] private float[] _levelMultipliers = { 1f, 1.8f, 3f };
@@ -38,6 +48,11 @@ public class CreatureData : ScriptableObject
     public int Attack => _attack;
     public float AttackSpeed => _attackSpeed;
     public string SkillDescription => _skillDescription;
+    public SkillType SkillType => _skillType;
+    public float SkillEvery => _skillEvery;
+    public float SkillChance => _skillChance;
+    public float SkillValue1 => _skillValue1;
+    public float SkillValue2 => _skillValue2;
     public Sprite Sprite => _sprite;
 
     public int GetMaxHealth(int level) => Mathf.RoundToInt(_maxHealth * GetLevelMultiplier(level));

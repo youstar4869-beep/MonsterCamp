@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 자동 전투: 공격 속도마다 상대 앞줄부터 공격, 한 팀 전멸 시 종료
+// 전투 화면: 계산은 BattleSimulation(화면 없는 일반 C#)이 하고, 여기서는 매 프레임 Tick하고
+// 결과 이벤트(피해, 회복, 사망, 스킬)를 받아 보여 주기만 한다
 public class BattleScreen : MonoBehaviour
 {
-    private const int FrontRowCount = 2;
+    private static readonly Color DebuffColor = new Color(1f, 0.45f, 0.4f);
+    private static readonly Color BuffColor = new Color(0.5f, 1f, 0.55f);
+    private static readonly Color SkillColor = new Color(1f, 0.9f, 0.35f);
 
     [SerializeField] private RunManager _run;
     [SerializeField] private TypeChart _typeChart;
@@ -14,6 +17,8 @@ public class BattleScreen : MonoBehaviour
     [Tooltip("0~1 앞줄, 2~4 뒷줄")]
     [SerializeField] private CreatureUnitView[] _playerViews;
     [SerializeField] private CreatureUnitView[] _enemyViews;
+    [Tooltip("스킬 발동 시 크리처 위에 뜨는 짧은 글")]
+    [SerializeField] private FloatingTextPool _floatingTexts;
     [Tooltip("적 팀 이름 (보스면 '보스:' 표시)")]
     [SerializeField] private Text _enemyLabel;
     [SerializeField] private Text _bannerText;
@@ -21,38 +26,58 @@ public class BattleScreen : MonoBehaviour
     [Tooltip("승리/패배 표시 후 다음으로 넘어가기까지 (초)")]
     [SerializeField] private float _resultDelay = 1.5f;
     [SerializeField] private float _fastSpeed = 2f;
+    [Tooltip("전투마다 시드를 Console에 찍는다 (같은 시드면 같은 결과)")]
+    [SerializeField] private bool _logSeed;
 
-    private readonly List<BattleUnit> _players = new List<BattleUnit>();
-    private readonly List<BattleUnit> _enemies = new List<BattleUnit>();
-    private readonly List<CreatureData> _teamCreatures = new List<CreatureData>();
-    private readonly int[] _typeCounts = new int[TypeSynergy.TypeCount];
+    private readonly List<BattleSetupFactory.Member> _playerMembers = new List<BattleSetupFactory.Member>();
+    private readonly List<BattleSetupFactory.Member> _enemyMembers = new List<BattleSetupFactory.Member>();
+    private readonly Dictionary<BattleSimUnit, CreatureUnitView> _unitViews = new Dictionary<BattleSimUnit, CreatureUnitView>();
+    private BattleSimulation _simulation;
+    private float[,] _typeMultipliers;
     private float _speed = 1f;
     private bool _running;
 
     // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
-    // 매 전투 새 BattleUnit을 만들므로 체력은 항상 가득 찬 상태로 시작한다
+    // 매 전투 새로 계산하므로 체력은 항상 가득 찬 상태로 시작한다.
     // trainer는 내 팀에만 적용 (적 팀은 시너지만)
     public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer)
     {
         StopAllCoroutines();
+        _floatingTexts.HideAll();
+        _typeMultipliers ??= BattleSetupFactory.CreateTypeMultipliers(_typeChart);
 
-        _players.Clear();
+        _playerMembers.Clear();
         for (int i = 0; i < _playerViews.Length; i++)
         {
             CreatureInstance creature = i < playerTeam.Length ? playerTeam[i] : null;
-            Spawn(creature?.Data, creature?.Level ?? 1, creature?.Item, i, _playerViews, _players);
+            AddMember(_playerMembers, creature?.Data, creature?.Level ?? 1, creature?.Item, i, _playerViews);
         }
 
-        _enemies.Clear();
+        _enemyMembers.Clear();
         for (int i = 0; i < _enemyViews.Length; i++)
         {
             EnemyTeamData.Member member = i < enemyTeam.SlotCount ? enemyTeam.GetMember(i) : default;
-            Spawn(member.Creature, Mathf.Max(1, member.Level), null, i, _enemyViews, _enemies);
+            AddMember(_enemyMembers, member.Creature, Mathf.Max(1, member.Level), null, i, _enemyViews);
         }
 
         // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력·아이템은 내 팀만 (시너지와 겹쳐서 적용)
-        ApplyBonuses(_players, trainer);
-        ApplyBonuses(_enemies, null);
+        List<BattleUnitSetup> players = BattleSetupFactory.CreateTeam(_playerMembers, _synergy, trainer);
+        List<BattleUnitSetup> enemies = BattleSetupFactory.CreateTeam(_enemyMembers, _synergy, null);
+
+        int seed = System.Environment.TickCount;
+        if (_logSeed)
+        {
+            Debug.Log($"[전투] 시드 {seed}");
+        }
+        _simulation = new BattleSimulation(players, enemies, _typeMultipliers, seed);
+        _simulation.Event += OnBattleEvent;
+
+        _unitViews.Clear();
+        BindViews(_simulation.Players, _playerMembers, _playerViews);
+        BindViews(_simulation.Enemies, _enemyMembers, _enemyViews);
+
+        _simulation.Start();
+        RefreshAllViews();
 
         _enemyLabel.text = enemyTeam.IsBoss ? $"보스: {enemyTeam.DisplayName}" : enemyTeam.DisplayName;
         _bannerText.text = "";
@@ -73,131 +98,113 @@ public class BattleScreen : MonoBehaviour
             return;
         }
 
-        float deltaTime = Time.deltaTime * _speed;
-        TickRegen(_players, deltaTime);
-        TickRegen(_enemies, deltaTime);
-        Tick(_players, _enemies, deltaTime);
-        Tick(_enemies, _players, deltaTime);
+        _simulation.Tick(Time.deltaTime * _speed);
 
-        if (!AnyAlive(_enemies))
+        // 기절·묶기 중에는 흐리게
+        foreach (KeyValuePair<BattleSimUnit, CreatureUnitView> pair in _unitViews)
         {
-            StartCoroutine(Finish(true));
+            if (pair.Key.IsAlive)
+            {
+                pair.Value.SetDisabled(pair.Key.IsDisabled);
+            }
         }
-        else if (!AnyAlive(_players))
+
+        if (_simulation.IsOver)
         {
-            StartCoroutine(Finish(false));
+            StartCoroutine(Finish(_simulation.PlayerWon));
         }
     }
 
-    // 팀의 타입별 마릿수(같은 크리처는 1마리)에 따라 해당 타입 크리처에게 보너스
-    // 트레이너 능력·아이템은 시너지 보너스에 더해진다
-    // (예: 불 시너지 +15% + 불꽃 조련사 +20% + 날카로운 발톱 +20% = 공격력 +55%)
-    private void ApplyBonuses(List<BattleUnit> units, TrainerData trainer)
+    // ---------- 결과 이벤트 → 화면 ----------
+
+    private void OnBattleEvent(BattleEvent battleEvent)
     {
-        _teamCreatures.Clear();
-        foreach (BattleUnit unit in units)
+        if (!_unitViews.TryGetValue(battleEvent.Unit, out CreatureUnitView view))
         {
-            _teamCreatures.Add(unit.Data);
+            return;
         }
-        TypeSynergy.CountUnique(_teamCreatures, _typeCounts);
 
-        foreach (BattleUnit unit in units)
+        switch (battleEvent.Type)
         {
-            int tier = _synergy.GetTier(_typeCounts[(int)unit.Data.Type]);
-            BattleBonus bonus = _synergy.GetBonus(unit.Data.Type, tier);
-            if (trainer != null)
-            {
-                trainer.AddBattleBonus(unit.Data.Type, ref bonus);
-            }
-            if (unit.Item != null)
-            {
-                unit.Item.AddBattleBonus(ref bonus);
-            }
-            unit.ApplyBonus(bonus);
-        }
-    }
-
-    private static void TickRegen(List<BattleUnit> units, float deltaTime)
-    {
-        foreach (BattleUnit unit in units)
-        {
-            unit.TickRegen(deltaTime);
-        }
-    }
-
-    private void Tick(List<BattleUnit> attackers, List<BattleUnit> defenders, float deltaTime)
-    {
-        foreach (BattleUnit attacker in attackers)
-        {
-            if (!attacker.IsAlive)
-            {
-                continue;
-            }
-
-            attacker.Cooldown -= deltaTime;
-            while (attacker.Cooldown <= 0f)
-            {
-                BattleUnit target = FindTarget(defenders);
-                if (target == null)
+            case BattleEventType.Damage:
+            case BattleEventType.Heal:
+            case BattleEventType.Shield:
+                RefreshView(battleEvent.Unit, view);
+                break;
+            case BattleEventType.Revive:
+                view.gameObject.SetActive(true);
+                RefreshView(battleEvent.Unit, view);
+                break;
+            case BattleEventType.Death:
+                view.Hide();
+                break;
+            case BattleEventType.Skill:
+                if (!string.IsNullOrEmpty(battleEvent.Text) && view.gameObject.activeInHierarchy)
                 {
-                    return;
+                    _floatingTexts.Show(battleEvent.Text, view.SkillTextPosition, ColorOf(battleEvent.Text));
                 }
-
-                int dealt = target.TakeDamage(CalculateDamage(attacker, target));
-                attacker.Cooldown += attacker.AttackInterval;
-
-                // 가시 갑옷: 받은 피해의 일부를 공격자에게 (되돌린 피해는 다시 되돌아가지 않는다)
-                if (target.ThornsPercent > 0f)
-                {
-                    attacker.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(dealt * target.ThornsPercent)));
-                    if (!attacker.IsAlive)
-                    {
-                        break;
-                    }
-                }
-            }
+                break;
         }
     }
 
-    // 살아 있는 앞줄 중 앞 칸부터, 앞줄이 없으면 뒷줄
-    private static BattleUnit FindTarget(List<BattleUnit> defenders)
+    // 상태이상은 빨강, 회복·보호막·강화는 초록, 그 밖의 스킬은 노랑
+    private static Color ColorOf(string text)
     {
-        BattleUnit backRowTarget = null;
-        foreach (BattleUnit unit in defenders)
+        switch (text)
         {
-            if (!unit.IsAlive)
-            {
-                continue;
-            }
-            if (unit.SlotIndex < FrontRowCount)
-            {
-                return unit;
-            }
-            if (backRowTarget == null)
-            {
-                backRowTarget = unit;
-            }
+            case "기절":
+            case "묶기":
+            case "화상":
+            case "둔화":
+            case "약화":
+                return DebuffColor;
+            case "회복":
+            case "치유":
+            case "보호막":
+            case "부활":
+            case "가속":
+            case "체력 증가":
+            case "분노":
+                return BuffColor;
+            default:
+                return SkillColor;
         }
-        return backRowTarget;
     }
 
-    // 공격력 × 타입 상성
-    private int CalculateDamage(BattleUnit attacker, BattleUnit target)
+    private void RefreshAllViews()
     {
-        float multiplier = _typeChart.GetMultiplier(attacker.Data.Type, target.Data.Type);
-        return Mathf.Max(1, Mathf.RoundToInt(attacker.Attack * multiplier));
-    }
-
-    private static bool AnyAlive(List<BattleUnit> units)
-    {
-        foreach (BattleUnit unit in units)
+        foreach (KeyValuePair<BattleSimUnit, CreatureUnitView> pair in _unitViews)
         {
-            if (unit.IsAlive)
-            {
-                return true;
-            }
+            RefreshView(pair.Key, pair.Value);
         }
-        return false;
+    }
+
+    private static void RefreshView(BattleSimUnit unit, CreatureUnitView view)
+    {
+        view.SetHealth((float)unit.Health / unit.MaxHealth, (float)unit.Shield / unit.MaxHealth);
+    }
+
+    // ---------- 준비 ----------
+
+    // 빈 칸(creature == null)이면 칸만 비워 둔다. 크리처가 있으면 칸 순서대로 넣는다
+    private static void AddMember(List<BattleSetupFactory.Member> members, CreatureData creature, int level, ItemData item,
+        int slotIndex, CreatureUnitView[] views)
+    {
+        if (creature == null)
+        {
+            views[slotIndex].Hide();
+            return;
+        }
+        members.Add(new BattleSetupFactory.Member { Creature = creature, Level = level, Item = item, SlotIndex = slotIndex });
+        views[slotIndex].Show(creature, level, item);
+    }
+
+    private void BindViews(IReadOnlyList<BattleSimUnit> units, List<BattleSetupFactory.Member> members, CreatureUnitView[] views)
+    {
+        for (int i = 0; i < units.Count; i++)
+        {
+            _unitViews[units[i]] = views[members[i].SlotIndex];
+        }
     }
 
     private IEnumerator Finish(bool won)
@@ -206,17 +213,6 @@ public class BattleScreen : MonoBehaviour
         _bannerText.text = won ? "승리!" : "패배... 목숨 -1";
         yield return new WaitForSeconds(_resultDelay);
         _run.OnBattleEnd(won);
-    }
-
-    // 빈 칸(creature == null)이면 칸만 비워 둔다
-    private static void Spawn(CreatureData creature, int level, ItemData item, int slotIndex, CreatureUnitView[] views, List<BattleUnit> units)
-    {
-        if (creature == null)
-        {
-            views[slotIndex].Hide();
-            return;
-        }
-        units.Add(new BattleUnit(creature, slotIndex, level, item, views[slotIndex]));
     }
 
     private void UpdateSpeedLabel()

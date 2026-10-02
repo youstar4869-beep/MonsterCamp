@@ -23,8 +23,15 @@ public static class CreatureDataBuilder
         public int Attack;
         public float Speed;
         public string Skill;
+        // 스킬 효과 (칸의 뜻은 SkillType 설명 참고)
+        public SkillType SkillType;
+        public float SkillEvery;
+        public float SkillChance;
+        public float SkillValue1;
+        public float SkillValue2;
 
-        public Seed(string id, string name, CreatureType type, int tier, int health, int attack, float speed, string skill)
+        public Seed(string id, string name, CreatureType type, int tier, int health, int attack, float speed, string skill,
+            SkillType skillType, float skillEvery, float skillChance, float skillValue1, float skillValue2)
         {
             Id = id;
             Name = name;
@@ -34,56 +41,61 @@ public static class CreatureDataBuilder
             Attack = attack;
             Speed = speed;
             Skill = skill;
+            SkillType = skillType;
+            SkillEvery = skillEvery;
+            SkillChance = skillChance;
+            SkillValue1 = skillValue1;
+            SkillValue2 = skillValue2;
         }
     }
 
     private static readonly Seed[] Seeds =
     {
-        new Seed("Embit", "불똥이", CreatureType.Fire, 1, 90, 12, 1f, "3번째 공격마다 피해 1.5배"),
-        new Seed("HearthBear", "화로곰", CreatureType.Fire, 2, 145, 19, 1f, "체력이 50% 이하가 되면 공격력 +30%"),
-        new Seed("LavaMane", "용암갈기", CreatureType.Fire, 3, 215, 29, 1f, "4번째 공격마다 적 전체에 공격력 50% 피해"),
+        new Seed("Embit", "불똥이", CreatureType.Fire, 1, 90, 12, 1f, "3번째 공격마다 피해 1.5배", SkillType.EveryNthAttackDamage, 3f, 0f, 1.5f, 0f),
+        new Seed("HearthBear", "화로곰", CreatureType.Fire, 2, 145, 19, 1f, "체력이 50% 이하가 되면 공격력 +30%", SkillType.LowHealthAttackUp, 0f, 0f, 0.5f, 0.3f),
+        new Seed("LavaMane", "용암갈기", CreatureType.Fire, 3, 215, 29, 1f, "4번째 공격마다 적 전체에 공격력 50% 피해", SkillType.EveryNthAttackHitAll, 4f, 0f, 0.5f, 0f),
 
-        new Seed("Plopper", "퐁당이", CreatureType.Water, 1, 100, 10, 1f, "3번째 공격마다 체력이 가장 낮은 아군 체력 10% 회복"),
-        new Seed("SprayOtter", "물보라수달", CreatureType.Water, 2, 160, 16, 1f, "공격한 적의 공격 속도 10% 감소 (중첩 없음)"),
-        new Seed("TideWhale", "해일고래", CreatureType.Water, 3, 240, 24, 1f, "전투 시작 시 아군 전체 최대 체력 +15%"),
+        new Seed("Plopper", "퐁당이", CreatureType.Water, 1, 100, 10, 1f, "3번째 공격마다 체력이 가장 낮은 아군 체력 10% 회복", SkillType.EveryNthAttackHealLowest, 3f, 0f, 0.1f, 0f),
+        new Seed("SprayOtter", "물보라수달", CreatureType.Water, 2, 160, 16, 1f, "공격한 적의 공격 속도 10% 감소 (중첩 없음)", SkillType.OnHitSlow, 0f, 0f, 0.1f, 0f),
+        new Seed("TideWhale", "해일고래", CreatureType.Water, 3, 240, 24, 1f, "전투 시작 시 아군 전체 최대 체력 +15%", SkillType.BattleStartTeamMaxHealth, 0f, 0f, 0.15f, 0f),
 
-        new Seed("Sproutee", "새싹토리", CreatureType.Grass, 1, 120, 9, 1f, "3초마다 자신 체력 5% 회복"),
-        new Seed("VineFox", "덩굴여우", CreatureType.Grass, 2, 190, 14, 1f, "공격 시 15% 확률로 대상 2초 묶기 (공격 불가)"),
-        new Seed("GroveStag", "숲뿔사슴", CreatureType.Grass, 3, 290, 22, 1f, "쓰러질 때 아군 전체 체력 20% 회복"),
+        new Seed("Sproutee", "새싹토리", CreatureType.Grass, 1, 120, 9, 1f, "3초마다 자신 체력 5% 회복", SkillType.PeriodicSelfHeal, 3f, 0f, 0.05f, 0f),
+        new Seed("VineFox", "덩굴여우", CreatureType.Grass, 2, 190, 14, 1f, "공격 시 15% 확률로 대상 2초 묶기 (공격 불가)", SkillType.OnHitChanceRoot, 0f, 0.15f, 0f, 2f),
+        new Seed("GroveStag", "숲뿔사슴", CreatureType.Grass, 3, 290, 22, 1f, "쓰러질 때 아군 전체 체력 20% 회복", SkillType.OnDeathHealTeam, 0f, 0f, 0.2f, 0f),
 
-        new Seed("Zappy", "찌릿새", CreatureType.Electric, 1, 85, 9, 1.3f, "전투 시작 후 3초간 공격 속도 2배"),
-        new Seed("FlashWeasel", "번쩍족제비", CreatureType.Electric, 2, 135, 14, 1.3f, "공격 시 25% 확률로 한 번 더 공격"),
-        new Seed("StormHawk", "뇌운매", CreatureType.Electric, 3, 205, 22, 1.3f, "3번째 공격마다 뒷줄 적 1마리에게 공격력 150% 피해"),
+        new Seed("Zappy", "찌릿새", CreatureType.Electric, 1, 85, 9, 1.3f, "전투 시작 후 3초간 공격 속도 2배", SkillType.BattleStartHaste, 0f, 0f, 2f, 3f),
+        new Seed("FlashWeasel", "번쩍족제비", CreatureType.Electric, 2, 135, 14, 1.3f, "공격 시 25% 확률로 한 번 더 공격", SkillType.OnHitChanceExtraAttack, 0f, 0.25f, 0f, 0f),
+        new Seed("StormHawk", "뇌운매", CreatureType.Electric, 3, 205, 22, 1.3f, "3번째 공격마다 뒷줄 적 1마리에게 공격력 150% 피해", SkillType.EveryNthAttackHitBackRow, 3f, 0f, 1.5f, 0f),
 
-        new Seed("Pebblet", "돌멩군", CreatureType.Rock, 1, 140, 8, 0.75f, "받는 피해 10% 감소"),
-        new Seed("GravelShell", "자갈갑옷", CreatureType.Rock, 2, 225, 13, 0.75f, "처음 체력 50% 이하가 될 때 최대 체력 20% 보호막"),
-        new Seed("BedrockRhino", "암반코뿔소", CreatureType.Rock, 3, 335, 19, 0.75f, "전투 시작 시 앞줄 적 1마리 2초 기절"),
+        new Seed("Pebblet", "돌멩군", CreatureType.Rock, 1, 140, 8, 0.75f, "받는 피해 10% 감소", SkillType.DamageReduction, 0f, 0f, 0.1f, 0f),
+        new Seed("GravelShell", "자갈갑옷", CreatureType.Rock, 2, 225, 13, 0.75f, "처음 체력 50% 이하가 될 때 최대 체력 20% 보호막", SkillType.LowHealthShield, 0f, 0f, 0.5f, 0.2f),
+        new Seed("BedrockRhino", "암반코뿔소", CreatureType.Rock, 3, 335, 19, 0.75f, "전투 시작 시 앞줄 적 1마리 2초 기절", SkillType.BattleStartStunFront, 0f, 0f, 2f, 0f),
 
         // ---- 1~5골드 등급 추가 20종 (CREATURE_TIERS.md 5·6번) ----
         // 1골드
-        new Seed("MatchMouse", "성냥쥐", CreatureType.Fire, 1, 85, 13, 1f, "첫 공격 피해 2배"),
-        new Seed("BubbleCrab", "거품게", CreatureType.Water, 1, 110, 9, 1f, "받는 피해 10% 감소"),
-        new Seed("MossSnail", "이끼달팽이", CreatureType.Grass, 1, 135, 7, 1f, "체력이 높고 공격이 약함, 5초마다 체력 5% 회복"),
-        new Seed("SparkSquirrel", "찌릿다람쥐", CreatureType.Electric, 1, 80, 9, 1.3f, "공격 속도 +15%"),
-        new Seed("SandMole", "모래두더지", CreatureType.Rock, 1, 130, 8, 0.75f, "처음 받는 공격 피해 무시"),
+        new Seed("MatchMouse", "성냥쥐", CreatureType.Fire, 1, 85, 13, 1f, "첫 공격 피해 2배", SkillType.FirstAttackDamage, 0f, 0f, 2f, 0f),
+        new Seed("BubbleCrab", "거품게", CreatureType.Water, 1, 110, 9, 1f, "받는 피해 10% 감소", SkillType.DamageReduction, 0f, 0f, 0.1f, 0f),
+        new Seed("MossSnail", "이끼달팽이", CreatureType.Grass, 1, 135, 7, 1f, "체력이 높고 공격이 약함, 5초마다 체력 5% 회복", SkillType.PeriodicSelfHeal, 5f, 0f, 0.05f, 0f),
+        new Seed("SparkSquirrel", "찌릿다람쥐", CreatureType.Electric, 1, 80, 9, 1.3f, "공격 속도 +15%", SkillType.AttackSpeedUp, 0f, 0f, 0.15f, 0f),
+        new Seed("SandMole", "모래두더지", CreatureType.Rock, 1, 130, 8, 0.75f, "처음 받는 공격 피해 무시", SkillType.IgnoreFirstHit, 0f, 0f, 0f, 0f),
         // 2골드
-        new Seed("CinderLizard", "숯불도마뱀", CreatureType.Fire, 2, 140, 18, 1f, "공격한 적에게 3초 동안 화상(초당 작은 피해)"),
-        new Seed("CoralSeahorse", "산호해마", CreatureType.Water, 2, 155, 15, 1f, "3번째 공격마다 체력이 가장 낮은 아군 회복"),
-        new Seed("PetalMoth", "꽃잎나방", CreatureType.Grass, 2, 175, 14, 1f, "공격 시 20% 확률로 적 공격력 2초 감소"),
-        new Seed("VoltEel", "전기뱀장어", CreatureType.Electric, 2, 130, 15, 1.3f, "공격 시 25% 확률로 옆 적에게 튀는 피해"),
-        new Seed("CrystalHog", "수정고슴도치", CreatureType.Rock, 2, 215, 13, 0.75f, "받은 피해의 15% 반사"),
+        new Seed("CinderLizard", "숯불도마뱀", CreatureType.Fire, 2, 140, 18, 1f, "공격한 적에게 3초 동안 화상(초당 작은 피해)", SkillType.OnHitBurn, 0f, 0f, 0.25f, 3f),
+        new Seed("CoralSeahorse", "산호해마", CreatureType.Water, 2, 155, 15, 1f, "3번째 공격마다 체력이 가장 낮은 아군 회복", SkillType.EveryNthAttackHealLowest, 3f, 0f, 0.1f, 0f),
+        new Seed("PetalMoth", "꽃잎나방", CreatureType.Grass, 2, 175, 14, 1f, "공격 시 20% 확률로 적 공격력 2초 감소", SkillType.OnHitChanceWeaken, 0f, 0.2f, 0.3f, 2f),
+        new Seed("VoltEel", "전기뱀장어", CreatureType.Electric, 2, 130, 15, 1.3f, "공격 시 25% 확률로 옆 적에게 튀는 피해", SkillType.OnHitChanceSplash, 0f, 0.25f, 0.5f, 0f),
+        new Seed("CrystalHog", "수정고슴도치", CreatureType.Rock, 2, 215, 13, 0.75f, "받은 피해의 15% 반사", SkillType.Thorns, 0f, 0f, 0.15f, 0f),
         // 4골드
-        new Seed("BlazeWolf", "불꽃늑대", CreatureType.Fire, 4, 270, 36, 1f, "적을 쓰러뜨리면 공격 속도 +30% (누적)"),
-        new Seed("WhirlOctopus", "소용돌이문어", CreatureType.Water, 4, 300, 30, 1f, "5초마다 적 전체 공격 속도 15% 감소"),
-        new Seed("Flytrap", "덩굴파리지옥", CreatureType.Grass, 4, 340, 28, 1f, "전투 시작 시 뒷줄 적 1마리를 3초 묶음"),
-        new Seed("ThunderRam", "천둥양", CreatureType.Electric, 4, 260, 27, 1.3f, "4번째 공격마다 적 전체에 번개 피해"),
-        new Seed("StoneGolem", "바위골렘", CreatureType.Rock, 4, 420, 24, 0.75f, "전투 시작 시 아군 전체에 최대 체력 15% 보호막"),
+        new Seed("BlazeWolf", "불꽃늑대", CreatureType.Fire, 4, 270, 36, 1f, "적을 쓰러뜨리면 공격 속도 +30% (누적)", SkillType.OnKillAttackSpeed, 0f, 0f, 0.3f, 0f),
+        new Seed("WhirlOctopus", "소용돌이문어", CreatureType.Water, 4, 300, 30, 1f, "5초마다 적 전체 공격 속도 15% 감소", SkillType.PeriodicSlowAllEnemies, 5f, 0f, 0.15f, 5f),
+        new Seed("Flytrap", "덩굴파리지옥", CreatureType.Grass, 4, 340, 28, 1f, "전투 시작 시 뒷줄 적 1마리를 3초 묶음", SkillType.BattleStartRootBack, 0f, 0f, 3f, 0f),
+        new Seed("ThunderRam", "천둥양", CreatureType.Electric, 4, 260, 27, 1.3f, "4번째 공격마다 적 전체에 번개 피해", SkillType.EveryNthAttackHitAll, 4f, 0f, 0.6f, 0f),
+        new Seed("StoneGolem", "바위골렘", CreatureType.Rock, 4, 420, 24, 0.75f, "전투 시작 시 아군 전체에 최대 체력 15% 보호막", SkillType.BattleStartTeamShield, 0f, 0f, 0.15f, 0f),
         // 5골드 (타입 시너지에서 2마리로 계산)
-        new Seed("SunPhoenix", "태양불사조", CreatureType.Fire, 5, 350, 46, 1f, "처음 쓰러지면 체력 50%로 한 번 부활"),
-        new Seed("AbyssDragon", "심해룡", CreatureType.Water, 5, 400, 40, 1f, "3번째 공격마다 적 전체 피해 + 아군 전체 회복"),
-        new Seed("ElderTreant", "고목거인", CreatureType.Grass, 5, 480, 34, 1f, "아군 전체 최대 체력 +25%, 1초마다 아군 전체 회복"),
-        new Seed("VoltQilin", "뇌광기린", CreatureType.Electric, 5, 330, 35, 1.3f, "공격이 적 3마리에게 동시에 맞음"),
-        new Seed("MountainTortoise", "산맥거북", CreatureType.Rock, 5, 560, 30, 0.75f, "받는 피해 40% 감소, 쓰러지면 적 전체 기절 2초"),
+        new Seed("SunPhoenix", "태양불사조", CreatureType.Fire, 5, 350, 46, 1f, "처음 쓰러지면 체력 50%로 한 번 부활", SkillType.Revive, 0f, 0f, 0.5f, 0f),
+        new Seed("AbyssDragon", "심해룡", CreatureType.Water, 5, 400, 40, 1f, "3번째 공격마다 적 전체 피해 + 아군 전체 회복", SkillType.EveryNthAttackHitAllHealTeam, 3f, 0f, 0.5f, 0.1f),
+        new Seed("ElderTreant", "고목거인", CreatureType.Grass, 5, 480, 34, 1f, "아군 전체 최대 체력 +25%, 1초마다 아군 전체 회복", SkillType.TeamHealthAndRegen, 1f, 0f, 0.25f, 0.02f),
+        new Seed("VoltQilin", "뇌광기린", CreatureType.Electric, 5, 330, 35, 1.3f, "공격이 적 3마리에게 동시에 맞음", SkillType.MultiTarget, 0f, 0f, 3f, 0f),
+        new Seed("MountainTortoise", "산맥거북", CreatureType.Rock, 5, 560, 30, 0.75f, "받는 피해 40% 감소, 쓰러지면 적 전체 기절 2초", SkillType.DamageReductionDeathStun, 0f, 0f, 0.4f, 2f),
     };
 
     // 불 > 풀 > 물 > 불, 번개 > 물, 바위 > 번개
@@ -174,9 +186,42 @@ public static class CreatureDataBuilder
         so.FindProperty("_attack").intValue = seed.Attack;
         so.FindProperty("_attackSpeed").floatValue = seed.Speed;
         so.FindProperty("_skillDescription").stringValue = seed.Skill;
+        WriteSkill(so, seed);
         so.FindProperty("_sprite").objectReferenceValue = CreatePlaceholderSprite(seed);
         so.ApplyModifiedPropertiesWithoutUndo();
         return true;
+    }
+
+    // 메뉴 MonsterCamp > 크리처 스킬 값 채우기:
+    // 이미 있는 크리처 에셋에 스킬 종류·수치만 넣는다 (체력·공격력·설명 등 다른 값은 그대로)
+    [MenuItem("MonsterCamp/크리처 스킬 값 채우기")]
+    public static void FillSkillValues()
+    {
+        int filled = 0;
+        foreach (Seed seed in Seeds)
+        {
+            var data = AssetDatabase.LoadAssetAtPath<CreatureData>($"{CreatureFolder}/{seed.Id}.asset");
+            if (data == null)
+            {
+                Debug.LogWarning($"[스킬] 크리처 에셋이 없습니다: {seed.Id}");
+                continue;
+            }
+            var so = new SerializedObject(data);
+            WriteSkill(so, seed);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            filled++;
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[스킬] 스킬 값 채우기 완료: {filled}종 (다른 값은 바꾸지 않음)");
+    }
+
+    private static void WriteSkill(SerializedObject so, Seed seed)
+    {
+        so.FindProperty("_skillType").enumValueIndex = (int)seed.SkillType;
+        so.FindProperty("_skillEvery").floatValue = seed.SkillEvery;
+        so.FindProperty("_skillChance").floatValue = seed.SkillChance;
+        so.FindProperty("_skillValue1").floatValue = seed.SkillValue1;
+        so.FindProperty("_skillValue2").floatValue = seed.SkillValue2;
     }
 
     // 타입 색 네모 + 테두리. 티어가 높을수록 진하다.

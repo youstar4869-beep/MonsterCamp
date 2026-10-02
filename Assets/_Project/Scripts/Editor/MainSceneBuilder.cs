@@ -22,6 +22,8 @@ public static class MainSceneBuilder
     private const string MetaConfigPath = "Assets/_Project/Data/MetaConfig.asset";
     private const string LockSpritePath = "Assets/_Project/Art/Placeholders/UI/Lock.png";
     private const string TutorialFolder = "Assets/_Project/Data/Tutorial";
+    // 전투 스킬 글 풀 크기 (동시에 떠 있을 수 있는 글 수)
+    private const int FloatingTextCount = 16;
     // 도감 크리처 칸 (1080x1920 기준)
     private const int CodexColumns = 5;
     private const float CodexCellWidth = 186f;
@@ -1088,6 +1090,9 @@ public static class MainSceneBuilder
             enemyViews[i] = CreateUnitSlot(front ? enemyFront : enemyBack, "EnemySlot" + i, enemyColor);
         }
 
+        // 스킬 글 풀: 크리처 칸보다 위에 그려지도록 칸 다음에 만든다 (전투 중 새로 만들지 않고 돌려 씀)
+        FloatingTextPool floatingTexts = CreateFloatingTextPool(screen.transform, FloatingTextCount);
+
         Button speedButton = CreateButton(screen, "1배속");
         Text speedLabel = speedButton.GetComponentInChildren<Text>();
 
@@ -1106,10 +1111,37 @@ public static class MainSceneBuilder
         so.FindProperty("_enemyLabel").objectReferenceValue = enemyLabel;
         so.FindProperty("_bannerText").objectReferenceValue = bannerText;
         so.FindProperty("_speedLabel").objectReferenceValue = speedLabel;
+        so.FindProperty("_floatingTexts").objectReferenceValue = floatingTexts;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(speedButton.onClick, battle.ToggleSpeed);
         return battle;
+    }
+
+    // 떠오르는 글 count개를 미리 만들어 둔 풀 (처음엔 모두 숨김)
+    private static FloatingTextPool CreateFloatingTextPool(Transform parent, int count)
+    {
+        var pool = new GameObject("FloatingTexts", typeof(RectTransform), typeof(FloatingTextPool));
+        pool.transform.SetParent(parent, false);
+        Stretch(pool.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+
+        var texts = new Text[count];
+        for (int i = 0; i < count; i++)
+        {
+            // 위치는 띄울 때 정하므로 가운데 기준 고정 크기
+            Text text = CreateText(pool.transform, "Text" + i, "", 44, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            text.rectTransform.sizeDelta = new Vector2(320f, 70f);
+            text.fontStyle = FontStyle.Bold;
+            text.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+            text.gameObject.SetActive(false);
+            texts[i] = text;
+        }
+
+        var component = pool.GetComponent<FloatingTextPool>();
+        var so = new SerializedObject(component);
+        SetArray(so.FindProperty("_texts"), texts);
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return component;
     }
 
     // 전투 칸: 바탕(빈 칸 표시) + 크리처(체력바, 그림, 이름). 크리처가 죽으면 크리처만 사라진다
@@ -1133,6 +1165,12 @@ public static class MainSceneBuilder
         healthFill.transform.SetParent(healthBack.transform, false);
         Stretch(healthFill.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
         healthFill.GetComponent<Image>().color = new Color(0.3f, 0.9f, 0.35f);
+
+        // 보호막: 체력 칸 뒤에 이어지는 흰 칸 (보호막이 있을 때만 보임)
+        var shieldFill = new GameObject("Shield", typeof(RectTransform), typeof(Image));
+        shieldFill.transform.SetParent(healthBack.transform, false);
+        Stretch(shieldFill.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        shieldFill.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.9f);
 
         var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         iconGo.transform.SetParent(unit.transform, false);
@@ -1161,6 +1199,7 @@ public static class MainSceneBuilder
         so.FindProperty("_nameText").objectReferenceValue = nameText;
         so.FindProperty("_levelText").objectReferenceValue = levelText;
         so.FindProperty("_healthFill").objectReferenceValue = healthFill.GetComponent<RectTransform>();
+        so.FindProperty("_shieldFill").objectReferenceValue = shieldFill.GetComponent<RectTransform>();
         so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
         so.ApplyModifiedPropertiesWithoutUndo();
         unit.SetActive(false);

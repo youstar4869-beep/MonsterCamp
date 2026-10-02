@@ -20,6 +20,11 @@ MonoBehaviour:
   _attackSpeed: 1
   _skillDescription: "\uACF5\uACA9\uD55C \uC801\uC758 \uACF5\uACA9 \uC18D\uB3C4 10%
     \uAC10\uC18C (\uC911\uCCA9 \uC5C6\uC74C)"
+  _skillType: 7
+  _skillEvery: 0
+  _skillChance: 0
+  _skillValue1: 0.1
+  _skillValue2: 0
   _levelMultipliers:
   - 1
   - 1.8
