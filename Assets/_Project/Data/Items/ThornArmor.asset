@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f01e5485ee9379041a7815f33eb4f52b, type: 3}
+  m_Name: ThornArmor
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  _displayName: "\uAC00\uC2DC \uAC11\uC637"
+  _iconLabel: "\uAC00"
+  _iconColor: {r: 0.7, g: 0.5, b: 0.9, a: 1}
+  _description: "\uBC1B\uC740 \uD53C\uD574\uC758 20%\uB97C \uACF5\uACA9\uC790\uC5D0\uAC8C
+    \uB418\uB3CC\uB9BC"
+  _effect: 4
+  _value: 0.2
+  _price: 3
