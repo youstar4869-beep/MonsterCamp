@@ -340,7 +340,7 @@ public class ShopScreen : MonoBehaviour
             {
                 return false;
             }
-            _dragIcon.sprite = creature.Data.Sprite;
+            _dragIcon.sprite = creature.Data.GetSprite(creature.Level);
             _dragIcon.color = Color.white;
             _dragLabel.text = "";
         }

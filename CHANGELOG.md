@@ -119,3 +119,11 @@
   - 에디터 메뉴 "MonsterCamp → 튜토리얼 초기화"
   - GAME_DESIGN.md 17번 튜토리얼 기록
   - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨
+- 크리처 픽셀 그림 연결 (레벨마다 그림이 바뀜)
+  - `art/creature-sprites` 브랜치 병합: 32x32 PNG 15종 x 3레벨 (`Art/Creatures/{영문키}_Lv1~3.png`)
+  - `CreatureSpriteImporter`: `Art/Creatures` PNG를 Sprite, Filter Point, 압축 없음, Pixels Per Unit 32로 자동 임포트
+  - `CreatureData`에 레벨별 그림 3칸(`_levelSprites`)과 `GetSprite(level)` 추가. 기본 그림 칸은 Lv1 그림으로
+  - 메뉴 "MonsterCamp → 크리처 그림 연결": 파일 이름으로 15종에 자동 연결 (임포트 설정이 다르면 먼저 고침)
+  - 대기석·팀 칸·전투·드래그 아이콘은 레벨 그림, 도감·상점 판매 칸은 Lv1 그림. 합성으로 레벨이 오르면 바로 그림이 바뀜
+  - 그림 비율 유지(Preserve Aspect, 기존 설정 그대로), 전투 중 크리처 그림이 위아래로 통통 튀는 움직임
+  - 임시 색깔 네모 그림(`Art/Placeholders/Creatures`)은 남겨 둠 (새 크리처를 만들 때 기본 그림)

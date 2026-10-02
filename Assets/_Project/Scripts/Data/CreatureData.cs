@@ -22,8 +22,11 @@ public class CreatureData : ScriptableObject
     [Header("레벨별 배율 (체력·공격력, Lv1~Lv3)")]
     [SerializeField] private float[] _levelMultipliers = { 1f, 1.8f, 3f };
 
-    [Header("그림 (임시: 색깔 네모)")]
+    [Header("그림")]
+    [Tooltip("기본 그림 (Lv1). 레벨이 없는 곳(도감, 상점)에서 사용")]
     [SerializeField] private Sprite _sprite;
+    [Tooltip("레벨별 그림 Lv1~Lv3. 비어 있으면 기본 그림을 쓴다")]
+    [SerializeField] private Sprite[] _levelSprites = new Sprite[MaxLevel];
 
     public string DisplayName => _displayName;
     public CreatureType Type => _type;
@@ -43,11 +46,26 @@ public class CreatureData : ScriptableObject
         return _levelMultipliers[index];
     }
 
+    // 레벨에 맞는 그림 (대기석·팀·전투·드래그). 그 레벨 그림이 없으면 기본 그림
+    public Sprite GetSprite(int level)
+    {
+        int index = Mathf.Clamp(level, 1, MaxLevel) - 1;
+        if (_levelSprites != null && index < _levelSprites.Length && _levelSprites[index] != null)
+        {
+            return _levelSprites[index];
+        }
+        return _sprite;
+    }
+
     private void OnValidate()
     {
         if (_levelMultipliers == null || _levelMultipliers.Length != MaxLevel)
         {
             System.Array.Resize(ref _levelMultipliers, MaxLevel);
+        }
+        if (_levelSprites == null || _levelSprites.Length != MaxLevel)
+        {
+            System.Array.Resize(ref _levelSprites, MaxLevel);
         }
     }
 }

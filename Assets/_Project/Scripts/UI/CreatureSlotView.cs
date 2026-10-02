@@ -17,10 +17,10 @@ public class CreatureSlotView : MonoBehaviour
     [Tooltip("비어 있을 때 보여줄 글자 (예: 앞줄)")]
     [SerializeField] private string _emptyLabel;
 
-    // level 0이면 별을 표시하지 않는다 (상점 칸). item이 null이면 아이템 아이콘 숨김
+    // level 0이면 별 없이 Lv1 그림 (상점 칸). item이 null이면 아이템 아이콘 숨김
     public void Show(CreatureData creature, int level, ItemData item, string priceLabel)
     {
-        _icon.sprite = creature.Sprite;
+        _icon.sprite = creature.GetSprite(Mathf.Max(1, level));
         _icon.enabled = true;
         _nameText.text = creature.DisplayName;
         _priceText.text = priceLabel;
