@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -16,6 +17,7 @@ public static class MainSceneBuilder
     private const string TypeChartPath = "Assets/_Project/Data/TypeChart.asset";
     private const string RunConfigPath = "Assets/_Project/Data/RunConfig.asset";
     private const string SynergyConfigPath = "Assets/_Project/Data/SynergyConfig.asset";
+    private const string TrainerFolder = "Assets/_Project/Data/Trainers";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
     private static Font _font;
@@ -65,12 +67,11 @@ public static class MainSceneBuilder
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, run, goldText);
+        ShopScreen shopScreen = BuildShopUI(shop, run, goldText, out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
         // 새 런 시작 (1라운드 상점으로 이동은 RunManager가 한다)
-        Button startRunButton = CreateButton(trainer, "선택 완료");
-        UnityEventTools.AddVoidPersistentListener(startRunButton.onClick, run.StartRun);
+        BuildTrainerSelectUI(trainer, run);
 
         var runConfig = AssetDatabase.LoadAssetAtPath<RunConfig>(RunConfigPath);
         if (runConfig == null)
@@ -84,6 +85,7 @@ public static class MainSceneBuilder
         serializedRun.FindProperty("_battle").objectReferenceValue = battleScreen;
         serializedRun.FindProperty("_roundText").objectReferenceValue = roundText;
         serializedRun.FindProperty("_livesText").objectReferenceValue = livesText;
+        serializedRun.FindProperty("_trainerText").objectReferenceValue = trainerText;
         serializedRun.FindProperty("_resultTitle").objectReferenceValue = resultTitle;
         serializedRun.FindProperty("_resultDetail").objectReferenceValue = resultDetail;
         serializedRun.ApplyModifiedPropertiesWithoutUndo();
@@ -159,6 +161,105 @@ public static class MainSceneBuilder
         layout.childForceExpandHeight = false;
 
         return screen;
+    }
+
+    // 트레이너 선택 화면: 제목 / 카드 3장(이름·설명, 눌러서 선택) / 안내 문구 / 선택 완료
+    private static void BuildTrainerSelectUI(GameObject screen, RunManager run)
+    {
+        Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.8f), new Vector2(1f, 0.92f));
+
+        var cardArea = new GameObject("Cards", typeof(RectTransform), typeof(VerticalLayoutGroup));
+        cardArea.transform.SetParent(screen.transform, false);
+        Stretch(cardArea.GetComponent<RectTransform>(), new Vector2(0.08f, 0.3f), new Vector2(0.92f, 0.78f));
+        var layout = cardArea.GetComponent<VerticalLayoutGroup>();
+        layout.spacing = 36;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = true;
+
+        TrainerData[] trainers = GetOrCreateTrainers();
+        var cards = new TrainerCardView[trainers.Length];
+        var cardButtons = new Button[trainers.Length];
+        for (int i = 0; i < trainers.Length; i++)
+        {
+            var card = new GameObject("TrainerCard" + i, typeof(RectTransform), typeof(Image), typeof(Button), typeof(TrainerCardView));
+            card.transform.SetParent(cardArea.transform, false);
+            var background = card.GetComponent<Image>();
+
+            Text nameText = CreateText(card.transform, "Name", "", 56, new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.92f));
+            Text descriptionText = CreateText(card.transform, "Description", "", 36, new Vector2(0.05f, 0.08f), new Vector2(0.95f, 0.55f));
+            descriptionText.color = new Color(0.9f, 0.9f, 0.9f);
+
+            cards[i] = card.GetComponent<TrainerCardView>();
+            var cardSo = new SerializedObject(cards[i]);
+            cardSo.FindProperty("_background").objectReferenceValue = background;
+            cardSo.FindProperty("_nameText").objectReferenceValue = nameText;
+            cardSo.FindProperty("_descriptionText").objectReferenceValue = descriptionText;
+            cardSo.ApplyModifiedPropertiesWithoutUndo();
+            background.color = new Color(0.25f, 0.28f, 0.34f);
+            cardButtons[i] = card.GetComponent<Button>();
+        }
+
+        Text messageText = CreateText(screen.transform, "MessageText", "", 44, new Vector2(0f, 0.2f), new Vector2(1f, 0.26f));
+        messageText.color = new Color(1f, 0.5f, 0.45f);
+
+        Button confirmButton = CreateButton(screen, "선택 완료");
+
+        var select = screen.AddComponent<TrainerSelectScreen>();
+        var so = new SerializedObject(select);
+        so.FindProperty("_run").objectReferenceValue = run;
+        SetArray(so.FindProperty("_trainers"), trainers);
+        SetArray(so.FindProperty("_cards"), cards);
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        for (int i = 0; i < cardButtons.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(cardButtons[i].onClick, select.Select, i);
+        }
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, select.Confirm);
+    }
+
+    // 트레이너 3명 에셋. 없는 것만 기본값(GAME_DESIGN.md 5번)으로 만든다 (조정한 값 보호)
+    private static TrainerData[] GetOrCreateTrainers()
+    {
+        Directory.CreateDirectory(TrainerFolder);
+        AssetDatabase.Refresh();
+
+        return new[]
+        {
+            GetOrCreateTrainer("FlameTamer", "불꽃 조련사", "불 타입 공격력 +20%",
+                TrainerAbility.TypeAttackBonus, CreatureType.Fire, 0.2f),
+            GetOrCreateTrainer("ForestKeeper", "숲지기", "풀 타입이 전투 중 체력이 처음 50% 아래로 떨어지면\n최대 체력의 30%를 한 번 회복",
+                TrainerAbility.TypeLowHealthHeal, CreatureType.Grass, 0.3f),
+            GetOrCreateTrainer("Merchant", "상인", "라운드마다 골드 +1",
+                TrainerAbility.RoundGoldBonus, CreatureType.Fire, 1f),
+        };
+    }
+
+    private static TrainerData GetOrCreateTrainer(string id, string name, string description,
+        TrainerAbility ability, CreatureType targetType, float value)
+    {
+        string path = $"{TrainerFolder}/{id}.asset";
+        var trainer = AssetDatabase.LoadAssetAtPath<TrainerData>(path);
+        if (trainer != null)
+        {
+            return trainer;
+        }
+
+        trainer = ScriptableObject.CreateInstance<TrainerData>();
+        AssetDatabase.CreateAsset(trainer, path);
+        var so = new SerializedObject(trainer);
+        so.FindProperty("_displayName").stringValue = name;
+        so.FindProperty("_description").stringValue = description;
+        so.FindProperty("_ability").enumValueIndex = (int)ability;
+        so.FindProperty("_targetType").enumValueIndex = (int)targetType;
+        so.FindProperty("_value").floatValue = value;
+        so.FindProperty("_healthThreshold").floatValue = 0.5f;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.SaveAssets();
+        return trainer;
     }
 
     // 상단 표시: 라운드 / 목숨 / 골드 (상점·전투 화면에서만 보인다)
@@ -319,8 +420,14 @@ public static class MainSceneBuilder
 
     // 상점·배치 화면 (세로 1920 기준, 위에서부터)
     // (상단 표시: 라운드·목숨·골드) / 새로고침 / 상점 5칸 / 메시지 / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 전투 시작
-    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, Text goldText)
+    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, Text goldText, out Text trainerText)
     {
+        // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
+        trainerText = CreateText(screen.transform, "TrainerText", "", 30,
+            new Vector2(0.02f, 0.875f), new Vector2(0.29f, 0.935f));
+        trainerText.alignment = TextAnchor.MiddleLeft;
+        trainerText.color = new Color(0.85f, 0.85f, 0.9f);
+
         // 제목 자리는 상단 표시가 차지한다
         screen.transform.Find("Title").gameObject.SetActive(false);
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.015f), new Vector2(0.85f, 0.105f));

@@ -46,11 +46,12 @@ public class ShopScreen : MonoBehaviour
     }
 
     // 라운드 시작: 골드를 다시 채우고 상점을 새로 뽑는다. 대기석·팀은 그대로
-    public void StartRound()
+    // bonusGold: 트레이너 능력 등으로 더 받는 골드
+    public void StartRound(int bonusGold)
     {
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
-        _gold = _config.RoundGold;
+        _gold = _config.RoundGold + bonusGold;
         RollOffers();
         ShowMessage("");
         UpdateView();

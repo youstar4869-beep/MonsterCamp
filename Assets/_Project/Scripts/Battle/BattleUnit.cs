@@ -18,6 +18,9 @@ public class BattleUnit
     private float _regenPercent;
     private float _regenInterval;
     private float _regenTimer;
+    private float _emergencyHealThreshold;
+    private float _emergencyHealPercent;
+    private bool _emergencyHealUsed;
 
     public BattleUnit(CreatureData data, int slotIndex, int level, CreatureUnitView view)
     {
@@ -34,7 +37,7 @@ public class BattleUnit
     }
 
     // 전투 시작 직후 한 번 적용 (체력은 가득 찬 상태 유지)
-    public void ApplySynergy(SynergyBonus bonus)
+    public void ApplyBonus(BattleBonus bonus)
     {
         MaxHealth = Mathf.RoundToInt(MaxHealth * (1f + bonus.HealthBonus));
         Health = MaxHealth;
@@ -45,17 +48,35 @@ public class BattleUnit
         _regenPercent = bonus.RegenPercent;
         _regenInterval = bonus.RegenInterval;
         _regenTimer = _regenInterval;
+        _emergencyHealThreshold = bonus.EmergencyHealThreshold;
+        _emergencyHealPercent = bonus.EmergencyHealPercent;
+        _emergencyHealUsed = false;
     }
 
     public void TakeDamage(int damage)
     {
         int reduced = Mathf.Max(1, Mathf.RoundToInt(damage * (1f - _damageReduction)));
         Health = Mathf.Max(0, Health - reduced);
-        _view.SetHealth((float)Health / MaxHealth);
         if (!IsAlive)
         {
             _view.Hide();
+            return;
         }
+
+        // 숲지기: 처음 일정 체력 아래로 떨어지면 한 번 회복
+        if (!_emergencyHealUsed && _emergencyHealPercent > 0f && Health < MaxHealth * _emergencyHealThreshold)
+        {
+            _emergencyHealUsed = true;
+            Heal(Mathf.RoundToInt(MaxHealth * _emergencyHealPercent));
+            return;
+        }
+        _view.SetHealth((float)Health / MaxHealth);
+    }
+
+    private void Heal(int amount)
+    {
+        Health = Mathf.Min(MaxHealth, Health + Mathf.Max(1, amount));
+        _view.SetHealth((float)Health / MaxHealth);
     }
 
     // 풀 시너지: 일정 시간마다 최대 체력의 일정 비율 회복
@@ -70,9 +91,7 @@ public class BattleUnit
         while (_regenTimer <= 0f)
         {
             _regenTimer += _regenInterval;
-            int amount = Mathf.Max(1, Mathf.RoundToInt(MaxHealth * _regenPercent));
-            Health = Mathf.Min(MaxHealth, Health + amount);
-            _view.SetHealth((float)Health / MaxHealth);
+            Heal(Mathf.RoundToInt(MaxHealth * _regenPercent));
         }
     }
 }

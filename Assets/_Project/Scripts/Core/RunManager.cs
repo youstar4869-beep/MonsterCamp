@@ -12,6 +12,8 @@ public class RunManager : MonoBehaviour
     [Header("상단 표시")]
     [SerializeField] private Text _roundText;
     [SerializeField] private Text _livesText;
+    [Tooltip("상점·배치 화면 위쪽의 트레이너 이름")]
+    [SerializeField] private Text _trainerText;
 
     [Header("결과 화면")]
     [SerializeField] private Text _resultTitle;
@@ -19,12 +21,15 @@ public class RunManager : MonoBehaviour
 
     private int _round;
     private int _lives;
+    private TrainerData _trainer;
 
-    // 트레이너 선택의 "선택 완료"
-    public void StartRun()
+    // 트레이너 선택 화면의 "선택 완료"
+    public void StartRun(TrainerData trainer)
     {
+        _trainer = trainer;
         _round = 1;
         _lives = _config.MaxLives;
+        _trainerText.text = $"트레이너: {trainer.DisplayName}";
         _shop.ResetRun();
         StartRound();
     }
@@ -33,7 +38,7 @@ public class RunManager : MonoBehaviour
     public void BeginBattle(CreatureInstance[] team)
     {
         _flow.Show(GameScreen.Battle);
-        _battle.StartBattle(team, _config.GetEnemyTeam(_round));
+        _battle.StartBattle(team, _config.GetEnemyTeam(_round), _trainer);
     }
 
     // 전투 화면이 승패 표시를 끝낸 뒤 호출
@@ -71,7 +76,8 @@ public class RunManager : MonoBehaviour
     private void StartRound()
     {
         _flow.Show(GameScreen.Shop);
-        _shop.StartRound();
+        // 상인: 라운드 골드 +1
+        _shop.StartRound(_trainer.RoundGoldBonus);
         UpdateHud();
     }
 

@@ -49,9 +49,9 @@ public class SynergyConfig : ScriptableObject
     }
 
     // 해당 타입 크리처가 받는 보너스. tier 0이면 보너스 없음
-    public SynergyBonus GetBonus(CreatureType type, int tier)
+    public BattleBonus GetBonus(CreatureType type, int tier)
     {
-        var bonus = new SynergyBonus();
+        var bonus = new BattleBonus();
         if (tier <= 0)
         {
             return bonus;
@@ -79,14 +79,4 @@ public class SynergyConfig : ScriptableObject
         }
         return bonus;
     }
-}
-
-public struct SynergyBonus
-{
-    public float AttackBonus;
-    public float HealthBonus;
-    public float SpeedBonus;
-    public float DamageReduction;
-    public float RegenPercent;
-    public float RegenInterval;
 }

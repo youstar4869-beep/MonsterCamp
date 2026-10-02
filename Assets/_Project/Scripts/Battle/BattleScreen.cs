@@ -31,7 +31,8 @@ public class BattleScreen : MonoBehaviour
 
     // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
     // 매 전투 새 BattleUnit을 만들므로 체력은 항상 가득 찬 상태로 시작한다
-    public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam)
+    // trainer는 내 팀에만 적용 (적 팀은 시너지만)
+    public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer)
     {
         StopAllCoroutines();
 
@@ -49,9 +50,9 @@ public class BattleScreen : MonoBehaviour
             Spawn(member.Creature, Mathf.Max(1, member.Level), i, _enemyViews, _enemies);
         }
 
-        // 타입 시너지: 내 팀·적 팀 똑같이
-        ApplySynergy(_players);
-        ApplySynergy(_enemies);
+        // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력은 내 팀만 (시너지와 겹쳐서 적용)
+        ApplyBonuses(_players, trainer);
+        ApplyBonuses(_enemies, null);
 
         _enemyLabel.text = enemyTeam.IsBoss ? $"보스: {enemyTeam.DisplayName}" : enemyTeam.DisplayName;
         _bannerText.text = "";
@@ -89,7 +90,8 @@ public class BattleScreen : MonoBehaviour
     }
 
     // 팀의 타입별 마릿수(같은 크리처는 1마리)에 따라 해당 타입 크리처에게 보너스
-    private void ApplySynergy(List<BattleUnit> units)
+    // 트레이너 능력은 시너지 보너스에 더해진다 (예: 불 시너지 +15% + 불꽃 조련사 +20% = +35%)
+    private void ApplyBonuses(List<BattleUnit> units, TrainerData trainer)
     {
         _teamCreatures.Clear();
         foreach (BattleUnit unit in units)
@@ -101,7 +103,12 @@ public class BattleScreen : MonoBehaviour
         foreach (BattleUnit unit in units)
         {
             int tier = _synergy.GetTier(_typeCounts[(int)unit.Data.Type]);
-            unit.ApplySynergy(_synergy.GetBonus(unit.Data.Type, tier));
+            BattleBonus bonus = _synergy.GetBonus(unit.Data.Type, tier);
+            if (trainer != null)
+            {
+                trainer.AddBattleBonus(unit.Data.Type, ref bonus);
+            }
+            unit.ApplyBonus(bonus);
         }
     }
 
