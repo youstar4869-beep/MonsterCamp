@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: CinderLizard
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC22F\uBD88\uB3C4\uB9C8\uBC40"
+  _type: 0
+  _tier: 2
+  _maxHealth: 140
+  _attack: 18
+  _attackSpeed: 1
+  _skillDescription: "\uACF5\uACA9\uD55C \uC801\uC5D0\uAC8C 3\uCD08 \uB3D9\uC548
+    \uD654\uC0C1(\uCD08\uB2F9 \uC791\uC740 \uD53C\uD574)"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 3057217519efb974fba89218f75cc229, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 3057217519efb974fba89218f75cc229, type: 3}
+  - {fileID: 21300000, guid: fe5f020df9f104741b5e76a607ecde38, type: 3}
+  - {fileID: 21300000, guid: c6c30957015c73541a4556c9c35e1add, type: 3}

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: CrystalHog
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC218\uC815\uACE0\uC2B4\uB3C4\uCE58"
+  _type: 4
+  _tier: 2
+  _maxHealth: 215
+  _attack: 13
+  _attackSpeed: 0.75
+  _skillDescription: "\uBC1B\uC740 \uD53C\uD574\uC758 15% \uBC18\uC0AC"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: cd52eaa2578d561409ef5af86812511e, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: cd52eaa2578d561409ef5af86812511e, type: 3}
+  - {fileID: 21300000, guid: 9be50553566c58648be40bb0d7ee3f51, type: 3}
+  - {fileID: 21300000, guid: e45c8a261c2b0a746a85bdfd6658dd1c, type: 3}

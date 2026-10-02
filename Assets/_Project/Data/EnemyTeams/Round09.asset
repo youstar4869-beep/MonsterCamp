@@ -17,10 +17,10 @@ MonoBehaviour:
   _members:
   - Creature: {fileID: 11400000, guid: 13c737b48fa59924285c4d52f4f14650, type: 2}
     Level: 2
-  - Creature: {fileID: 11400000, guid: 667a03eaf5128d64083da2cc526ef56a, type: 2}
+  - Creature: {fileID: 11400000, guid: 8dfc8afedb2c3be4f931c5b9bf49d769, type: 2}
     Level: 1
-  - Creature: {fileID: 11400000, guid: 6be89559101692e4f8b11162b62f16a2, type: 2}
-    Level: 2
+  - Creature: {fileID: 11400000, guid: 2dfb1b06587d14d44b9a8628d83b1191, type: 2}
+    Level: 1
   - Creature: {fileID: 11400000, guid: f6bb2043f730504409a6129c0ed91b9c, type: 2}
     Level: 2
   - Creature: {fileID: 11400000, guid: 0fc5511a7cf81774d89ee1472f65eb3d, type: 2}

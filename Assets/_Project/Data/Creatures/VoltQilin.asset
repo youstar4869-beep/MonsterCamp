@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: VoltQilin
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uB1CC\uAD11\uAE30\uB9B0"
+  _type: 3
+  _tier: 5
+  _maxHealth: 330
+  _attack: 35
+  _attackSpeed: 1.3
+  _skillDescription: "\uACF5\uACA9\uC774 \uC801 3\uB9C8\uB9AC\uC5D0\uAC8C \uB3D9\uC2DC\uC5D0
+    \uB9DE\uC74C"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 235b7e6bbad1251478e62058b4aa16be, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 235b7e6bbad1251478e62058b4aa16be, type: 3}
+  - {fileID: 21300000, guid: 63bcaa9f9a421bc438f03813188f7e0f, type: 3}
+  - {fileID: 21300000, guid: 8a1cc1923991e0d44a50bd9f7339cdcb, type: 3}

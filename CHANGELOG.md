@@ -127,3 +127,17 @@
   - 대기석·팀 칸·전투·드래그 아이콘은 레벨 그림, 도감·상점 판매 칸은 Lv1 그림. 합성으로 레벨이 오르면 바로 그림이 바뀜
   - 그림 비율 유지(Preserve Aspect, 기존 설정 그대로), 전투 중 크리처 그림이 위아래로 통통 튀는 움직임
   - 임시 색깔 네모 그림(`Art/Placeholders/Creatures`)은 남겨 둠 (새 크리처를 만들 때 기본 그림)
+- 크리처 등급 1~5골드 개편 (CREATURE_TIERS.md 확정안)
+  - `art/creature-sprites` 병합: 새 20종 x 3레벨 그림, CREATURE_TIERS.md, 그림 생성 도구(`Tools/ArtGen`)
+  - `CreatureData._tier` 범위 1~5, `ShopConfig._tierPrices` {1,2,3,4,5}
+  - 새 크리처 20종 (1골드 5, 2골드 5, 4골드 5, 5골드 5)을 `CreatureDataBuilder`에 추가, 능력은 설명만. 총 35종
+  - 상점 등장 확률: `ShopConfig._tierOdds` 라운드 구간별 등급 확률표(인스펙터에서 수정). 칸마다 등급을 먼저 고르고 그 등급의 해금된 크리처 중 하나, 후보가 없으면 아래 등급으로. `ShopScreen`이 지금 라운드를 받음(이어하기 포함)
+  - 판매 가격 = 구매 가격 × 합친 마리 수 (`_levelSellPrices` → `_levelSellMultipliers` {1,3,9}, 값 유지)
+  - 타입 시너지: 5골드 크리처는 2마리로 셈 (`TypeSynergy.CountUnique`, 상점 표시와 전투가 같은 함수 사용)
+  - 해금: 3골드 3종 잠금 해제, 5골드 5종을 각 별 10개로 잠금 (이미 해금한 meta.json은 그대로)
+  - 적 팀: 5·7·8·9·10라운드에 4·5골드를 섞고(10라운드 보스 5골드 2마리) 세기 지수를 이전과 비슷하게 유지
+  - 도감: "티어 N" → "N골드", 가격 → 타입 순 정렬, 35종을 위아래 스크롤 목록으로 (가격마다 새 줄)
+  - 메뉴 "MonsterCamp → 크리처 등급 1~5골드 적용": 새 20종 생성 → 35종 그림 연결 → ShopConfig·MetaConfig·적 팀 갱신
+  - 메뉴 "MonsterCamp → 크리처 등급 규칙 점검": 라운드별 상점 등급 비율(2000번), 판매 가격, 5골드 시너지 계산을 Console에 출력
+  - GAME_DESIGN.md 4·6-2·7-1·8-1·9-2 반영
+  - `MainSceneBuilder` 변경(도감) — Main 씬을 다시 만들어야 적용됨

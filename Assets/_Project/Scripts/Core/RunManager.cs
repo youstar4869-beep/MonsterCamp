@@ -162,7 +162,7 @@ public class RunManager : MonoBehaviour
         _flow.Show(GameScreen.Shop);
         // 상인: 라운드 골드 +1, 행운 동전: 지난 전투 승리 시 +1
         // 튜토리얼 중이면 정해 둔 상점 목록 (아니면 null → 랜덤)
-        _shop.StartRound(_trainer.RoundGoldBonus + _pendingGold, _tutorial.GetPresetShop(_round));
+        _shop.StartRound(_round, _trainer.RoundGoldBonus + _pendingGold, _tutorial.GetPresetShop(_round));
         _tutorial.OnShopStarted(_round);
         _pendingGold = 0;
         _inShop = true;

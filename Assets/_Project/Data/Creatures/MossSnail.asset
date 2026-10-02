@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: MossSnail
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC774\uB07C\uB2EC\uD33D\uC774"
+  _type: 2
+  _tier: 1
+  _maxHealth: 135
+  _attack: 7
+  _attackSpeed: 1
+  _skillDescription: "\uCCB4\uB825\uC774 \uB192\uACE0 \uACF5\uACA9\uC774 \uC57D\uD568,
+    5\uCD08\uB9C8\uB2E4 \uCCB4\uB825 5% \uD68C\uBCF5"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 4e30ec41db4aff343a92e65a2467ba83, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 4e30ec41db4aff343a92e65a2467ba83, type: 3}
+  - {fileID: 21300000, guid: dfa592ac979891c4ab95a80e38a8554b, type: 3}
+  - {fileID: 21300000, guid: 429c76b1806aa0c4cba9e08868b82830, type: 3}

@@ -15,13 +15,13 @@ MonoBehaviour:
   _displayName: "\uAE4A\uC740 \uC232"
   _isBoss: 0
   _members:
-  - Creature: {fileID: 11400000, guid: 32076891a449935468bd3f1d20b8b7ce, type: 2}
+  - Creature: {fileID: 11400000, guid: b982870ccb7bc374f9a4629113add1d5, type: 2}
     Level: 1
   - Creature: {fileID: 11400000, guid: 25d9644f135e19b44a839014aa986052, type: 2}
     Level: 2
   - Creature: {fileID: 11400000, guid: f6bb2043f730504409a6129c0ed91b9c, type: 2}
     Level: 2
-  - Creature: {fileID: 11400000, guid: 0645507553a0629479dd0ff054f84a9c, type: 2}
+  - Creature: {fileID: 11400000, guid: 935b2f9109cf11e419a404dbe87fb6e8, type: 2}
     Level: 1
-  - Creature: {fileID: 11400000, guid: 9c0e3d2bbca384645b94224c973317d6, type: 2}
+  - Creature: {fileID: 11400000, guid: 7e8ba82b7b39e004bb1cb1139b6109a2, type: 2}
     Level: 1

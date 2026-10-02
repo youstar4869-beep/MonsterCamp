@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: MatchMouse
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC131\uB0E5\uC950"
+  _type: 0
+  _tier: 1
+  _maxHealth: 85
+  _attack: 13
+  _attackSpeed: 1
+  _skillDescription: "\uCCAB \uACF5\uACA9 \uD53C\uD574 2\uBC30"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 146551f7387ce9244b463f51a559d6c8, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 146551f7387ce9244b463f51a559d6c8, type: 3}
+  - {fileID: 21300000, guid: 86867c198010f7f4783846512fa32439, type: 3}
+  - {fileID: 21300000, guid: f228b1cd07e0bd547a0004952e843f16, type: 3}

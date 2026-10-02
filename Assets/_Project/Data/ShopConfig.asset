@@ -14,8 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShopConfig
   _roundGold: 10
   _refreshCost: 1
-  _tierPrices: 010000000200000003000000
-  _levelSellPrices: 010000000300000009000000
+  _tierPrices: 0100000002000000030000000400000005000000
+  _levelSellMultipliers: 010000000300000009000000
+  _tierOdds:
+  - FromRound: 1
+    Percents: 4b00000019000000000000000000000000000000
+  - FromRound: 3
+    Percents: 32000000230000000f0000000000000000000000
+  - FromRound: 5
+    Percents: 1e00000023000000190000000a00000000000000
+  - FromRound: 7
+    Percents: 140000001e0000001e0000000f00000005000000
+  - FromRound: 9
+    Percents: 0f000000190000001e000000140000000a000000
   _creaturePool:
   - {fileID: 11400000, guid: 32076891a449935468bd3f1d20b8b7ce, type: 2}
   - {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
@@ -32,6 +43,26 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0645507553a0629479dd0ff054f84a9c, type: 2}
   - {fileID: 11400000, guid: 0c5b99ed4a4090945ab49b3a5b861c28, type: 2}
   - {fileID: 11400000, guid: 7e8ba82b7b39e004bb1cb1139b6109a2, type: 2}
+  - {fileID: 11400000, guid: abf1aa8a98c91624d88069313ba669dd, type: 2}
+  - {fileID: 11400000, guid: 01ef049a8981a3e4381246974dd5f554, type: 2}
+  - {fileID: 11400000, guid: 61be93bba6b725240957a37b217eebee, type: 2}
+  - {fileID: 11400000, guid: 68c23b1d4e6eeb9449254267ebfd3cdc, type: 2}
+  - {fileID: 11400000, guid: 9176d9ffa05e5c84ba7c10dd5d2d8d90, type: 2}
+  - {fileID: 11400000, guid: b65922c122a99c240b29900c7720901e, type: 2}
+  - {fileID: 11400000, guid: e1a3d50b32cd8004295259bc1f2a9c08, type: 2}
+  - {fileID: 11400000, guid: 8dfc8afedb2c3be4f931c5b9bf49d769, type: 2}
+  - {fileID: 11400000, guid: 5dfa9d51c98c7ee49b27466facba83f3, type: 2}
+  - {fileID: 11400000, guid: 7f914154649e93543928bd992620eb5e, type: 2}
+  - {fileID: 11400000, guid: b1872c7427978ce4da78b4cc4044a1d9, type: 2}
+  - {fileID: 11400000, guid: 98125a137810346459247251d99a46c7, type: 2}
+  - {fileID: 11400000, guid: e3476113726c78143baf223ef1ddc8b0, type: 2}
+  - {fileID: 11400000, guid: e2277273df8696f40a33fefc947e3093, type: 2}
+  - {fileID: 11400000, guid: b982870ccb7bc374f9a4629113add1d5, type: 2}
+  - {fileID: 11400000, guid: 2dfb1b06587d14d44b9a8628d83b1191, type: 2}
+  - {fileID: 11400000, guid: 3ad609a2429a25445ac15dfb6645babf, type: 2}
+  - {fileID: 11400000, guid: 56e2ddcfae6e7d340944332d827a5047, type: 2}
+  - {fileID: 11400000, guid: 61dabd2f318f26d40a9364d37e5adcbe, type: 2}
+  - {fileID: 11400000, guid: 935b2f9109cf11e419a404dbe87fb6e8, type: 2}
   _itemPool:
   - {fileID: 11400000, guid: b774992428c4a0d4b80caa3c5ad267d7, type: 2}
   - {fileID: 11400000, guid: 3a1e1013a0ee53e4aa7f2fe6e1687ea2, type: 2}

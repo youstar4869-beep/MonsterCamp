@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: PetalMoth
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uAF43\uC78E\uB098\uBC29"
+  _type: 2
+  _tier: 2
+  _maxHealth: 175
+  _attack: 14
+  _attackSpeed: 1
+  _skillDescription: "\uACF5\uACA9 \uC2DC 20% \uD655\uB960\uB85C \uC801 \uACF5\uACA9\uB825
+    2\uCD08 \uAC10\uC18C"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: ee4742ccabb05654e8cd248900ad1143, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: ee4742ccabb05654e8cd248900ad1143, type: 3}
+  - {fileID: 21300000, guid: f752fa555adbf7640a08768f61de401a, type: 3}
+  - {fileID: 21300000, guid: 148119205314bf7428654aedae2b9570, type: 3}

@@ -36,6 +36,8 @@ public class ShopScreen : MonoBehaviour
     private CreatureInstance[] _team;
     private ItemData[] _items;
     private int _gold;
+    // 지금 라운드 (상점 등급 확률에 사용)
+    private int _round = 1;
     private SlotDragHandler _dragSource;
 
     // 합성 후보를 모을 때 재사용 (팀 칸 먼저, 그다음 대기석)
@@ -56,10 +58,11 @@ public class ShopScreen : MonoBehaviour
     }
 
     // 라운드 시작: 골드를 다시 채우고 상점을 새로 뽑는다. 대기석·팀·보관함은 그대로
-    // bonusGold: 트레이너 능력, 행운 동전 등으로 더 받는 골드
+    // round: 지금 라운드 (등급 확률), bonusGold: 트레이너 능력, 행운 동전 등으로 더 받는 골드
     // presetOffers: 튜토리얼처럼 상점 목록을 정해 둘 때 (null이면 랜덤, 아이템 칸은 비움)
-    public void StartRound(int bonusGold, CreatureData[] presetOffers)
+    public void StartRound(int round, int bonusGold, CreatureData[] presetOffers)
     {
+        _round = round;
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
         _gold = _config.RoundGold + bonusGold;
@@ -132,6 +135,7 @@ public class ShopScreen : MonoBehaviour
     public void LoadSave(RunSaveData data)
     {
         ResetRun();
+        _round = Mathf.Max(1, data.round);
         FromSave(data.team, _team);
         FromSave(data.bench, _bench);
         for (int i = 0; i < _items.Length && data.items != null && i < data.items.Length; i++)
@@ -554,7 +558,7 @@ public class ShopScreen : MonoBehaviour
         // 잠긴 크리처는 내 상점에 나오지 않는다
         for (int i = 0; i < _offers.Length; i++)
         {
-            _offers[i] = _config.GetRandomCreature(_meta.IsUnlocked);
+            _offers[i] = _config.GetRandomCreature(_round, _meta.IsUnlocked);
         }
         _itemOffer = _config.GetRandomItem();
     }

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: CoralSeahorse
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC0B0\uD638\uD574\uB9C8"
+  _type: 1
+  _tier: 2
+  _maxHealth: 155
+  _attack: 15
+  _attackSpeed: 1
+  _skillDescription: "3\uBC88\uC9F8 \uACF5\uACA9\uB9C8\uB2E4 \uCCB4\uB825\uC774 \uAC00\uC7A5
+    \uB0AE\uC740 \uC544\uAD70 \uD68C\uBCF5"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 862ad8e090993cd4dba7f5afb2584a17, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 862ad8e090993cd4dba7f5afb2584a17, type: 3}
+  - {fileID: 21300000, guid: 4a564a02df97bde4c9a0ef453836374b, type: 3}
+  - {fileID: 21300000, guid: 900ce08242e7cb446865570b5f1c33a5, type: 3}

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: VoltEel
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC804\uAE30\uBC40\uC7A5\uC5B4"
+  _type: 3
+  _tier: 2
+  _maxHealth: 130
+  _attack: 15
+  _attackSpeed: 1.3
+  _skillDescription: "\uACF5\uACA9 \uC2DC 25% \uD655\uB960\uB85C \uC606 \uC801\uC5D0\uAC8C
+    \uD280\uB294 \uD53C\uD574"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: d015c56d933472f4490ebadfecbe8c05, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: d015c56d933472f4490ebadfecbe8c05, type: 3}
+  - {fileID: 21300000, guid: 29659ced7895fd24fa54886ae94747ac, type: 3}
+  - {fileID: 21300000, guid: 2c2d56234a1baaa45993db485937ec9b, type: 3}

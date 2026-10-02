@@ -19,9 +19,13 @@ MonoBehaviour:
   - Trainer: {fileID: 11400000, guid: 0b7c17def9017994ba31f1db6b85dcca, type: 2}
     Cost: 15
   _lockedCreatures:
-  - Creature: {fileID: 11400000, guid: 6be89559101692e4f8b11162b62f16a2, type: 2}
+  - Creature: {fileID: 11400000, guid: 2dfb1b06587d14d44b9a8628d83b1191, type: 2}
     Cost: 10
-  - Creature: {fileID: 11400000, guid: 9c0e3d2bbca384645b94224c973317d6, type: 2}
+  - Creature: {fileID: 11400000, guid: abf1aa8a98c91624d88069313ba669dd, type: 2}
     Cost: 10
-  - Creature: {fileID: 11400000, guid: 32076891a449935468bd3f1d20b8b7ce, type: 2}
+  - Creature: {fileID: 11400000, guid: e1a3d50b32cd8004295259bc1f2a9c08, type: 2}
+    Cost: 10
+  - Creature: {fileID: 11400000, guid: 61dabd2f318f26d40a9364d37e5adcbe, type: 2}
+    Cost: 10
+  - Creature: {fileID: 11400000, guid: b1872c7427978ce4da78b4cc4044a1d9, type: 2}
     Cost: 10

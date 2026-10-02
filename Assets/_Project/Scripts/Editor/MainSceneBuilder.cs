@@ -22,6 +22,10 @@ public static class MainSceneBuilder
     private const string MetaConfigPath = "Assets/_Project/Data/MetaConfig.asset";
     private const string LockSpritePath = "Assets/_Project/Art/Placeholders/UI/Lock.png";
     private const string TutorialFolder = "Assets/_Project/Data/Tutorial";
+    // 도감 크리처 칸 (1080x1920 기준)
+    private const int CodexColumns = 5;
+    private const float CodexCellWidth = 186f;
+    private const float CodexRowHeight = 290f;
     private const string TutorialDataPath = "Assets/_Project/Data/Tutorial/TutorialData.asset";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
@@ -425,7 +429,7 @@ public static class MainSceneBuilder
         return creatures;
     }
 
-    // 도감 화면: 제목 / 별 / 트레이너 3칸 / 크리처 15칸(줄 = 티어, 칸 = 타입) / 안내 문구 / 뒤로
+    // 도감 화면: 제목 / 별 / 트레이너 3칸 / 크리처 35칸(위아래 스크롤, 줄 = 가격, 같은 가격은 타입 순) / 안내 문구 / 뒤로
     private static void BuildCodexUI(GameObject screen, ScreenFlow flow, MetaProgress meta)
     {
         Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.925f), new Vector2(1f, 0.985f));
@@ -446,19 +450,25 @@ public static class MainSceneBuilder
 
         Text creatureLabel = CreateText(screen.transform, "CreatureLabel", "크리처", 36, new Vector2(0.03f, 0.665f), new Vector2(0.97f, 0.695f));
         creatureLabel.alignment = TextAnchor.MiddleLeft;
+        // 크리처 35종은 위아래로 스크롤. 가격이 바뀌면 새 줄, 한 줄에 최대 5칸 (1·2골드 2줄, 3·4·5골드 1줄)
         CreatureData[] creatures = GetSortedCreatures();
-        Transform[] creatureRows =
-        {
-            CreateRow(screen.transform, "CreatureRow1", new Vector2(0.03f, 0.49f), new Vector2(0.97f, 0.66f)),
-            CreateRow(screen.transform, "CreatureRow2", new Vector2(0.03f, 0.31f), new Vector2(0.97f, 0.48f)),
-            CreateRow(screen.transform, "CreatureRow3", new Vector2(0.03f, 0.13f), new Vector2(0.97f, 0.3f)),
-        };
+        Transform scrollContent = CreateVerticalScroll(screen.transform, "CreatureScroll",
+            new Vector2(0.03f, 0.135f), new Vector2(0.97f, 0.66f));
         var creatureEntries = new CodexEntryView[creatures.Length];
-        int perRow = Mathf.CeilToInt(creatures.Length / (float)creatureRows.Length);
+        Transform row = null;
+        int rowTier = 0;
+        int column = 0;
         for (int i = 0; i < creatures.Length; i++)
         {
-            Transform row = creatureRows[Mathf.Min(i / perRow, creatureRows.Length - 1)];
+            if (row == null || column >= CodexColumns || creatures[i].Tier != rowTier)
+            {
+                row = CreateScrollRow(scrollContent, "Row" + creatures[i].Tier + "Gold");
+                rowTier = creatures[i].Tier;
+                column = 0;
+            }
             creatureEntries[i] = CreateCodexEntry(row, "Creature" + i, true);
+            creatureEntries[i].gameObject.AddComponent<LayoutElement>().preferredWidth = CodexCellWidth;
+            column++;
         }
 
         Text messageText = CreateText(screen.transform, "MessageText", "", 36, new Vector2(0f, 0.1f), new Vector2(1f, 0.13f));
@@ -485,6 +495,59 @@ public static class MainSceneBuilder
         {
             UnityEventTools.AddIntPersistentListener(creatureEntries[i].GetComponentInChildren<Button>(true).onClick, codex.UnlockCreature, i);
         }
+    }
+
+    // 위아래 스크롤 목록. 돌려주는 Transform에 줄을 넣는다 (줄 높이만큼 자동으로 길어짐)
+    private static Transform CreateVerticalScroll(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
+    {
+        var scroll = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
+        scroll.transform.SetParent(parent, false);
+        var scrollRect = scroll.GetComponent<RectTransform>();
+        Stretch(scrollRect, anchorMin, anchorMax);
+        // 빈 곳을 끌어도 스크롤되도록 거의 투명한 바탕
+        scroll.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.15f);
+
+        var content = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        content.transform.SetParent(scroll.transform, false);
+        var contentRect = content.GetComponent<RectTransform>();
+        contentRect.anchorMin = new Vector2(0f, 1f);
+        contentRect.anchorMax = new Vector2(1f, 1f);
+        contentRect.pivot = new Vector2(0.5f, 1f);
+        contentRect.offsetMin = Vector2.zero;
+        contentRect.offsetMax = Vector2.zero;
+        var layout = content.GetComponent<VerticalLayoutGroup>();
+        layout.spacing = 14;
+        layout.padding = new RectOffset(0, 0, 8, 8);
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        content.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        var scrollView = scroll.GetComponent<ScrollRect>();
+        scrollView.content = contentRect;
+        scrollView.viewport = scrollRect;
+        scrollView.horizontal = false;
+        scrollView.vertical = true;
+        scrollView.movementType = ScrollRect.MovementType.Clamped;
+        scrollView.scrollSensitivity = 40;
+        return content.transform;
+    }
+
+    // 스크롤 목록의 한 줄 (칸은 가운데 정렬, 칸 너비는 칸의 LayoutElement)
+    private static Transform CreateScrollRow(Transform content, string name)
+    {
+        var row = new GameObject(name, typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+        row.transform.SetParent(content, false);
+        var layout = row.GetComponent<HorizontalLayoutGroup>();
+        layout.spacing = 12;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = true;
+        row.GetComponent<LayoutElement>().preferredHeight = CodexRowHeight;
+        return row.transform;
     }
 
     // 도감 한 칸. withIcon: 크리처 칸(그림 있음) / 트레이너 칸(이름 + 설명)
@@ -603,7 +666,7 @@ public static class MainSceneBuilder
         return AssetDatabase.LoadAssetAtPath<Sprite>(LockSpritePath);
     }
 
-    // 도감 순서: 티어 순, 같은 티어는 타입 순 (줄 = 티어, 칸 = 타입)
+    // 도감 순서: 가격(등급) 순, 같은 가격은 타입 순
     private static CreatureData[] GetSortedCreatures()
     {
         string[] guids = AssetDatabase.FindAssets("t:CreatureData", new[] { CreatureFolder });
@@ -635,7 +698,8 @@ public static class MainSceneBuilder
             AssetDatabase.LoadAssetAtPath<TrainerData>($"{TrainerFolder}/Merchant.asset");
         trainers.GetArrayElementAtIndex(0).FindPropertyRelative("Cost").intValue = 15;
 
-        string[] lockedCreatures = { "LavaMane", "StormHawk", "BedrockRhino" };
+        // 5골드 5종을 각 별 10개로 잠근다 (1~5골드 개편, CREATURE_TIERS.md)
+        string[] lockedCreatures = { "SunPhoenix", "AbyssDragon", "ElderTreant", "VoltQilin", "MountainTortoise" };
         SerializedProperty creatures = so.FindProperty("_lockedCreatures");
         creatures.arraySize = lockedCreatures.Length;
         for (int i = 0; i < lockedCreatures.Length; i++)

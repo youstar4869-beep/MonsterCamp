@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: MountainTortoise
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC0B0\uB9E5\uAC70\uBD81"
+  _type: 4
+  _tier: 5
+  _maxHealth: 560
+  _attack: 30
+  _attackSpeed: 0.75
+  _skillDescription: "\uBC1B\uB294 \uD53C\uD574 40% \uAC10\uC18C, \uC4F0\uB7EC\uC9C0\uBA74
+    \uC801 \uC804\uCCB4 \uAE30\uC808 2\uCD08"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 17030301f5c876f48805816b4ed9e4bd, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 17030301f5c876f48805816b4ed9e4bd, type: 3}
+  - {fileID: 21300000, guid: 2515b34eb80ecaf4ba833838fb3c728f, type: 3}
+  - {fileID: 21300000, guid: 53dc792b9e20e004594cd68a136090c4, type: 3}

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: Flytrap
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uB369\uAD74\uD30C\uB9AC\uC9C0\uC625"
+  _type: 2
+  _tier: 4
+  _maxHealth: 340
+  _attack: 28
+  _attackSpeed: 1
+  _skillDescription: "\uC804\uD22C \uC2DC\uC791 \uC2DC \uB4B7\uC904 \uC801 1\uB9C8\uB9AC\uB97C
+    3\uCD08 \uBB36\uC74C"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 00cd86e37b7bb0043aa45395300b2573, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 00cd86e37b7bb0043aa45395300b2573, type: 3}
+  - {fileID: 21300000, guid: f71cbca8a821d2c4b8c8d2c103cc5e36, type: 3}
+  - {fileID: 21300000, guid: 0a10526dc25cc634f8739e5e5d50121c, type: 3}

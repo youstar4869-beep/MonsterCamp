@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: SunPhoenix
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uD0DC\uC591\uBD88\uC0AC\uC870"
+  _type: 0
+  _tier: 5
+  _maxHealth: 350
+  _attack: 46
+  _attackSpeed: 1
+  _skillDescription: "\uCC98\uC74C \uC4F0\uB7EC\uC9C0\uBA74 \uCCB4\uB825 50%\uB85C
+    \uD55C \uBC88 \uBD80\uD65C"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 2236d06f8afba6d49b43f0663364f199, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 2236d06f8afba6d49b43f0663364f199, type: 3}
+  - {fileID: 21300000, guid: d3d7cf31c919e684180d9c8430c29839, type: 3}
+  - {fileID: 21300000, guid: 1de244173093916479ebb7688ece8ff2, type: 3}

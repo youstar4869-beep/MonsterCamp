@@ -5,10 +5,13 @@ using UnityEngine;
 public class CreatureData : ScriptableObject
 {
     public const int MaxLevel = 3;
+    // 등급 = 구매 가격 (1~5골드)
+    public const int MaxTier = 5;
 
     [SerializeField] private string _displayName;
     [SerializeField] private CreatureType _type;
-    [SerializeField, Range(1, 3)] private int _tier = 1;
+    [Tooltip("등급 = 구매 가격 (1~5골드)")]
+    [SerializeField, Range(1, MaxTier)] private int _tier = 1;
 
     [Header("능력치 (Lv1)")]
     [SerializeField, Min(1)] private int _maxHealth = 100;

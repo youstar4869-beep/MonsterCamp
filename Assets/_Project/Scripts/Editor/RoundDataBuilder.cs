@@ -27,19 +27,29 @@ public static class RoundDataBuilder
         }
     }
 
+    // 세기 지수 = 칸마다 (레벨 배율 × √(체력×공격력×공격 속도))의 합. 1~5골드 개편 때 라운드 곡선을 유지하도록 맞춤
+    // (GAME_DESIGN.md 7-1 참고)
     private static readonly RoundSeed[] Rounds =
     {
         new RoundSeed("새싹 들판", false, "Sproutee:1", null, "Plopper:1", null, null),
         new RoundSeed("불씨 언덕", false, "Embit:1", "Pebblet:1", "Zappy:1", null, null),
         new RoundSeed("개울가 무리", false, "Pebblet:1", "Sproutee:1", "Plopper:1", "Zappy:1", null),
         new RoundSeed("숲 어귀", false, "HearthBear:1", "VineFox:1", "Embit:1", "SprayOtter:1", null),
-        new RoundSeed("바위 성채", true, "GravelShell:2", "Pebblet:2", "Embit:2", "LavaMane:1", "Plopper:2"),
+        // 보스: 4골드 바위골렘 (세기 332 → 338)
+        new RoundSeed("바위 성채", true, "StoneGolem:1", "GravelShell:2", "Embit:2", "LavaMane:1", "Pebblet:1"),
         new RoundSeed("물안개 호수", false, "HearthBear:2", "VineFox:1", "FlashWeasel:1", "SprayOtter:2", null),
-        new RoundSeed("천둥 협곡", false, "GravelShell:2", "VineFox:2", "Zappy:2", "SprayOtter:2", "Embit:2"),
-        new RoundSeed("깊은 숲", false, "BedrockRhino:1", "HearthBear:2", "FlashWeasel:2", "TideWhale:1", "StormHawk:1"),
-        new RoundSeed("용암 동굴", false, "GravelShell:2", "GroveStag:1", "LavaMane:2", "FlashWeasel:2", "SprayOtter:2"),
-        new RoundSeed("폭풍 왕좌", true, "BedrockRhino:2", "GroveStag:2", "LavaMane:2", "StormHawk:2", "TideWhale:2"),
+        // 4골드 불꽃늑대 (384 → 383)
+        new RoundSeed("천둥 협곡", false, "GravelShell:2", "VineFox:2", "BlazeWolf:1", "Zappy:2", "SprayOtter:1"),
+        // 4골드 바위골렘·소용돌이문어 (405 → 397)
+        new RoundSeed("깊은 숲", false, "StoneGolem:1", "HearthBear:2", "FlashWeasel:2", "WhirlOctopus:1", "Zappy:1"),
+        // 4골드 덩굴파리지옥 + 5골드 태양불사조 (487 → 489)
+        new RoundSeed("용암 동굴", false, "GravelShell:2", "Flytrap:1", "SunPhoenix:1", "FlashWeasel:2", "SprayOtter:2"),
+        // 보스: 5골드 산맥거북·뇌광기린 + 4골드 바위골렘 (685 → 670)
+        new RoundSeed("폭풍 왕좌", true, "MountainTortoise:1", "StoneGolem:2", "VoltQilin:1", "LavaMane:2", "TideWhale:2"),
     };
+
+    // 1~5골드 개편 때 바뀐 라운드 (기존 에셋을 이 값으로 덮어씀)
+    public static readonly int[] TierUpdateRounds = { 5, 7, 8, 9, 10 };
 
     [MenuItem("MonsterCamp/Create Round Data")]
     public static void Build()
@@ -70,11 +80,36 @@ public static class RoundDataBuilder
         Debug.Log($"라운드 데이터 생성 완료: 새로 만듦 {created}개 (이미 있는 에셋은 건너뜀)");
     }
 
+    // 1~5골드 개편: TierUpdateRounds의 적 팀 에셋을 지금 값으로 덮어쓴다 (나머지 라운드는 그대로)
+    public static int ApplyTierUpdate()
+    {
+        int updated = 0;
+        foreach (int round in TierUpdateRounds)
+        {
+            string path = $"{EnemyTeamFolder}/Round{round:00}.asset";
+            var team = AssetDatabase.LoadAssetAtPath<EnemyTeamData>(path);
+            if (team == null)
+            {
+                Debug.LogWarning($"[등급 개편] 적 팀 에셋이 없습니다: {path} (먼저 Create Round Data)");
+                continue;
+            }
+            WriteTeam(team, Rounds[round - 1]);
+            EditorUtility.SetDirty(team);
+            updated++;
+        }
+        return updated;
+    }
+
     private static EnemyTeamData CreateEnemyTeam(RoundSeed seed, string path)
     {
         var team = ScriptableObject.CreateInstance<EnemyTeamData>();
         AssetDatabase.CreateAsset(team, path);
+        WriteTeam(team, seed);
+        return team;
+    }
 
+    private static void WriteTeam(EnemyTeamData team, RoundSeed seed)
+    {
         var so = new SerializedObject(team);
         so.FindProperty("_displayName").stringValue = seed.Name;
         so.FindProperty("_isBoss").boolValue = seed.IsBoss;
@@ -96,7 +131,6 @@ public static class RoundDataBuilder
             member.FindPropertyRelative("Level").intValue = int.Parse(parts[1]);
         }
         so.ApplyModifiedPropertiesWithoutUndo();
-        return team;
     }
 
     private static void CreateRunConfig(EnemyTeamData[] teams)

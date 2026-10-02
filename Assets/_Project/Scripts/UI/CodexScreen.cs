@@ -7,7 +7,7 @@ public class CodexScreen : MonoBehaviour
     [SerializeField] private MetaProgress _meta;
     [SerializeField] private TrainerData[] _trainers;
     [SerializeField] private CodexEntryView[] _trainerEntries;
-    [Tooltip("티어 순, 같은 티어는 타입 순")]
+    [Tooltip("가격 순, 같은 가격은 타입 순")]
     [SerializeField] private CreatureData[] _creatures;
     [SerializeField] private CodexEntryView[] _creatureEntries;
     [SerializeField] private Text _starsText;
@@ -57,7 +57,7 @@ public class CodexScreen : MonoBehaviour
         {
             CreatureData creature = _creatures[i];
             int cost = _meta.GetCost(creature);
-            string info = $"{TypeSynergy.GetTypeName(creature.Type)} · 티어 {creature.Tier}";
+            string info = $"{TypeSynergy.GetTypeName(creature.Type)} · {creature.Tier}골드";
             _creatureEntries[i].Show(creature.DisplayName, creature.Sprite, info);
             _creatureEntries[i].SetLocked(cost > 0, cost, _meta.Stars >= cost);
         }

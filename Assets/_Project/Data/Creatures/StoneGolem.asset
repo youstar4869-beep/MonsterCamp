@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: StoneGolem
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uBC14\uC704\uACE8\uB818"
+  _type: 4
+  _tier: 4
+  _maxHealth: 420
+  _attack: 24
+  _attackSpeed: 0.75
+  _skillDescription: "\uC804\uD22C \uC2DC\uC791 \uC2DC \uC544\uAD70 \uC804\uCCB4\uC5D0
+    \uCD5C\uB300 \uCCB4\uB825 15% \uBCF4\uD638\uB9C9"
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: c5867cc62c1122f44a7da9f20f2a7d3e, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: c5867cc62c1122f44a7da9f20f2a7d3e, type: 3}
+  - {fileID: 21300000, guid: 1ca437fcb53a8a346855f2307e8409bd, type: 3}
+  - {fileID: 21300000, guid: 421e3bfddbdbc4b49ab0ac3613f48cae, type: 3}
