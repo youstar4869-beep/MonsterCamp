@@ -76,7 +76,7 @@ public static class MainSceneBuilder
         GameObject codex = CreateScreen(canvas, "CodexScreen", "도감");
 
         // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
-        GameObject hud = CreateHud(canvas, out Text roundText, out Text livesText, out Text goldText);
+        HudView hud = CreateHud(canvas, out Text goldText);
         // 정보 창·시너지 표: 화면·상단 표시보다 위, 튜토리얼보다 아래 (다른 화면에서도 다시 쓸 수 있게 캔버스에)
         CreatureInfoPopup infoPopup = CreateCreatureInfoPopup(canvas);
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
@@ -95,7 +95,7 @@ public static class MainSceneBuilder
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, run, meta, goldText, infoPopup, synergyPanel, out Text trainerText);
+        ShopScreen shopScreen = BuildShopUI(shop, run, meta, hud, goldText, infoPopup, synergyPanel, out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
         // 튜토리얼 화면은 모든 화면·상단 표시보다 위에 그려지도록 여기서 만든다
@@ -118,8 +118,7 @@ public static class MainSceneBuilder
         serializedRun.FindProperty("_meta").objectReferenceValue = meta;
         serializedRun.FindProperty("_tutorial").objectReferenceValue = tutorial;
         serializedRun.FindProperty("_resultStars").objectReferenceValue = resultStars;
-        serializedRun.FindProperty("_roundText").objectReferenceValue = roundText;
-        serializedRun.FindProperty("_livesText").objectReferenceValue = livesText;
+        serializedRun.FindProperty("_hud").objectReferenceValue = hud;
         serializedRun.FindProperty("_trainerText").objectReferenceValue = trainerText;
         serializedRun.FindProperty("_resultTitle").objectReferenceValue = resultTitle;
         serializedRun.FindProperty("_resultDetail").objectReferenceValue = resultDetail;
@@ -128,7 +127,7 @@ public static class MainSceneBuilder
         // GameScreen enum 순서와 같아야 한다.
         var serializedFlow = new SerializedObject(flow);
         SetArray(serializedFlow.FindProperty("_screens"), new Object[] { title, trainer, shop, battle, result, codex });
-        serializedFlow.FindProperty("_hud").objectReferenceValue = hud;
+        serializedFlow.FindProperty("_hud").objectReferenceValue = hud.gameObject;
         serializedFlow.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -1069,26 +1068,89 @@ public static class MainSceneBuilder
         return trainer;
     }
 
-    // 상단 표시: 라운드 / 목숨 / 골드 (상점·전투 화면에서만 보인다)
-    private static GameObject CreateHud(Transform canvas, out Text roundText, out Text livesText, out Text goldText)
+    // 상단 정보바 (상점·전투 화면에서만 보인다): [깃발 2/10 보스] [하트 3개] [동전 골드 ?] [별 이번 판 별]
+    // 아이콘은 32x32 픽셀 그림 (HudIconBuilder). goldText: 누르면 골드 규칙 안내 (상점이 연결)
+    private static HudView CreateHud(Transform canvas, out Text goldText)
     {
-        var hud = new GameObject("Hud", typeof(RectTransform), typeof(Image));
+        // 아이콘 그림은 먼저 만든다 (만드는 중에 에셋을 가져오면 아래 연결이 끊길 수 있음)
+        Sprite flagSprite = HudIconBuilder.Flag;
+        Sprite heartSprite = HudIconBuilder.Heart;
+        Sprite emptyHeartSprite = HudIconBuilder.EmptyHeart;
+        Sprite coinSprite = HudIconBuilder.Coin;
+        Sprite starSprite = HudIconBuilder.Star;
+
+        var hud = new GameObject("Hud", typeof(RectTransform), typeof(Image), typeof(HudView));
         hud.transform.SetParent(canvas, false);
         Stretch(hud.GetComponent<RectTransform>(), new Vector2(0f, 0.945f), Vector2.one);
         var background = hud.GetComponent<Image>();
         background.color = _theme.Bar;
         background.raycastTarget = false;
 
-        roundText = CreateText(hud.transform, "RoundText", "", _theme.BodySize, new Vector2(0.03f, 0f), new Vector2(0.42f, 1f));
+        CreateHudIcon(hud.transform, "RoundIcon", flagSprite, 0.015f, 0.085f);
+        Text roundText = CreateText(hud.transform, "RoundText", "", _theme.BodySize, new Vector2(0.09f, 0f), new Vector2(0.2f, 1f));
         roundText.alignment = TextAnchor.MiddleLeft;
-        livesText = CreateText(hud.transform, "LivesText", "", _theme.BodySize, new Vector2(0.42f, 0f), new Vector2(0.7f, 1f));
-        livesText.color = _theme.Heart;
-        goldText = CreateText(hud.transform, "GoldText", "", _theme.BodySize, new Vector2(0.7f, 0f), new Vector2(0.97f, 1f));
-        goldText.alignment = TextAnchor.MiddleRight;
+        // 보스 라운드 표시: 빨간 둥근 판 + "보스"
+        var bossTag = new GameObject("BossTag", typeof(RectTransform), typeof(Image));
+        bossTag.transform.SetParent(hud.transform, false);
+        Stretch(bossTag.GetComponent<RectTransform>(), new Vector2(0.2f, 0.2f), new Vector2(0.3f, 0.8f));
+        var bossImage = bossTag.GetComponent<Image>();
+        bossImage.color = _theme.ButtonDanger;
+        bossImage.raycastTarget = false;
+        Round(bossImage, 20f);
+        Text bossText = CreateText(bossTag.transform, "Text", "보스", _theme.SmallSize, Vector2.zero, Vector2.one);
+        bossText.color = _theme.ButtonText;
+        bossTag.SetActive(false);
+
+        // 목숨 최대치만큼 하트
+        var runConfig = AssetDatabase.LoadAssetAtPath<RunConfig>(RunConfigPath);
+        int maxLives = runConfig != null ? runConfig.MaxLives : 3;
+        var hearts = new Image[maxLives];
+        const float heartsStart = 0.33f;
+        const float heartWidth = 0.068f;
+        for (int i = 0; i < maxLives; i++)
+        {
+            hearts[i] = CreateHudIcon(hud.transform, "Heart" + i, heartSprite,
+                heartsStart + heartWidth * i, heartsStart + heartWidth * (i + 1));
+        }
+
+        CreateHudIcon(hud.transform, "GoldIcon", coinSprite, 0.56f, 0.63f);
+        goldText = CreateText(hud.transform, "GoldText", "", _theme.HeadingSize, new Vector2(0.635f, 0f), new Vector2(0.755f, 1f));
         goldText.color = _theme.Gold;
+        // 누르면 규칙 안내가 나온다는 작은 표시
+        Text goldHelp = CreateText(hud.transform, "GoldHelpMark", "?", _theme.SmallSize, new Vector2(0.755f, 0.15f), new Vector2(0.79f, 0.85f));
+        goldHelp.color = _theme.TextSub;
+
+        CreateHudIcon(hud.transform, "StarIcon", starSprite, 0.85f, 0.92f);
+        Text starsText = CreateText(hud.transform, "StarsText", "", _theme.BodySize, new Vector2(0.925f, 0f), new Vector2(0.995f, 1f));
+        starsText.alignment = TextAnchor.MiddleLeft;
+        starsText.color = _theme.Accent;
+
+        var view = hud.GetComponent<HudView>();
+        var so = new SerializedObject(view);
+        so.FindProperty("_roundText").objectReferenceValue = roundText;
+        so.FindProperty("_bossTag").objectReferenceValue = bossTag;
+        SetArray(so.FindProperty("_hearts"), hearts);
+        so.FindProperty("_heartSprite").objectReferenceValue = heartSprite;
+        so.FindProperty("_emptyHeartSprite").objectReferenceValue = emptyHeartSprite;
+        so.FindProperty("_goldText").objectReferenceValue = goldText;
+        so.FindProperty("_starsText").objectReferenceValue = starsText;
+        so.ApplyModifiedPropertiesWithoutUndo();
 
         hud.SetActive(false);
-        return hud;
+        return view;
+    }
+
+    // 정보바 아이콘: 가로 xMin~xMax 칸 안에 정사각형으로 (픽셀 그림이라 비율 유지)
+    private static Image CreateHudIcon(Transform parent, string name, Sprite sprite, float xMin, float xMax)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>(), new Vector2(xMin, 0.14f), new Vector2(xMax, 0.86f));
+        var image = go.GetComponent<Image>();
+        image.sprite = sprite;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        return image;
     }
 
     // 화면 전환 버튼
@@ -1298,7 +1360,7 @@ public static class MainSceneBuilder
     // 상점·배치 화면 (세로 1920 기준, 위에서부터)
     // (상단 표시: 라운드·목숨·골드) / 트레이너·새로고침 / 상점 크리처 5칸 + 아이템 1칸 / 메시지 / 시너지
     // / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 아이템 보관함 3칸 + 전투 시작
-    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, Text goldText,
+    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, HudView hud, Text goldText,
         CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
@@ -1396,7 +1458,7 @@ public static class MainSceneBuilder
 
         // 상단 골드 바로 아래: 라운드 시작 때 잠깐 보이는 "+10 +이자 2" (상단 표시 아래로 삐져나오게)
         Text goldIncomeText = CreateText(goldText.transform.parent, "GoldIncomeText", "", _theme.BodySize,
-            new Vector2(0.7f, -1f), new Vector2(0.97f, 0f));
+            new Vector2(0.7f, -1f), new Vector2(0.99f, 0f));
         goldIncomeText.alignment = TextAnchor.MiddleRight;
         goldIncomeText.color = _theme.Positive;
         goldIncomeText.gameObject.SetActive(false);
@@ -1408,8 +1470,8 @@ public static class MainSceneBuilder
         Button goldButton = goldText.gameObject.AddComponent<Button>();
         goldButton.targetGraphic = goldText;
         UnityEventTools.AddVoidPersistentListener(goldButton.onClick, shop.ShowGoldHelp);
-        // 상단 표시 높이(약 105px)보다 아래로 조금 더 눌리게
-        AddHitArea(goldText, 0f, 20f, 0f, 0f);
+        // 동전 그림과 "?"까지, 상단 표시 높이(약 105px)보다 아래로 조금 더 눌리게
+        AddHitArea(goldText, 90f, 20f, 40f, 0f);
 
         var so = new SerializedObject(shop);
         so.FindProperty("_config").objectReferenceValue = GetOrCreateShopConfig();
@@ -1419,7 +1481,7 @@ public static class MainSceneBuilder
         so.FindProperty("_synergyPanel").objectReferenceValue = synergyPanel;
         so.FindProperty("_run").objectReferenceValue = run;
         so.FindProperty("_meta").objectReferenceValue = meta;
-        so.FindProperty("_goldText").objectReferenceValue = goldText;
+        so.FindProperty("_hud").objectReferenceValue = hud;
         so.FindProperty("_goldIncomeText").objectReferenceValue = goldIncomeText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.FindProperty("_refreshLabel").objectReferenceValue = refreshLabel;

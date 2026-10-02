@@ -21,8 +21,8 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private MetaProgress _meta;
     [Tooltip("지금 켜진 타입 시너지 (예: 불 2/4)")]
     [SerializeField] private Text _synergyText;
-    [Tooltip("상단 표시에 있는 골드 글자 (누르면 골드 규칙 안내)")]
-    [SerializeField] private Text _goldText;
+    [Tooltip("상단 정보바 (골드 표시, 골드를 누르면 골드 규칙 안내)")]
+    [SerializeField] private HudView _hud;
     [Tooltip("라운드 시작 때 골드 아래에 잠깐 보이는 \"+10 +이자 2\"")]
     [SerializeField] private Text _goldIncomeText;
     [SerializeField] private Text _messageText;
@@ -718,7 +718,7 @@ public class ShopScreen : MonoBehaviour
 
     private void UpdateView()
     {
-        _goldText.text = $"골드 {_gold} (?)";
+        _hud.SetGold(_gold);
         _refreshLabel.text = $"새로고침 ({_config.RefreshCost}G)";
 
         for (int i = 0; i < _shopSlots.Length; i++)

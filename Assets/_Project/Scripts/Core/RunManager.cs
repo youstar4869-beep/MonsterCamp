@@ -14,8 +14,8 @@ public class RunManager : MonoBehaviour
     [SerializeField] private TrainerData[] _trainers;
 
     [Header("상단 표시")]
-    [SerializeField] private Text _roundText;
-    [SerializeField] private Text _livesText;
+    [Tooltip("라운드·목숨·골드·이번 판 별")]
+    [SerializeField] private HudView _hud;
     [Tooltip("상점·배치 화면 위쪽의 트레이너 이름")]
     [SerializeField] private Text _trainerText;
 
@@ -236,8 +236,8 @@ public class RunManager : MonoBehaviour
 
     private void UpdateHud()
     {
-        string boss = _config.GetEnemyTeam(_round).IsBoss ? " 보스" : "";
-        _roundText.text = $"라운드 {_round}/{_config.RoundCount}{boss}";
-        _livesText.text = "목숨 " + new string('♥', _lives) + new string('♡', _config.MaxLives - _lives);
+        _hud.SetRound(_round, _config.RoundCount, _config.GetEnemyTeam(_round).IsBoss);
+        _hud.SetLives(_lives);
+        _hud.SetStars(_runStars);
     }
 }
