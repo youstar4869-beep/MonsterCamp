@@ -11,6 +11,7 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private ShopConfig _config;
     [SerializeField] private SynergyConfig _synergy;
     [SerializeField] private RunManager _run;
+    [SerializeField] private MetaProgress _meta;
     [Tooltip("지금 켜진 타입 시너지 (예: 불 2/4)")]
     [SerializeField] private Text _synergyText;
     [Tooltip("상단 표시에 있는 골드 글자")]
@@ -510,9 +511,10 @@ public class ShopScreen : MonoBehaviour
 
     private void RollOffers()
     {
+        // 잠긴 크리처는 내 상점에 나오지 않는다
         for (int i = 0; i < _offers.Length; i++)
         {
-            _offers[i] = _config.GetRandomCreature();
+            _offers[i] = _config.GetRandomCreature(_meta.IsUnlocked);
         }
         _itemOffer = _config.GetRandomItem();
     }

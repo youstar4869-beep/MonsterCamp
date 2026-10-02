@@ -97,3 +97,15 @@
   - 에디터 메뉴 "MonsterCamp → 저장 데이터 삭제", "MonsterCamp → 저장 폴더 열기"
   - GAME_DESIGN.md 13번 저장 규칙 기록
   - `MainSceneBuilder` 변경(타이틀 화면) — Main 씬을 다시 만들어야 적용됨
+- 메타 성장 추가
+  - `MetaConfig` ScriptableObject: 별 규칙(승리 +1, 중간 보스 +3, 클리어 +10), 잠긴 트레이너·크리처와 해금 가격 (`Data/MetaConfig`, Build Main Scene 때 없으면 생성)
+  - 잠금 기본값: 상인(별 15), 용암갈기·뇌운매·암반코뿔소(각 별 10). 나머지는 처음부터 열림
+  - `MetaProgress`: meta.json의 별·해금 관리 (해금 시 별 차감 후 바로 저장)
+  - 이번 판 별은 run.json(`starsEarned`)에 보관하다가 판이 끝날 때 한꺼번에 meta.json에 더함, 결과 화면에 이번 판 별 / 전체 별 표시
+  - 잠긴 크리처는 내 상점에 안 나옴 (적 팀은 그대로)
+  - 도감 화면(타이틀 → 도감): 트레이너 3칸 + 크리처 15칸, 잠긴 칸은 자물쇠 + 필요한 별, 별이 충분하면 "해금" 버튼
+  - 트레이너 선택 화면: 잠긴 트레이너는 자물쇠 표시, 고를 수 없음
+  - 자물쇠 그림(임시)을 코드로 생성 (`Art/Placeholders/UI/Lock.png`)
+  - 에디터 메뉴 "MonsterCamp → 별 100개 추가" (Play 중이면 게임 안의 값에 바로 더함)
+  - GAME_DESIGN.md 9-2 메타 성장 기록
+  - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨

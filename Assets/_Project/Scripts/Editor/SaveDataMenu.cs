@@ -30,6 +30,29 @@ public static class SaveDataMenu
         Debug.Log($"[Save] 저장 데이터 {deleted}개 파일 삭제: {folder}");
     }
 
+    [MenuItem("MonsterCamp/별 100개 추가")]
+    public static void AddStars()
+    {
+        const int amount = 100;
+
+        // Play 중이면 게임이 들고 있는 값에 더한다 (파일만 고치면 게임이 나중에 덮어쓰므로)
+        if (Application.isPlaying)
+        {
+            var meta = Object.FindFirstObjectByType<MetaProgress>();
+            if (meta != null)
+            {
+                meta.AddStars(amount);
+                Debug.Log($"[Save] 별 {amount}개 추가 → 전체 {meta.Stars}");
+                return;
+            }
+        }
+
+        MetaSaveData data = SaveSystem.LoadMeta();
+        data.stars += amount;
+        SaveSystem.SaveMeta(data);
+        Debug.Log($"[Save] 별 {amount}개 추가 → 전체 {data.stars} (meta.json)");
+    }
+
     [MenuItem("MonsterCamp/저장 폴더 열기")]
     public static void OpenSaveFolder()
     {

@@ -19,6 +19,8 @@ public static class MainSceneBuilder
     private const string SynergyConfigPath = "Assets/_Project/Data/SynergyConfig.asset";
     private const string TrainerFolder = "Assets/_Project/Data/Trainers";
     private const string ItemFolder = "Assets/_Project/Data/Items";
+    private const string MetaConfigPath = "Assets/_Project/Data/MetaConfig.asset";
+    private const string LockSpritePath = "Assets/_Project/Art/Placeholders/UI/Lock.png";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
     private static Font _font;
@@ -47,32 +49,40 @@ public static class MainSceneBuilder
 
         var flow = new GameObject("ScreenFlow").AddComponent<ScreenFlow>();
         var run = new GameObject("RunManager").AddComponent<RunManager>();
+        var meta = new GameObject("MetaProgress").AddComponent<MetaProgress>();
+        var serializedMeta = new SerializedObject(meta);
+        serializedMeta.FindProperty("_config").objectReferenceValue = GetOrCreateMetaConfig();
+        serializedMeta.ApplyModifiedPropertiesWithoutUndo();
 
         GameObject title = CreateScreen(canvas, "TitleScreen", "몬스터 캠프");
         GameObject trainer = CreateScreen(canvas, "TrainerSelectScreen", "트레이너 선택");
         GameObject shop = CreateScreen(canvas, "ShopScreen", "상점 · 배치");
         GameObject battle = CreateScreen(canvas, "BattleScreen", "전투");
         GameObject result = CreateScreen(canvas, "ResultScreen", "결과");
+        GameObject codex = CreateScreen(canvas, "CodexScreen", "도감");
 
         // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
         GameObject hud = CreateHud(canvas, out Text roundText, out Text livesText, out Text goldText);
 
         BuildTitleUI(title, flow, run);
+        BuildCodexUI(codex, flow, meta);
 
-        // 결과 화면: 클리어/게임 오버 + 설명 + 타이틀로
+        // 결과 화면: 클리어/게임 오버 + 설명 + 별 + 타이틀로
         Text resultTitle = result.transform.Find("Title").GetComponent<Text>();
         Text resultDetail = CreateText(result.transform, "Detail", "", 56, new Vector2(0.05f, 0.62f), new Vector2(0.95f, 0.72f));
+        Text resultStars = CreateText(result.transform, "Stars", "", 56, new Vector2(0.05f, 0.44f), new Vector2(0.95f, 0.6f));
+        resultStars.color = new Color(1f, 0.85f, 0.3f);
         AddButton(result, "타이틀로", flow, GameScreen.Title);
 
         BattleScreen battleScreen = BuildBattleUI(battle, run);
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, run, goldText, out Text trainerText);
+        ShopScreen shopScreen = BuildShopUI(shop, run, meta, goldText, out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
         // 새 런 시작 (1라운드 상점으로 이동은 RunManager가 한다)
-        BuildTrainerSelectUI(trainer, run);
+        BuildTrainerSelectUI(trainer, run, meta);
 
         var runConfig = AssetDatabase.LoadAssetAtPath<RunConfig>(RunConfigPath);
         if (runConfig == null)
@@ -85,6 +95,8 @@ public static class MainSceneBuilder
         serializedRun.FindProperty("_flow").objectReferenceValue = flow;
         serializedRun.FindProperty("_shop").objectReferenceValue = shopScreen;
         serializedRun.FindProperty("_battle").objectReferenceValue = battleScreen;
+        serializedRun.FindProperty("_meta").objectReferenceValue = meta;
+        serializedRun.FindProperty("_resultStars").objectReferenceValue = resultStars;
         serializedRun.FindProperty("_roundText").objectReferenceValue = roundText;
         serializedRun.FindProperty("_livesText").objectReferenceValue = livesText;
         serializedRun.FindProperty("_trainerText").objectReferenceValue = trainerText;
@@ -94,7 +106,7 @@ public static class MainSceneBuilder
 
         // GameScreen enum 순서와 같아야 한다.
         var serializedFlow = new SerializedObject(flow);
-        SetArray(serializedFlow.FindProperty("_screens"), new Object[] { title, trainer, shop, battle, result });
+        SetArray(serializedFlow.FindProperty("_screens"), new Object[] { title, trainer, shop, battle, result, codex });
         serializedFlow.FindProperty("_hud").objectReferenceValue = hud;
         serializedFlow.ApplyModifiedPropertiesWithoutUndo();
 
@@ -168,8 +180,11 @@ public static class MainSceneBuilder
     // 타이틀 화면: 제목 / 안내 문구 / 이어하기(저장된 판이 있을 때만) / 새 게임 + 새 게임 확인 창
     private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run)
     {
+        // 버튼 3개(이어하기, 새 게임, 도감)가 들어가도록 버튼 영역을 넓힌다
+        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.06f), new Vector2(0.85f, 0.38f));
         Button continueButton = CreateButton(screen, "이어하기");
         Button newGameButton = CreateButton(screen, "새 게임");
+        AddButton(screen, "도감", flow, GameScreen.Codex);
 
         Text messageText = CreateText(screen.transform, "MessageText", "", 40, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
         messageText.color = new Color(1f, 0.5f, 0.45f);
@@ -220,8 +235,234 @@ public static class MainSceneBuilder
         return go.GetComponent<Button>();
     }
 
+    // 도감 화면: 제목 / 별 / 트레이너 3칸 / 크리처 15칸(줄 = 티어, 칸 = 타입) / 안내 문구 / 뒤로
+    private static void BuildCodexUI(GameObject screen, ScreenFlow flow, MetaProgress meta)
+    {
+        Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.925f), new Vector2(1f, 0.985f));
+        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.25f, 0.015f), new Vector2(0.75f, 0.1f));
+
+        Text starsText = CreateText(screen.transform, "StarsText", "", 52, new Vector2(0f, 0.88f), new Vector2(1f, 0.925f));
+        starsText.color = new Color(1f, 0.85f, 0.3f);
+
+        Text trainerLabel = CreateText(screen.transform, "TrainerLabel", "트레이너", 36, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
+        trainerLabel.alignment = TextAnchor.MiddleLeft;
+        Transform trainerRow = CreateRow(screen.transform, "TrainerRow", new Vector2(0.03f, 0.7f), new Vector2(0.97f, 0.85f));
+        TrainerData[] trainers = GetOrCreateTrainers();
+        var trainerEntries = new CodexEntryView[trainers.Length];
+        for (int i = 0; i < trainers.Length; i++)
+        {
+            trainerEntries[i] = CreateCodexEntry(trainerRow, "Trainer" + i, false);
+        }
+
+        Text creatureLabel = CreateText(screen.transform, "CreatureLabel", "크리처", 36, new Vector2(0.03f, 0.665f), new Vector2(0.97f, 0.695f));
+        creatureLabel.alignment = TextAnchor.MiddleLeft;
+        CreatureData[] creatures = GetSortedCreatures();
+        Transform[] creatureRows =
+        {
+            CreateRow(screen.transform, "CreatureRow1", new Vector2(0.03f, 0.49f), new Vector2(0.97f, 0.66f)),
+            CreateRow(screen.transform, "CreatureRow2", new Vector2(0.03f, 0.31f), new Vector2(0.97f, 0.48f)),
+            CreateRow(screen.transform, "CreatureRow3", new Vector2(0.03f, 0.13f), new Vector2(0.97f, 0.3f)),
+        };
+        var creatureEntries = new CodexEntryView[creatures.Length];
+        int perRow = Mathf.CeilToInt(creatures.Length / (float)creatureRows.Length);
+        for (int i = 0; i < creatures.Length; i++)
+        {
+            Transform row = creatureRows[Mathf.Min(i / perRow, creatureRows.Length - 1)];
+            creatureEntries[i] = CreateCodexEntry(row, "Creature" + i, true);
+        }
+
+        Text messageText = CreateText(screen.transform, "MessageText", "", 36, new Vector2(0f, 0.1f), new Vector2(1f, 0.13f));
+        messageText.color = new Color(0.6f, 0.95f, 0.65f);
+
+        AddButton(screen, "뒤로", flow, GameScreen.Title);
+
+        var codex = screen.AddComponent<CodexScreen>();
+        var so = new SerializedObject(codex);
+        so.FindProperty("_meta").objectReferenceValue = meta;
+        SetArray(so.FindProperty("_trainers"), trainers);
+        SetArray(so.FindProperty("_trainerEntries"), trainerEntries);
+        SetArray(so.FindProperty("_creatures"), creatures);
+        SetArray(so.FindProperty("_creatureEntries"), creatureEntries);
+        so.FindProperty("_starsText").objectReferenceValue = starsText;
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        for (int i = 0; i < trainerEntries.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(trainerEntries[i].GetComponentInChildren<Button>(true).onClick, codex.UnlockTrainer, i);
+        }
+        for (int i = 0; i < creatureEntries.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(creatureEntries[i].GetComponentInChildren<Button>(true).onClick, codex.UnlockCreature, i);
+        }
+    }
+
+    // 도감 한 칸. withIcon: 크리처 칸(그림 있음) / 트레이너 칸(이름 + 설명)
+    private static CodexEntryView CreateCodexEntry(Transform parent, string name, bool withIcon)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(CodexEntryView));
+        go.transform.SetParent(parent, false);
+        go.GetComponent<Image>().color = new Color(0.25f, 0.28f, 0.34f);
+
+        Image icon = null;
+        Text nameText;
+        Text infoText;
+        if (withIcon)
+        {
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            Stretch(iconGo.GetComponent<RectTransform>(), new Vector2(0.15f, 0.47f), new Vector2(0.85f, 0.93f));
+            icon = iconGo.GetComponent<Image>();
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            nameText = CreateText(go.transform, "Name", "", 28, new Vector2(0.02f, 0.34f), new Vector2(0.98f, 0.46f));
+            infoText = CreateText(go.transform, "Info", "", 22, new Vector2(0.02f, 0.25f), new Vector2(0.98f, 0.34f));
+        }
+        else
+        {
+            nameText = CreateText(go.transform, "Name", "", 40, new Vector2(0.04f, 0.7f), new Vector2(0.96f, 0.95f));
+            infoText = CreateText(go.transform, "Info", "", 24, new Vector2(0.04f, 0.3f), new Vector2(0.96f, 0.7f));
+        }
+        infoText.color = new Color(0.85f, 0.85f, 0.9f);
+
+        // 잠금 덮개는 해금 버튼보다 먼저 만들어 버튼은 어두워지지 않게 한다
+        // 크리처 칸은 그림 위에, 트레이너 칸은 오른쪽 위에 자물쇠
+        Vector2 lockMin = withIcon ? new Vector2(0.3f, 0.55f) : new Vector2(0.8f, 0.6f);
+        Vector2 lockMax = withIcon ? new Vector2(0.7f, 0.88f) : new Vector2(0.96f, 0.95f);
+        GameObject lockOverlay = CreateLockOverlay(go.transform, lockMin, lockMax, out _, Vector2.zero, Vector2.zero, 24);
+
+        Button unlockButton = CreateFreeButton(go.transform, "해금", new Vector2(0.06f, 0.03f), new Vector2(0.94f, 0.23f),
+            new Color(0.95f, 0.75f, 0.25f));
+        Text unlockLabel = unlockButton.GetComponentInChildren<Text>();
+        unlockLabel.resizeTextMaxSize = 30;
+        unlockLabel.fontSize = 30;
+
+        var view = go.GetComponent<CodexEntryView>();
+        var so = new SerializedObject(view);
+        so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.FindProperty("_infoText").objectReferenceValue = infoText;
+        so.FindProperty("_lockOverlay").objectReferenceValue = lockOverlay;
+        so.FindProperty("_unlockButton").objectReferenceValue = unlockButton;
+        so.FindProperty("_unlockLabel").objectReferenceValue = unlockLabel;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return view;
+    }
+
+    // 잠금 덮개: 부모 전체를 어둡게 + 자물쇠 그림 + 글자 (처음엔 숨김, 눌림은 막지 않는다)
+    private static GameObject CreateLockOverlay(Transform parent, Vector2 lockMin, Vector2 lockMax,
+        out Text label, Vector2 labelMin, Vector2 labelMax, int fontSize)
+    {
+        var overlay = new GameObject("LockOverlay", typeof(RectTransform), typeof(Image));
+        overlay.transform.SetParent(parent, false);
+        Stretch(overlay.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        var dim = overlay.GetComponent<Image>();
+        dim.color = new Color(0f, 0f, 0f, 0.6f);
+        dim.raycastTarget = false;
+
+        var lockGo = new GameObject("Lock", typeof(RectTransform), typeof(Image));
+        lockGo.transform.SetParent(overlay.transform, false);
+        Stretch(lockGo.GetComponent<RectTransform>(), lockMin, lockMax);
+        var lockImage = lockGo.GetComponent<Image>();
+        lockImage.sprite = GetOrCreateLockSprite();
+        lockImage.preserveAspect = true;
+        lockImage.raycastTarget = false;
+
+        label = CreateText(overlay.transform, "LockText", "", fontSize, labelMin, labelMax);
+        label.color = new Color(1f, 0.85f, 0.3f);
+
+        overlay.SetActive(false);
+        return overlay;
+    }
+
+    // 자물쇠 그림 (임시): 흰색 자물쇠 64x64 PNG를 코드로 그린다
+    private static Sprite GetOrCreateLockSprite()
+    {
+        if (!File.Exists(LockSpritePath))
+        {
+            const int size = 64;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var center = new Vector2(32f, 34f);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    // 몸통 (아래 사각형, 가운데 열쇠 구멍)
+                    bool body = x >= 12 && x < 52 && y >= 4 && y < 34;
+                    bool keyhole = x >= 29 && x < 35 && y >= 12 && y < 24;
+                    // 고리 (위쪽 반원 띠)
+                    float distance = Vector2.Distance(new Vector2(x, y), center);
+                    bool shackle = y >= 34 && distance >= 10f && distance <= 16f;
+                    bool filled = (body && !keyhole) || shackle;
+                    texture.SetPixel(x, y, filled ? Color.white : Color.clear);
+                }
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(LockSpritePath));
+            File.WriteAllBytes(LockSpritePath, texture.EncodeToPNG());
+            Object.DestroyImmediate(texture);
+
+            AssetDatabase.ImportAsset(LockSpritePath);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(LockSpritePath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+        }
+        return AssetDatabase.LoadAssetAtPath<Sprite>(LockSpritePath);
+    }
+
+    // 도감 순서: 티어 순, 같은 티어는 타입 순 (줄 = 티어, 칸 = 타입)
+    private static CreatureData[] GetSortedCreatures()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:CreatureData", new[] { CreatureFolder });
+        var creatures = new CreatureData[guids.Length];
+        for (int i = 0; i < guids.Length; i++)
+        {
+            creatures[i] = AssetDatabase.LoadAssetAtPath<CreatureData>(AssetDatabase.GUIDToAssetPath(guids[i]));
+        }
+        System.Array.Sort(creatures, (a, b) => a.Tier != b.Tier ? a.Tier.CompareTo(b.Tier) : a.Type.CompareTo(b.Type));
+        return creatures;
+    }
+
+    // 메타 성장 설정. 없으면 기본값(GAME_DESIGN.md 9-2)으로 만들고, 있으면 그대로 쓴다 (조정한 값 보호)
+    private static MetaConfig GetOrCreateMetaConfig()
+    {
+        var config = AssetDatabase.LoadAssetAtPath<MetaConfig>(MetaConfigPath);
+        if (config != null)
+        {
+            return config;
+        }
+
+        config = ScriptableObject.CreateInstance<MetaConfig>();
+        AssetDatabase.CreateAsset(config, MetaConfigPath);
+        var so = new SerializedObject(config);
+
+        SerializedProperty trainers = so.FindProperty("_lockedTrainers");
+        trainers.arraySize = 1;
+        trainers.GetArrayElementAtIndex(0).FindPropertyRelative("Trainer").objectReferenceValue =
+            AssetDatabase.LoadAssetAtPath<TrainerData>($"{TrainerFolder}/Merchant.asset");
+        trainers.GetArrayElementAtIndex(0).FindPropertyRelative("Cost").intValue = 15;
+
+        string[] lockedCreatures = { "LavaMane", "StormHawk", "BedrockRhino" };
+        SerializedProperty creatures = so.FindProperty("_lockedCreatures");
+        creatures.arraySize = lockedCreatures.Length;
+        for (int i = 0; i < lockedCreatures.Length; i++)
+        {
+            SerializedProperty element = creatures.GetArrayElementAtIndex(i);
+            element.FindPropertyRelative("Creature").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<CreatureData>($"{CreatureFolder}/{lockedCreatures[i]}.asset");
+            element.FindPropertyRelative("Cost").intValue = 10;
+        }
+
+        so.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.SaveAssets();
+        return config;
+    }
+
     // 트레이너 선택 화면: 제목 / 카드 3장(이름·설명, 눌러서 선택) / 안내 문구 / 선택 완료
-    private static void BuildTrainerSelectUI(GameObject screen, RunManager run)
+    private static void BuildTrainerSelectUI(GameObject screen, RunManager run, MetaProgress meta)
     {
         Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.8f), new Vector2(1f, 0.92f));
 
@@ -248,11 +489,17 @@ public static class MainSceneBuilder
             Text descriptionText = CreateText(card.transform, "Description", "", 36, new Vector2(0.05f, 0.08f), new Vector2(0.95f, 0.55f));
             descriptionText.color = new Color(0.9f, 0.9f, 0.9f);
 
+            // 잠겼을 때: 카드 전체를 어둡게 + 오른쪽에 자물쇠와 필요한 별
+            GameObject lockOverlay = CreateLockOverlay(card.transform, new Vector2(0.8f, 0.5f), new Vector2(0.96f, 0.92f),
+                out Text lockText, new Vector2(0.62f, 0.06f), new Vector2(0.98f, 0.48f), 32);
+
             cards[i] = card.GetComponent<TrainerCardView>();
             var cardSo = new SerializedObject(cards[i]);
             cardSo.FindProperty("_background").objectReferenceValue = background;
             cardSo.FindProperty("_nameText").objectReferenceValue = nameText;
             cardSo.FindProperty("_descriptionText").objectReferenceValue = descriptionText;
+            cardSo.FindProperty("_lockOverlay").objectReferenceValue = lockOverlay;
+            cardSo.FindProperty("_lockText").objectReferenceValue = lockText;
             cardSo.ApplyModifiedPropertiesWithoutUndo();
             background.color = new Color(0.25f, 0.28f, 0.34f);
             cardButtons[i] = card.GetComponent<Button>();
@@ -266,6 +513,7 @@ public static class MainSceneBuilder
         var select = screen.AddComponent<TrainerSelectScreen>();
         var so = new SerializedObject(select);
         so.FindProperty("_run").objectReferenceValue = run;
+        so.FindProperty("_meta").objectReferenceValue = meta;
         SetArray(so.FindProperty("_trainers"), trainers);
         SetArray(so.FindProperty("_cards"), cards);
         so.FindProperty("_messageText").objectReferenceValue = messageText;
@@ -482,7 +730,7 @@ public static class MainSceneBuilder
     // 상점·배치 화면 (세로 1920 기준, 위에서부터)
     // (상단 표시: 라운드·목숨·골드) / 트레이너·새로고침 / 상점 크리처 5칸 + 아이템 1칸 / 메시지 / 시너지
     // / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 아이템 보관함 3칸 + 전투 시작
-    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, Text goldText, out Text trainerText)
+    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, Text goldText, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
         trainerText = CreateText(screen.transform, "TrainerText", "", 30,
@@ -571,6 +819,7 @@ public static class MainSceneBuilder
         so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
         so.FindProperty("_synergyText").objectReferenceValue = synergyText;
         so.FindProperty("_run").objectReferenceValue = run;
+        so.FindProperty("_meta").objectReferenceValue = meta;
         so.FindProperty("_goldText").objectReferenceValue = goldText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.FindProperty("_refreshLabel").objectReferenceValue = refreshLabel;

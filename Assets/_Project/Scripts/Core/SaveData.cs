@@ -32,6 +32,8 @@ public class RunSaveData
     public string[] items;
     public string[] shopCreatures;
     public string shopItem;
+    // 이번 판에서 받은 별 (판이 끝날 때 meta.json에 더함)
+    public int starsEarned;
 }
 
 [Serializable]

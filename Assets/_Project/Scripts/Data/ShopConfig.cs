@@ -32,10 +32,22 @@ public class ShopConfig : ScriptableObject
         return _levelSellPrices[index];
     }
 
-    public CreatureData GetRandomCreature()
+    // canAppear가 true인 크리처 중에서 고른다 (잠긴 크리처 제외용). 하나도 없으면 null
+    public CreatureData GetRandomCreature(System.Func<CreatureData, bool> canAppear)
     {
-        return _creaturePool[Random.Range(0, _creaturePool.Length)];
+        _candidates.Clear();
+        foreach (CreatureData creature in _creaturePool)
+        {
+            if (creature != null && canAppear(creature))
+            {
+                _candidates.Add(creature);
+            }
+        }
+        return _candidates.Count > 0 ? _candidates[Random.Range(0, _candidates.Count)] : null;
     }
+
+    private readonly System.Collections.Generic.List<CreatureData> _candidates =
+        new System.Collections.Generic.List<CreatureData>();
 
     public ItemData GetRandomItem()
     {

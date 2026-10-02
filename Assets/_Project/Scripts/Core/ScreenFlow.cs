@@ -6,7 +6,9 @@ public enum GameScreen
     TrainerSelect,
     Shop,
     Battle,
-    Result
+    Result,
+    // 버튼에 숫자로 연결되어 있으므로 새 화면은 항상 끝에 추가
+    Codex
 }
 
 // 화면(패널) 전환. 한 번에 한 화면만 켠다.

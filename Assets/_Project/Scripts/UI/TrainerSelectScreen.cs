@@ -5,6 +5,7 @@ using UnityEngine.UI;
 public class TrainerSelectScreen : MonoBehaviour
 {
     [SerializeField] private RunManager _run;
+    [SerializeField] private MetaProgress _meta;
     [Tooltip("카드 순서대로")]
     [SerializeField] private TrainerData[] _trainers;
     [SerializeField] private TrainerCardView[] _cards;
@@ -21,12 +22,19 @@ public class TrainerSelectScreen : MonoBehaviour
         {
             _cards[i].Show(_trainers[i]);
             _cards[i].SetSelected(false);
+            _cards[i].SetLocked(!_meta.IsUnlocked(_trainers[i]), _meta.GetCost(_trainers[i]));
         }
     }
 
-    // 카드 버튼
+    // 카드 버튼. 잠긴 트레이너는 고를 수 없다
     public void Select(int index)
     {
+        if (!_meta.IsUnlocked(_trainers[index]))
+        {
+            _messageText.text = "잠긴 트레이너예요. 타이틀의 도감에서 해금하세요";
+            return;
+        }
+
         _selected = index;
         _messageText.text = "";
         for (int i = 0; i < _cards.Length; i++)

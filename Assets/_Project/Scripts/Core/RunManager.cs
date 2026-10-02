@@ -8,6 +8,7 @@ public class RunManager : MonoBehaviour
     [SerializeField] private ScreenFlow _flow;
     [SerializeField] private ShopScreen _shop;
     [SerializeField] private BattleScreen _battle;
+    [SerializeField] private MetaProgress _meta;
     [Tooltip("저장 파일의 트레이너 이름을 찾을 때 사용")]
     [SerializeField] private TrainerData[] _trainers;
 
@@ -20,8 +21,12 @@ public class RunManager : MonoBehaviour
     [Header("결과 화면")]
     [SerializeField] private Text _resultTitle;
     [SerializeField] private Text _resultDetail;
+    [Tooltip("이번 판에서 받은 별 / 전체 별")]
+    [SerializeField] private Text _resultStars;
 
     private int _round;
+    // 이번 판에서 받은 별 (판이 끝날 때 한꺼번에 meta.json에 더함)
+    private int _runStars;
     private int _lives;
     private TrainerData _trainer;
     // 행운 동전: 이번 전투에서 이기면 받을 골드 / 다음 라운드에 더할 골드
@@ -30,18 +35,13 @@ public class RunManager : MonoBehaviour
     // 상점 단계일 때만 저장한다 (전투 중·판 밖에서는 저장하지 않음)
     private bool _inShop;
 
-    private void Awake()
-    {
-        // meta.json이 없으면 기본값으로 만들어 둔다 (깨졌으면 백업 후 새로)
-        SaveSystem.SaveMeta(SaveSystem.LoadMeta());
-    }
-
     // 트레이너 선택 화면의 "선택 완료"
     public void StartRun(TrainerData trainer)
     {
         _trainer = trainer;
         _round = 1;
         _lives = _config.MaxLives;
+        _runStars = 0;
         _pendingGold = 0;
         _trainerText.text = $"트레이너: {trainer.DisplayName}";
         _shop.ResetRun();
@@ -68,6 +68,7 @@ public class RunManager : MonoBehaviour
         _trainer = trainer;
         _round = data.round;
         _lives = data.lives;
+        _runStars = Mathf.Max(0, data.starsEarned);
         _pendingGold = 0;
         _trainerText.text = $"트레이너: {trainer.DisplayName}";
 
@@ -107,6 +108,18 @@ public class RunManager : MonoBehaviour
 
         if (won)
         {
+            // 별: 이길 때마다 +1, 중간 보스 +3, 클리어 +10 (판이 끝날 때 meta.json에 더함)
+            MetaConfig rules = _meta.Config;
+            _runStars += rules.StarsPerWin;
+            if (lastRound)
+            {
+                _runStars += rules.ClearBonus;
+            }
+            else if (_config.GetEnemyTeam(_round).IsBoss)
+            {
+                _runStars += rules.BossBonus;
+            }
+
             if (lastRound)
             {
                 ShowResult(true);
@@ -146,9 +159,11 @@ public class RunManager : MonoBehaviour
 
     private void ShowResult(bool cleared)
     {
-        // 판이 끝나면 진행 중인 판 저장을 지운다
         _inShop = false;
+        // 이번 판에서 받은 별을 한꺼번에 meta.json에 더한 뒤 진행 중인 판 저장을 지운다
+        _meta.AddStars(_runStars);
         SaveSystem.DeleteRun();
+        _resultStars.text = $"이번 판 별 +{_runStars}\n전체 별 {_meta.Stars}";
         UpdateHud();
         _resultTitle.text = cleared ? "클리어!" : "게임 오버";
         _resultDetail.text = cleared
@@ -183,7 +198,8 @@ public class RunManager : MonoBehaviour
         {
             trainer = _trainer.name,
             round = _round,
-            lives = _lives
+            lives = _lives,
+            starsEarned = _runStars
         };
         _shop.WriteSave(data);
         SaveSystem.SaveRun(data);
