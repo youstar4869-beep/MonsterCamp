@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 796a98fc9a78437498e952202765ae44, type: 3}
+  m_Name: TutorialData
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialData
+  _steps:
+  - Step: 0
+    Message: "\uC0C1\uC810\uC5D0\uC11C \uD06C\uB9AC\uCC98\uB97C \uC0AC \uBCFC\uAE4C\uC694?\n\uBE5B\uB098\uB294
+      \uCE78\uC744 \uB20C\uB7EC \uBD88\uB625\uC774\uB97C \uC0AC\uC138\uC694."
+  - Step: 1
+    Message: "\uC0B0 \uD06C\uB9AC\uCC98\uB294 \uC544\uB798 \uB300\uAE30\uC11D\uC5D0
+      \uB4E4\uC5B4\uAC00\uC694.\n\uC190\uAC00\uB77D\uC73C\uB85C \uB04C\uC5B4\uC11C
+      \uD300 \uCE78(\uC55E\uC904)\uC5D0 \uB193\uC73C\uC138\uC694."
+  - Step: 2
+    Message: "\uD300\uC774 \uC900\uBE44\uB410\uC5B4\uC694!\n\uC804\uD22C \uC2DC\uC791\uC744
+      \uB204\uB974\uC138\uC694."
+  - Step: 3
+    Message: "\uC804\uD22C\uB294 \uC790\uB3D9\uC73C\uB85C \uC9C4\uD589\uB3FC\uC694.\n\uD06C\uB9AC\uCC98\uB9C8\uB2E4
+      \uACF5\uACA9 \uC18D\uB3C4\uC5D0 \uB9DE\uCDB0 \uC0C1\uB300 \uC55E\uC904\uBD80\uD130
+      \uACF5\uACA9\uD574\uC694."
+  - Step: 4
+    Message: "\uAC19\uC740 \uD06C\uB9AC\uCC98 3\uB9C8\uB9AC\uB97C \uBAA8\uC73C\uBA74\n1\uB9C8\uB9AC\uB85C
+      \uD569\uCCD0\uC838 \uB354 \uAC15\uD574\uC838\uC694! (\u2605 \u2192 \u2605\u2605)"
+  - Step: 5
+    Message: "\uBD88\uB625\uC774\uB97C 2\uB9C8\uB9AC \uB354 \uC0AC\uC11C\n3\uB9C8\uB9AC\uB97C
+      \uBAA8\uC544 \uBCF4\uC138\uC694."
+  - Step: 6
+    Message: "\uB300\uAE30\uC11D\uC758 \uD06C\uB9AC\uCC98\uB97C \uB204\uB974\uBA74
+      \uD314\uC544\uC11C\n\uACE8\uB4DC\uB97C \uB3CC\uB824\uBC1B\uC744 \uC218 \uC788\uC5B4\uC694."
+  - Step: 7
+    Message: "\uAC19\uC740 \uD0C0\uC785 \uD06C\uB9AC\uCC98 2\uB9C8\uB9AC\uB97C \uD300\uC5D0
+      \uB450\uBA74 \uC5EC\uAE30\uC5D0 \uC2DC\uB108\uC9C0\uAC00 \uCF1C\uC838\uC694.
+      (\uC608: \uBD88 2/4)\n\uC774\uC81C \uB9C8\uC74C\uAECF \uD50C\uB808\uC774\uD574
+      \uBCF4\uC138\uC694!"
+  _mergeCreature: {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
+  _round1Shop:
+  - {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
+  - {fileID: 11400000, guid: ff963342f51d17d4b887faef275f905c, type: 2}
+  - {fileID: 11400000, guid: 75097a7cfb6753044adb07460960cba7, type: 2}
+  - {fileID: 11400000, guid: 30660ef43addc1d49bc1b0a1f996f471, type: 2}
+  - {fileID: 11400000, guid: 7e8ba82b7b39e004bb1cb1139b6109a2, type: 2}
+  _round2Shop:
+  - {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
+  - {fileID: 11400000, guid: 7e8ba82b7b39e004bb1cb1139b6109a2, type: 2}
+  - {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
+  - {fileID: 11400000, guid: 75097a7cfb6753044adb07460960cba7, type: 2}
+  - {fileID: 11400000, guid: ff963342f51d17d4b887faef275f905c, type: 2}
+  _enemyTeams:
+  - {fileID: 11400000, guid: b9550e6a51b6e1f4194ef714b4de9e65, type: 2}
+  - {fileID: 11400000, guid: f2960f00d36d8424284cad93b5ab7181, type: 2}
