@@ -9,6 +9,7 @@ public class RunManager : MonoBehaviour
     [SerializeField] private ShopScreen _shop;
     [SerializeField] private BattleScreen _battle;
     [SerializeField] private MetaProgress _meta;
+    [SerializeField] private TutorialController _tutorial;
     [Tooltip("저장 파일의 트레이너 이름을 찾을 때 사용")]
     [SerializeField] private TrainerData[] _trainers;
 
@@ -45,12 +46,16 @@ public class RunManager : MonoBehaviour
         _pendingGold = 0;
         _trainerText.text = $"트레이너: {trainer.DisplayName}";
         _shop.ResetRun();
+        // 첫 판(또는 다시 보기)이면 튜토리얼 시작
+        _tutorial.BeginRun();
         StartRound();
     }
 
     // 타이틀의 "이어하기". 저장 파일을 쓸 수 없으면 false (깨진 파일은 백업됨)
     public bool ContinueRun()
     {
+        // 이어하기에서는 튜토리얼을 보여 주지 않는다
+        _tutorial.Stop();
         if (!SaveSystem.TryLoadRun(out RunSaveData data, out _))
         {
             return false;
@@ -95,8 +100,15 @@ public class RunManager : MonoBehaviour
             }
         }
 
+        // 튜토리얼 중 1~2라운드는 약한 적 팀
+        EnemyTeamData enemy = _tutorial.GetEnemyTeam(_round);
+        if (enemy == null)
+        {
+            enemy = _config.GetEnemyTeam(_round);
+        }
         _flow.Show(GameScreen.Battle);
-        _battle.StartBattle(team, _config.GetEnemyTeam(_round), _trainer);
+        _battle.StartBattle(team, enemy, _trainer);
+        _tutorial.OnBattleStarted();
     }
 
     // 전투 화면이 승패 표시를 끝낸 뒤 호출
@@ -149,7 +161,9 @@ public class RunManager : MonoBehaviour
     {
         _flow.Show(GameScreen.Shop);
         // 상인: 라운드 골드 +1, 행운 동전: 지난 전투 승리 시 +1
-        _shop.StartRound(_trainer.RoundGoldBonus + _pendingGold);
+        // 튜토리얼 중이면 정해 둔 상점 목록 (아니면 null → 랜덤)
+        _shop.StartRound(_trainer.RoundGoldBonus + _pendingGold, _tutorial.GetPresetShop(_round));
+        _tutorial.OnShopStarted(_round);
         _pendingGold = 0;
         _inShop = true;
         UpdateHud();
@@ -160,6 +174,7 @@ public class RunManager : MonoBehaviour
     private void ShowResult(bool cleared)
     {
         _inShop = false;
+        _tutorial.Stop();
         // 이번 판에서 받은 별을 한꺼번에 meta.json에 더한 뒤 진행 중인 판 저장을 지운다
         _meta.AddStars(_runStars);
         SaveSystem.DeleteRun();

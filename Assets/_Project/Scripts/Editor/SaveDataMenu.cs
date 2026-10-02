@@ -53,6 +53,27 @@ public static class SaveDataMenu
         Debug.Log($"[Save] 별 {amount}개 추가 → 전체 {data.stars} (meta.json)");
     }
 
+    [MenuItem("MonsterCamp/튜토리얼 초기화")]
+    public static void ResetTutorial()
+    {
+        // Play 중이면 게임이 들고 있는 값을 바꾼다 (파일만 고치면 게임이 나중에 덮어쓰므로)
+        if (Application.isPlaying)
+        {
+            var meta = Object.FindFirstObjectByType<MetaProgress>();
+            if (meta != null)
+            {
+                meta.SetTutorialCompleted(false);
+                Debug.Log("[Save] 튜토리얼 초기화: 다음 새 게임에서 튜토리얼이 나옵니다");
+                return;
+            }
+        }
+
+        MetaSaveData data = SaveSystem.LoadMeta();
+        data.tutorialCompleted = false;
+        SaveSystem.SaveMeta(data);
+        Debug.Log("[Save] 튜토리얼 초기화 (meta.json): 다음 새 게임에서 튜토리얼이 나옵니다");
+    }
+
     [MenuItem("MonsterCamp/저장 폴더 열기")]
     public static void OpenSaveFolder()
     {

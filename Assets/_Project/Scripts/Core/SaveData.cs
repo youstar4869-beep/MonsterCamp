@@ -13,6 +13,8 @@ public class MetaSaveData
     public int stars;
     public List<string> unlockedTrainers = new List<string>();
     public List<string> unlockedCreatures = new List<string>();
+    // 튜토리얼을 끝냈거나 건너뛰었으면 true (첫 판에서만 튜토리얼)
+    public bool tutorialCompleted;
 }
 
 // run.json: 진행 중인 판 (상점 단계 상태)

@@ -48,6 +48,14 @@ public class MetaProgress : MonoBehaviour
         return TryUnlock(GetCost(creature), creature.name, Data.unlockedCreatures);
     }
 
+    public bool TutorialCompleted => Data.tutorialCompleted;
+
+    public void SetTutorialCompleted(bool completed)
+    {
+        Data.tutorialCompleted = completed;
+        SaveAndNotify();
+    }
+
     public void AddStars(int amount)
     {
         if (amount <= 0)

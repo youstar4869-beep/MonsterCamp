@@ -57,14 +57,54 @@ public class ShopScreen : MonoBehaviour
 
     // 라운드 시작: 골드를 다시 채우고 상점을 새로 뽑는다. 대기석·팀·보관함은 그대로
     // bonusGold: 트레이너 능력, 행운 동전 등으로 더 받는 골드
-    public void StartRound(int bonusGold)
+    // presetOffers: 튜토리얼처럼 상점 목록을 정해 둘 때 (null이면 랜덤, 아이템 칸은 비움)
+    public void StartRound(int bonusGold, CreatureData[] presetOffers)
     {
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
         _gold = _config.RoundGold + bonusGold;
-        RollOffers();
+        if (presetOffers != null)
+        {
+            for (int i = 0; i < _offers.Length; i++)
+            {
+                _offers[i] = i < presetOffers.Length ? presetOffers[i] : null;
+            }
+            _itemOffer = null;
+        }
+        else
+        {
+            RollOffers();
+        }
         ShowMessage("");
         UpdateView();
+    }
+
+    // ---------- 튜토리얼용 (비출 위치, 진행 확인) ----------
+
+    public RectTransform ShopSlotRect(int index) => (RectTransform)_shopSlots[index].transform;
+    public RectTransform BenchSlotRect(int index) => (RectTransform)_benchSlots[index].transform;
+    public RectTransform TeamSlotRect(int index) => (RectTransform)_teamSlots[index].transform;
+    public RectTransform ShopRowRect => (RectTransform)_shopSlots[0].transform.parent;
+    public RectTransform BenchRowRect => (RectTransform)_benchSlots[0].transform.parent;
+    public RectTransform SynergyTextRect => _synergyText.rectTransform;
+
+    public int FindOfferIndex(CreatureData creature) => System.Array.IndexOf(_offers, creature);
+    public int FindFirstBenchIndex() => System.Array.FindIndex(_bench, creature => creature != null);
+    public bool HasTeamCreature => System.Array.Exists(_team, creature => creature != null);
+    public bool HasOwnedCreature => HasTeamCreature || FindFirstBenchIndex() >= 0;
+    public bool HasMergedCreature
+    {
+        get
+        {
+            foreach (CreatureInstance creature in EnumerateOwned())
+            {
+                if (creature.Level >= 2)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     // ---------- 저장 / 불러오기 ----------

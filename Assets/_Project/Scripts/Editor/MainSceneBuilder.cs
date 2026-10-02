@@ -21,6 +21,8 @@ public static class MainSceneBuilder
     private const string ItemFolder = "Assets/_Project/Data/Items";
     private const string MetaConfigPath = "Assets/_Project/Data/MetaConfig.asset";
     private const string LockSpritePath = "Assets/_Project/Art/Placeholders/UI/Lock.png";
+    private const string TutorialFolder = "Assets/_Project/Data/Tutorial";
+    private const string TutorialDataPath = "Assets/_Project/Data/Tutorial/TutorialData.asset";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
     private static Font _font;
@@ -49,6 +51,7 @@ public static class MainSceneBuilder
 
         var flow = new GameObject("ScreenFlow").AddComponent<ScreenFlow>();
         var run = new GameObject("RunManager").AddComponent<RunManager>();
+        var tutorial = new GameObject("Tutorial").AddComponent<TutorialController>();
         var meta = new GameObject("MetaProgress").AddComponent<MetaProgress>();
         var serializedMeta = new SerializedObject(meta);
         serializedMeta.FindProperty("_config").objectReferenceValue = GetOrCreateMetaConfig();
@@ -64,7 +67,7 @@ public static class MainSceneBuilder
         // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
         GameObject hud = CreateHud(canvas, out Text roundText, out Text livesText, out Text goldText);
 
-        BuildTitleUI(title, flow, run);
+        BuildTitleUI(title, flow, run, tutorial);
         BuildCodexUI(codex, flow, meta);
 
         // 결과 화면: 클리어/게임 오버 + 설명 + 별 + 타이틀로
@@ -81,6 +84,9 @@ public static class MainSceneBuilder
         ShopScreen shopScreen = BuildShopUI(shop, run, meta, goldText, out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
+        // 튜토리얼 화면은 모든 화면·상단 표시보다 위에 그려지도록 여기서 만든다
+        BuildTutorialUI(canvas, tutorial, meta, shopScreen, (RectTransform)battleButton.transform);
+
         // 새 런 시작 (1라운드 상점으로 이동은 RunManager가 한다)
         BuildTrainerSelectUI(trainer, run, meta);
 
@@ -96,6 +102,7 @@ public static class MainSceneBuilder
         serializedRun.FindProperty("_shop").objectReferenceValue = shopScreen;
         serializedRun.FindProperty("_battle").objectReferenceValue = battleScreen;
         serializedRun.FindProperty("_meta").objectReferenceValue = meta;
+        serializedRun.FindProperty("_tutorial").objectReferenceValue = tutorial;
         serializedRun.FindProperty("_resultStars").objectReferenceValue = resultStars;
         serializedRun.FindProperty("_roundText").objectReferenceValue = roundText;
         serializedRun.FindProperty("_livesText").objectReferenceValue = livesText;
@@ -178,13 +185,16 @@ public static class MainSceneBuilder
     }
 
     // 타이틀 화면: 제목 / 안내 문구 / 이어하기(저장된 판이 있을 때만) / 새 게임 + 새 게임 확인 창
-    private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run)
+    private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run, TutorialController tutorial)
     {
-        // 버튼 3개(이어하기, 새 게임, 도감)가 들어가도록 버튼 영역을 넓힌다
-        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.06f), new Vector2(0.85f, 0.38f));
+        // 버튼 3개(이어하기, 새 게임, 도감)가 들어가도록 버튼 영역을 넓히고, 맨 아래에 작은 "튜토리얼 다시 보기"
+        Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.09f), new Vector2(0.85f, 0.41f));
         Button continueButton = CreateButton(screen, "이어하기");
         Button newGameButton = CreateButton(screen, "새 게임");
         AddButton(screen, "도감", flow, GameScreen.Codex);
+        Button replayButton = CreateFreeButton(screen.transform, "튜토리얼 다시 보기",
+            new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.065f), new Color(0.5f, 0.53f, 0.6f));
+        replayButton.GetComponentInChildren<Text>().resizeTextMaxSize = 34;
 
         Text messageText = CreateText(screen.transform, "MessageText", "", 40, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
         messageText.color = new Color(1f, 0.5f, 0.45f);
@@ -212,6 +222,7 @@ public static class MainSceneBuilder
         var so = new SerializedObject(title);
         so.FindProperty("_flow").objectReferenceValue = flow;
         so.FindProperty("_run").objectReferenceValue = run;
+        so.FindProperty("_tutorial").objectReferenceValue = tutorial;
         so.FindProperty("_continueButton").objectReferenceValue = continueButton.gameObject;
         so.FindProperty("_confirmPanel").objectReferenceValue = panel;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
@@ -221,6 +232,7 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(newGameButton.onClick, title.NewGame);
         UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, title.ConfirmNewGame);
         UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, title.CancelNewGame);
+        UnityEventTools.AddVoidPersistentListener(replayButton.onClick, title.ReplayTutorial);
     }
 
     // 위치를 직접 정하는 버튼 (ButtonArea 밖)
@@ -233,6 +245,184 @@ public static class MainSceneBuilder
         Text text = CreateText(go.transform, "Text", label, 52, Vector2.zero, Vector2.one);
         text.color = Color.black;
         return go.GetComponent<Button>();
+    }
+
+    // 튜토리얼 화면 (캔버스 맨 위): 어두운 판 4장 + 구멍 막이 + 노란 테두리 + 말풍선(확인) + 건너뛰기
+    private static void BuildTutorialUI(Transform canvas, TutorialController tutorial, MetaProgress meta,
+        ShopScreen shop, RectTransform battleButton)
+    {
+        var overlay = new GameObject("TutorialOverlay", typeof(RectTransform));
+        overlay.transform.SetParent(canvas, false);
+        var overlayRect = overlay.GetComponent<RectTransform>();
+        Stretch(overlayRect, Vector2.zero, Vector2.one);
+
+        Color dark = new Color(0f, 0f, 0f, 0.72f);
+        RectTransform blockTop = CreatePanel(overlay.transform, "BlockTop", dark, true);
+        RectTransform blockBottom = CreatePanel(overlay.transform, "BlockBottom", dark, true);
+        RectTransform blockLeft = CreatePanel(overlay.transform, "BlockLeft", dark, true);
+        RectTransform blockRight = CreatePanel(overlay.transform, "BlockRight", dark, true);
+        RectTransform holeBlocker = CreatePanel(overlay.transform, "HoleBlocker", Color.clear, true);
+
+        // 테두리: 구멍 바깥쪽에 두께 8의 노란 선 4개
+        var frame = new GameObject("Frame", typeof(RectTransform));
+        frame.transform.SetParent(overlay.transform, false);
+        var frameRect = frame.GetComponent<RectTransform>();
+        Color frameColor = new Color(1f, 0.85f, 0.25f);
+        const float thickness = 8f;
+        SetBorder(CreatePanel(frame.transform, "Top", frameColor, false), new Vector2(0f, 1f), Vector2.one,
+            new Vector2(-thickness, 0f), new Vector2(thickness, thickness));
+        SetBorder(CreatePanel(frame.transform, "Bottom", frameColor, false), Vector2.zero, new Vector2(1f, 0f),
+            new Vector2(-thickness, -thickness), new Vector2(thickness, 0f));
+        SetBorder(CreatePanel(frame.transform, "Left", frameColor, false), Vector2.zero, new Vector2(0f, 1f),
+            new Vector2(-thickness, 0f), Vector2.zero);
+        SetBorder(CreatePanel(frame.transform, "Right", frameColor, false), new Vector2(1f, 0f), Vector2.one,
+            Vector2.zero, new Vector2(thickness, 0f));
+
+        // 말풍선: 설명 + (설명 단계에서만) 확인 버튼
+        RectTransform bubble = CreatePanel(overlay.transform, "Bubble", new Color(0.1f, 0.12f, 0.18f, 0.97f), true);
+        Text bubbleText = CreateText(bubble, "Text", "", 42, new Vector2(0.04f, 0.06f), new Vector2(0.74f, 0.94f));
+        bubbleText.alignment = TextAnchor.MiddleLeft;
+        Button confirmButton = CreateFreeButton(bubble, "확인", new Vector2(0.77f, 0.18f), new Vector2(0.97f, 0.82f),
+            new Color(0.95f, 0.75f, 0.25f));
+
+        // 오른쪽 위 건너뛰기 (항상 맨 위)
+        Button skipButton = CreateFreeButton(overlay.transform, "건너뛰기", new Vector2(0.76f, 0.89f), new Vector2(0.98f, 0.94f),
+            new Color(0.75f, 0.77f, 0.82f));
+        skipButton.GetComponentInChildren<Text>().resizeTextMaxSize = 38;
+
+        overlay.SetActive(false);
+
+        var so = new SerializedObject(tutorial);
+        so.FindProperty("_data").objectReferenceValue = GetOrCreateTutorialData();
+        so.FindProperty("_meta").objectReferenceValue = meta;
+        so.FindProperty("_shop").objectReferenceValue = shop;
+        so.FindProperty("_battleButton").objectReferenceValue = battleButton;
+        so.FindProperty("_overlay").objectReferenceValue = overlayRect;
+        so.FindProperty("_blockTop").objectReferenceValue = blockTop;
+        so.FindProperty("_blockBottom").objectReferenceValue = blockBottom;
+        so.FindProperty("_blockLeft").objectReferenceValue = blockLeft;
+        so.FindProperty("_blockRight").objectReferenceValue = blockRight;
+        so.FindProperty("_holeBlocker").objectReferenceValue = holeBlocker;
+        so.FindProperty("_frame").objectReferenceValue = frameRect;
+        so.FindProperty("_bubble").objectReferenceValue = bubble;
+        so.FindProperty("_bubbleText").objectReferenceValue = bubbleText;
+        so.FindProperty("_confirmButton").objectReferenceValue = confirmButton.gameObject;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, tutorial.Confirm);
+        UnityEventTools.AddVoidPersistentListener(skipButton.onClick, tutorial.Skip);
+    }
+
+    // 색 판 (위치는 튜토리얼이 정한다). blocksInput: 뒤의 버튼이 눌리지 않게 막는지
+    private static RectTransform CreatePanel(Transform parent, string name, Color color, bool blocksInput)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var image = go.GetComponent<Image>();
+        image.color = color;
+        image.raycastTarget = blocksInput;
+        var rect = go.GetComponent<RectTransform>();
+        Stretch(rect, Vector2.zero, Vector2.one);
+        return rect;
+    }
+
+    private static void SetBorder(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+    {
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.offsetMin = offsetMin;
+        rect.offsetMax = offsetMax;
+    }
+
+    // 튜토리얼 문구·정해 둔 상점·약한 적 팀. 없으면 기본값으로 만들고, 있으면 그대로 쓴다 (고친 문구 보호)
+    private static TutorialData GetOrCreateTutorialData()
+    {
+        var data = AssetDatabase.LoadAssetAtPath<TutorialData>(TutorialDataPath);
+        if (data != null)
+        {
+            return data;
+        }
+
+        Directory.CreateDirectory(TutorialFolder);
+        AssetDatabase.Refresh();
+
+        data = ScriptableObject.CreateInstance<TutorialData>();
+        AssetDatabase.CreateAsset(data, TutorialDataPath);
+        var so = new SerializedObject(data);
+
+        (TutorialStep step, string message)[] steps =
+        {
+            (TutorialStep.BuyCreature, "상점에서 크리처를 사 볼까요?\n빛나는 칸을 눌러 불똥이를 사세요."),
+            (TutorialStep.PlaceInTeam, "산 크리처는 아래 대기석에 들어가요.\n손가락으로 끌어서 팀 칸(앞줄)에 놓으세요."),
+            (TutorialStep.StartBattle, "팀이 준비됐어요!\n전투 시작을 누르세요."),
+            (TutorialStep.BattleInfo, "전투는 자동으로 진행돼요.\n크리처마다 공격 속도에 맞춰 상대 앞줄부터 공격해요."),
+            (TutorialStep.MergeInfo, "같은 크리처 3마리를 모으면\n1마리로 합쳐져 더 강해져요! (★ → ★★)"),
+            (TutorialStep.Merge, "불똥이를 2마리 더 사서\n3마리를 모아 보세요."),
+            (TutorialStep.SellInfo, "대기석의 크리처를 누르면 팔아서\n골드를 돌려받을 수 있어요."),
+            (TutorialStep.SynergyInfo, "같은 타입 크리처 2마리를 팀에 두면 여기에 시너지가 켜져요. (예: 불 2/4)\n이제 마음껏 플레이해 보세요!"),
+        };
+        SerializedProperty stepList = so.FindProperty("_steps");
+        stepList.arraySize = steps.Length;
+        for (int i = 0; i < steps.Length; i++)
+        {
+            SerializedProperty element = stepList.GetArrayElementAtIndex(i);
+            element.FindPropertyRelative("Step").enumValueIndex = (int)steps[i].step;
+            element.FindPropertyRelative("Message").stringValue = steps[i].message;
+        }
+
+        so.FindProperty("_mergeCreature").objectReferenceValue = LoadCreature("Embit");
+        SetArray(so.FindProperty("_round1Shop"), LoadCreatures("Embit", "Sproutee", "Plopper", "Pebblet", "Zappy"));
+        SetArray(so.FindProperty("_round2Shop"), LoadCreatures("Embit", "Zappy", "Embit", "Plopper", "Sproutee"));
+        SetArray(so.FindProperty("_enemyTeams"), new Object[]
+        {
+            CreateTutorialEnemyTeam("TutorialRound01", "연습 상대", "Sproutee"),
+            CreateTutorialEnemyTeam("TutorialRound02", "연습 상대 2", "Pebblet"),
+        });
+
+        so.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.SaveAssets();
+        return data;
+    }
+
+    // 약한 적 팀: 앞줄 첫 칸에 Lv1 크리처 1마리
+    private static EnemyTeamData CreateTutorialEnemyTeam(string id, string displayName, string creatureId)
+    {
+        string path = $"{TutorialFolder}/{id}.asset";
+        var team = AssetDatabase.LoadAssetAtPath<EnemyTeamData>(path);
+        if (team != null)
+        {
+            return team;
+        }
+
+        team = ScriptableObject.CreateInstance<EnemyTeamData>();
+        AssetDatabase.CreateAsset(team, path);
+        var so = new SerializedObject(team);
+        so.FindProperty("_displayName").stringValue = displayName;
+        SerializedProperty members = so.FindProperty("_members");
+        members.arraySize = 5;
+        for (int i = 0; i < members.arraySize; i++)
+        {
+            SerializedProperty member = members.GetArrayElementAtIndex(i);
+            member.FindPropertyRelative("Creature").objectReferenceValue = i == 0 ? LoadCreature(creatureId) : null;
+            member.FindPropertyRelative("Level").intValue = 1;
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return team;
+    }
+
+    private static CreatureData LoadCreature(string id)
+    {
+        return AssetDatabase.LoadAssetAtPath<CreatureData>($"{CreatureFolder}/{id}.asset");
+    }
+
+    private static Object[] LoadCreatures(params string[] ids)
+    {
+        var creatures = new Object[ids.Length];
+        for (int i = 0; i < ids.Length; i++)
+        {
+            creatures[i] = LoadCreature(ids[i]);
+        }
+        return creatures;
     }
 
     // 도감 화면: 제목 / 별 / 트레이너 3칸 / 크리처 15칸(줄 = 티어, 칸 = 타입) / 안내 문구 / 뒤로
