@@ -10,6 +10,10 @@ public class ShopScreen : MonoBehaviour
 
     [SerializeField] private ShopConfig _config;
     [SerializeField] private SynergyConfig _synergy;
+    [Tooltip("칸을 누르면 뜨는 크리처 정보 창 (구매·판매 버튼)")]
+    [SerializeField] private CreatureInfoPopup _infoPopup;
+    [Tooltip("\"시너지\" 버튼으로 여는 시너지 표")]
+    [SerializeField] private SynergyPanel _synergyPanel;
     [SerializeField] private RunManager _run;
     [SerializeField] private MetaProgress _meta;
     [Tooltip("지금 켜진 타입 시너지 (예: 불 2/4)")]
@@ -65,6 +69,7 @@ public class ShopScreen : MonoBehaviour
         _round = round;
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
+        ClosePopups();
         _gold = _config.RoundGold + bonusGold;
         if (presetOffers != null)
         {
@@ -151,6 +156,7 @@ public class ShopScreen : MonoBehaviour
 
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
+        ClosePopups();
         ShowMessage("");
         UpdateView();
     }
@@ -205,12 +211,88 @@ public class ShopScreen : MonoBehaviour
         UpdateView();
     }
 
-    public void BuyAt(int index)
+    // ---------- 정보 창 (칸을 누르면 열림, 구매·판매는 창의 버튼으로) ----------
+
+    // 상점 칸: 정보 + "구매 NG" (골드가 모자라면 흐리게)
+    public void ShowShopInfo(int index)
+    {
+        CreatureData creature = _offers[index];
+        if (_dragSource != null || creature == null)
+        {
+            return;
+        }
+
+        int price = _config.GetPrice(creature);
+        _infoPopup.Show(creature, 1, null, BuildSynergyLine(creature.Type));
+        _infoPopup.SetAction($"구매 {price}G", _gold >= price, () => OnBuyClicked(index));
+    }
+
+    public void ShowBenchInfo(int index) => ShowOwnedInfo(SlotArea.Bench, index);
+    public void ShowTeamInfo(int index) => ShowOwnedInfo(SlotArea.Team, index);
+
+    // 대기석·팀 칸: 정보 + "판매 +NG" → 한 번 더 "정말 팔까요? +NG"
+    private void ShowOwnedInfo(SlotArea area, int index)
+    {
+        CreatureInstance creature = GetSlots(area)[index];
+        // 끌어서 같은 칸에 다시 놓은 경우에도 클릭이 들어오므로 무시 (끌기 중에는 창을 열지 않는다)
+        if (_dragSource != null || creature == null)
+        {
+            return;
+        }
+
+        int price = _config.GetSellPrice(creature);
+        _infoPopup.Show(creature.Data, creature.Level, creature.Item, BuildSynergyLine(creature.Data.Type));
+        _infoPopup.SetAction($"판매 +{price}G", true, () => OnSellClicked(area, index),
+            $"정말 팔까요? +{price}G", "팔기");
+    }
+
+    // "시너지" 버튼·시너지 줄: 5개 타입의 시너지 표
+    public void OpenSynergyPanel()
+    {
+        if (_dragSource != null)
+        {
+            return;
+        }
+        CountTeamTypes();
+        _synergyPanel.Show(_typeCounts, _synergy);
+    }
+
+    private void ClosePopups()
+    {
+        _infoPopup.Close();
+        _synergyPanel.Close();
+    }
+
+    private void OnBuyClicked(int index)
+    {
+        if (TryBuy(index))
+        {
+            _infoPopup.Close();
+        }
+        else
+        {
+            _infoPopup.ShowMessage(_messageText.text);
+        }
+    }
+
+    private void OnSellClicked(SlotArea area, int index)
+    {
+        if (TrySell(area, index))
+        {
+            _infoPopup.Close();
+        }
+        else
+        {
+            _infoPopup.ShowMessage(_messageText.text);
+        }
+    }
+
+    private bool TryBuy(int index)
     {
         CreatureData creature = _offers[index];
         if (creature == null)
         {
-            return;
+            return false;
         }
 
         // 같은 Lv1이 이미 2마리 있으면 사자마자 합쳐지므로 대기석 자리가 필요 없다
@@ -221,14 +303,14 @@ public class ShopScreen : MonoBehaviour
         if (benchIndex < 0 && !mergesNow)
         {
             ShowMessage("대기석이 꽉 찼어요");
-            return;
+            return false;
         }
 
         int price = _config.GetPrice(creature);
         if (_gold < price)
         {
             ShowMessage("골드가 부족해요");
-            return;
+            return false;
         }
 
         _gold -= price;
@@ -246,6 +328,7 @@ public class ShopScreen : MonoBehaviour
             UpdateView();
         }
         MergeAll();
+        return true;
     }
 
     // 상점 아이템 칸 버튼: 아이템 보관함 빈 칸으로
@@ -275,13 +358,13 @@ public class ShopScreen : MonoBehaviour
         UpdateView();
     }
 
-    public void SellAt(int index)
+    // 대기석·팀 칸 크리처 판매 (정보 창에서 확인까지 누른 뒤)
+    private bool TrySell(SlotArea area, int index)
     {
-        // 끌어서 같은 칸에 다시 놓은 경우에도 클릭이 들어오므로 무시
-        CreatureInstance creature = _bench[index];
-        if (_dragSource != null || creature == null)
+        CreatureInstance creature = GetSlots(area)[index];
+        if (creature == null)
         {
-            return;
+            return false;
         }
 
         // 장착한 아이템은 보관함으로. 보관함이 꽉 차면 팔지 않는다
@@ -290,15 +373,16 @@ public class ShopScreen : MonoBehaviour
             if (!TryStoreItem(creature.Item))
             {
                 ShowMessage("아이템 보관함이 꽉 차서 팔 수 없어요");
-                return;
+                return false;
             }
             creature.Item = null;
         }
 
         _gold += _config.GetSellPrice(creature);
-        _bench[index] = null;
+        GetSlots(area)[index] = null;
         ShowMessage("");
         UpdateView();
+        return true;
     }
 
     // "전투 시작" 버튼
@@ -635,8 +719,8 @@ public class ShopScreen : MonoBehaviour
         UpdateSynergyText();
     }
 
-    // 팀 칸 크리처만 세서 켜진 시너지를 "불 2/4 · 물 3/4" 형태로 표시
-    private void UpdateSynergyText()
+    // 팀 칸 크리처만 세서 _typeCounts에 (전투와 같은 TypeSynergy.CountUnique)
+    private void CountTeamTypes()
     {
         _teamCreatures.Clear();
         foreach (CreatureInstance creature in _team)
@@ -644,6 +728,24 @@ public class ShopScreen : MonoBehaviour
             _teamCreatures.Add(creature?.Data);
         }
         TypeSynergy.CountUnique(_teamCreatures, _typeCounts);
+    }
+
+    // 정보 창의 시너지 한 줄. 예: "불 시너지 2/4 · 1단계 켜짐: 공격력 +15%"
+    private string BuildSynergyLine(CreatureType type)
+    {
+        CountTeamTypes();
+        int count = _typeCounts[(int)type];
+        int tier = _synergy.GetTier(count);
+        string head = $"{TypeSynergy.GetTypeName(type)} 시너지 {count}/{_synergy.GetNextThreshold(count)}";
+        return tier > 0
+            ? $"{head} · {tier}단계 켜짐: {_synergy.GetEffectText(type, tier)}"
+            : $"{head} · {_synergy.GetThreshold(1)}마리부터: {_synergy.GetEffectText(type, 1)}";
+    }
+
+    // 팀 칸 크리처만 세서 켜진 시너지를 "불 2/4 · 물 3/4" 형태로 표시
+    private void UpdateSynergyText()
+    {
+        CountTeamTypes();
 
         _synergyBuilder.Clear();
         for (int type = 0; type < _typeCounts.Length; type++)

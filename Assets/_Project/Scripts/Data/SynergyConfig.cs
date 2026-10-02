@@ -20,6 +20,31 @@ public class SynergyConfig : ScriptableObject
     [SerializeField] private float[] _rockDamageReduction = { 0.10f, 0.25f };
 
     public float GrassRegenInterval => _grassRegenInterval;
+    public int TierCount => _thresholds.Length;
+
+    // tier(1부터)에 필요한 마릿수
+    public int GetThreshold(int tier) => _thresholds[tier - 1];
+
+    // 화면에 보여 줄 효과 글 (수치를 바꾸면 글도 따라 바뀐다). 예: "공격력 +15%"
+    public string GetEffectText(CreatureType type, int tier)
+    {
+        int index = Mathf.Clamp(tier, 1, _thresholds.Length) - 1;
+        switch (type)
+        {
+            case CreatureType.Fire:
+                return $"공격력 +{Percent(_fireAttackBonus[index])}%";
+            case CreatureType.Water:
+                return $"체력 +{Percent(_waterHealthBonus[index])}%";
+            case CreatureType.Grass:
+                return $"{_grassRegenInterval:0.#}초마다 최대 체력 {Percent(_grassRegenPercent[index])}% 회복";
+            case CreatureType.Electric:
+                return $"공격 속도 +{Percent(_electricSpeedBonus[index])}%";
+            default:
+                return $"받는 피해 -{Percent(_rockDamageReduction[index])}%";
+        }
+    }
+
+    private static string Percent(float ratio) => (ratio * 100f).ToString("0.#");
 
     // 0 = 시너지 없음, 1 = 1단계, 2 = 2단계
     public int GetTier(int count)

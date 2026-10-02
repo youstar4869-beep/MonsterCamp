@@ -70,6 +70,9 @@ public static class MainSceneBuilder
 
         // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
         GameObject hud = CreateHud(canvas, out Text roundText, out Text livesText, out Text goldText);
+        // 정보 창·시너지 표: 화면·상단 표시보다 위, 튜토리얼보다 아래 (다른 화면에서도 다시 쓸 수 있게 캔버스에)
+        CreatureInfoPopup infoPopup = CreateCreatureInfoPopup(canvas);
+        SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
 
         BuildTitleUI(title, flow, run, tutorial);
         BuildCodexUI(codex, flow, meta);
@@ -85,11 +88,11 @@ public static class MainSceneBuilder
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, run, meta, goldText, out Text trainerText);
+        ShopScreen shopScreen = BuildShopUI(shop, run, meta, goldText, infoPopup, synergyPanel, out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
         // 튜토리얼 화면은 모든 화면·상단 표시보다 위에 그려지도록 여기서 만든다
-        BuildTutorialUI(canvas, tutorial, meta, shopScreen, (RectTransform)battleButton.transform);
+        BuildTutorialUI(canvas, tutorial, meta, shopScreen, (RectTransform)battleButton.transform, infoPopup);
 
         // 새 런 시작 (1라운드 상점으로 이동은 RunManager가 한다)
         BuildTrainerSelectUI(trainer, run, meta);
@@ -251,8 +254,151 @@ public static class MainSceneBuilder
         return go.GetComponent<Button>();
     }
 
+    // 크리처 정보 창: 어두운 바탕(누르면 닫힘) + 가운데 창
+    // 창: 그림 / 이름 / 타입·가격·레벨 / 능력치 / 능력 / 장착 아이템 / 시너지 한 줄 / 안내 / 버튼(왼쪽 확인, 오른쪽 선택·취소)
+    private static CreatureInfoPopup CreateCreatureInfoPopup(Transform canvas)
+    {
+        RectTransform root = CreateModalRoot(canvas, "CreatureInfoPopup", out Button backgroundButton);
+        RectTransform window = CreatePanel(root, "Window", new Color(0.16f, 0.18f, 0.24f), true);
+        Stretch(window, new Vector2(0.06f, 0.22f), new Vector2(0.94f, 0.8f));
+
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.74f, 0.9f), new Vector2(0.97f, 0.98f),
+            new Color(0.7f, 0.72f, 0.78f));
+        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = 40;
+
+        var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        iconGo.transform.SetParent(window, false);
+        Stretch(iconGo.GetComponent<RectTransform>(), new Vector2(0.04f, 0.63f), new Vector2(0.34f, 0.95f));
+        var icon = iconGo.GetComponent<Image>();
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+
+        Text nameText = CreateLeftText(window, "Name", 60, new Vector2(0.37f, 0.83f), new Vector2(0.72f, 0.95f));
+        Text infoText = CreateLeftText(window, "Info", 38, new Vector2(0.37f, 0.73f), new Vector2(0.97f, 0.82f));
+        infoText.color = new Color(1f, 0.85f, 0.3f);
+        Text statsText = CreateLeftText(window, "Stats", 34, new Vector2(0.37f, 0.64f), new Vector2(0.97f, 0.72f));
+        Text skillText = CreateLeftText(window, "Skill", 36, new Vector2(0.05f, 0.46f), new Vector2(0.95f, 0.61f));
+        Text itemText = CreateLeftText(window, "Item", 32, new Vector2(0.05f, 0.36f), new Vector2(0.95f, 0.45f));
+        itemText.color = new Color(0.8f, 0.82f, 0.9f);
+        Text synergyText = CreateLeftText(window, "Synergy", 32, new Vector2(0.05f, 0.26f), new Vector2(0.95f, 0.35f));
+        synergyText.color = new Color(0.6f, 0.95f, 0.65f);
+        Text messageText = CreateText(window, "Message", "", 40, new Vector2(0.05f, 0.17f), new Vector2(0.95f, 0.25f));
+        messageText.color = new Color(1f, 0.6f, 0.5f);
+
+        // 선택 버튼(오른쪽)과 확인 단계의 취소(같은 자리), 실행(반대쪽 왼쪽)
+        Button actionButton = CreateFreeButton(window, "구매", new Vector2(0.52f, 0.03f), new Vector2(0.95f, 0.15f),
+            new Color(0.95f, 0.75f, 0.25f));
+        Button cancelButton = CreateFreeButton(window, "취소", new Vector2(0.52f, 0.03f), new Vector2(0.95f, 0.15f),
+            new Color(0.7f, 0.72f, 0.78f));
+        Button confirmButton = CreateFreeButton(window, "팔기", new Vector2(0.05f, 0.03f), new Vector2(0.48f, 0.15f),
+            new Color(0.95f, 0.5f, 0.4f));
+        actionButton.gameObject.SetActive(false);
+        cancelButton.gameObject.SetActive(false);
+        confirmButton.gameObject.SetActive(false);
+
+        var popup = root.gameObject.AddComponent<CreatureInfoPopup>();
+        var so = new SerializedObject(popup);
+        so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.FindProperty("_infoText").objectReferenceValue = infoText;
+        so.FindProperty("_statsText").objectReferenceValue = statsText;
+        so.FindProperty("_skillText").objectReferenceValue = skillText;
+        so.FindProperty("_itemText").objectReferenceValue = itemText;
+        so.FindProperty("_synergyText").objectReferenceValue = synergyText;
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.FindProperty("_closeButton").objectReferenceValue = closeButton.transform;
+        so.FindProperty("_actionButton").objectReferenceValue = actionButton;
+        so.FindProperty("_actionLabel").objectReferenceValue = actionButton.GetComponentInChildren<Text>(true);
+        so.FindProperty("_confirmButton").objectReferenceValue = confirmButton;
+        so.FindProperty("_confirmLabel").objectReferenceValue = confirmButton.GetComponentInChildren<Text>(true);
+        so.FindProperty("_cancelButton").objectReferenceValue = cancelButton;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, popup.Close);
+        UnityEventTools.AddVoidPersistentListener(closeButton.onClick, popup.Close);
+        UnityEventTools.AddVoidPersistentListener(actionButton.onClick, popup.OnActionClicked);
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, popup.OnConfirmClicked);
+        UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, popup.OnCancelClicked);
+
+        root.gameObject.SetActive(false);
+        return popup;
+    }
+
+    // 시너지 표: 어두운 바탕(누르면 닫힘) + 가운데 창. 타입마다 한 줄: "불 3/4" / 1단계 / 2단계
+    private static SynergyPanel CreateSynergyPanel(Transform canvas)
+    {
+        RectTransform root = CreateModalRoot(canvas, "SynergyPanel", out Button backgroundButton);
+        RectTransform window = CreatePanel(root, "Window", new Color(0.16f, 0.18f, 0.24f), true);
+        Stretch(window, new Vector2(0.04f, 0.2f), new Vector2(0.96f, 0.82f));
+
+        CreateText(window, "Title", "타입 시너지", 64, new Vector2(0.05f, 0.88f), new Vector2(0.72f, 0.98f));
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.75f, 0.9f), new Vector2(0.97f, 0.98f),
+            new Color(0.7f, 0.72f, 0.78f));
+        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = 40;
+
+        int typeCount = TypeSynergy.TypeCount;
+        var typeTexts = new Text[typeCount];
+        var tier1Texts = new Text[typeCount];
+        var tier2Texts = new Text[typeCount];
+        const float top = 0.86f;
+        const float rowHeight = 0.15f;
+        for (int i = 0; i < typeCount; i++)
+        {
+            float rowTop = top - rowHeight * i;
+            float rowBottom = rowTop - rowHeight + 0.01f;
+            RectTransform row = CreatePanel(window, "Row" + i, new Color(1f, 1f, 1f, 0.05f), false);
+            Stretch(row, new Vector2(0.03f, rowBottom), new Vector2(0.97f, rowTop));
+            typeTexts[i] = CreateLeftText(row, "Type", 46, new Vector2(0.03f, 0.1f), new Vector2(0.27f, 0.9f));
+            tier1Texts[i] = CreateLeftText(row, "Tier1", 30, new Vector2(0.29f, 0.52f), new Vector2(0.98f, 0.95f));
+            tier2Texts[i] = CreateLeftText(row, "Tier2", 30, new Vector2(0.29f, 0.05f), new Vector2(0.98f, 0.48f));
+        }
+
+        Text note = CreateText(window, "Note", "같은 크리처는 1마리로, 5골드 크리처는 2마리로 세요", 34,
+            new Vector2(0.04f, 0.03f), new Vector2(0.96f, 0.1f));
+        note.color = new Color(0.85f, 0.85f, 0.9f);
+
+        var panel = root.gameObject.AddComponent<SynergyPanel>();
+        var so = new SerializedObject(panel);
+        SetArray(so.FindProperty("_typeTexts"), typeTexts);
+        SetArray(so.FindProperty("_tier1Texts"), tier1Texts);
+        SetArray(so.FindProperty("_tier2Texts"), tier2Texts);
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, panel.Close);
+        UnityEventTools.AddVoidPersistentListener(closeButton.onClick, panel.Close);
+
+        root.gameObject.SetActive(false);
+        return panel;
+    }
+
+    // 화면 전체를 덮는 어두운 바탕. 바탕(창 바깥)을 누르면 backgroundButton이 눌린다
+    private static RectTransform CreateModalRoot(Transform canvas, string name, out Button backgroundButton)
+    {
+        RectTransform root = CreatePanel(canvas, name, new Color(0f, 0f, 0f, 0.65f), true);
+        backgroundButton = root.gameObject.AddComponent<Button>();
+        backgroundButton.transition = Selectable.Transition.None;
+        return root;
+    }
+
+    // 왼쪽 정렬 글 (여러 줄이면 줄바꿈)
+    private static Text CreateLeftText(Transform parent, string name, int size, Vector2 anchorMin, Vector2 anchorMax)
+    {
+        Text text = CreateText(parent, name, "", size, anchorMin, anchorMax);
+        text.alignment = TextAnchor.MiddleLeft;
+        return text;
+    }
+
     // 튜토리얼 화면 (캔버스 맨 위): 어두운 판 4장 + 구멍 막이 + 노란 테두리 + 말풍선(확인) + 건너뛰기
     private static void BuildTutorialUI(Transform canvas, TutorialController tutorial, MetaProgress meta,
+        ShopScreen shop, RectTransform battleButton, CreatureInfoPopup infoPopup)
+    {
+        BuildTutorialOverlay(canvas, tutorial, meta, shop, battleButton);
+        var so = new SerializedObject(tutorial);
+        so.FindProperty("_infoPopup").objectReferenceValue = infoPopup;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void BuildTutorialOverlay(Transform canvas, TutorialController tutorial, MetaProgress meta,
         ShopScreen shop, RectTransform battleButton)
     {
         var overlay = new GameObject("TutorialOverlay", typeof(RectTransform));
@@ -339,11 +485,25 @@ public static class MainSceneBuilder
     }
 
     // 튜토리얼 문구·정해 둔 상점·약한 적 팀. 없으면 기본값으로 만들고, 있으면 그대로 쓴다 (고친 문구 보호)
+    // 정보 창으로 구매·판매하게 바뀐 뒤의 문구
+    private const string NewBuyMessage = "상점에서 크리처를 사 볼까요?\n빛나는 칸을 눌러 정보를 보고, 구매 버튼을 누르세요.";
+    private const string NewMergeMessage = "불똥이를 2마리 더 사서 3마리를 모아 보세요.\n칸을 누르고 구매 버튼을 누르면 돼요.";
+    private const string NewSellMessage = "크리처를 누르면 정보 창이 떠요.\n판매 버튼을 누르고 한 번 더 확인하면 팔 수 있어요.";
+
+    // 예전 기본 문구 → 새 문구 (직접 고친 문구는 그대로 둔다)
+    private static readonly (string oldMessage, string newMessage)[] TutorialMessageUpdates =
+    {
+        ("상점에서 크리처를 사 볼까요?\n빛나는 칸을 눌러 불똥이를 사세요.", NewBuyMessage),
+        ("불똥이를 2마리 더 사서\n3마리를 모아 보세요.", NewMergeMessage),
+        ("대기석의 크리처를 누르면 팔아서\n골드를 돌려받을 수 있어요.", NewSellMessage),
+    };
+
     private static TutorialData GetOrCreateTutorialData()
     {
         var data = AssetDatabase.LoadAssetAtPath<TutorialData>(TutorialDataPath);
         if (data != null)
         {
+            UpdateTutorialMessages(data);
             return data;
         }
 
@@ -356,13 +516,13 @@ public static class MainSceneBuilder
 
         (TutorialStep step, string message)[] steps =
         {
-            (TutorialStep.BuyCreature, "상점에서 크리처를 사 볼까요?\n빛나는 칸을 눌러 불똥이를 사세요."),
+            (TutorialStep.BuyCreature, NewBuyMessage),
             (TutorialStep.PlaceInTeam, "산 크리처는 아래 대기석에 들어가요.\n손가락으로 끌어서 팀 칸(앞줄)에 놓으세요."),
             (TutorialStep.StartBattle, "팀이 준비됐어요!\n전투 시작을 누르세요."),
             (TutorialStep.BattleInfo, "전투는 자동으로 진행돼요.\n크리처마다 공격 속도에 맞춰 상대 앞줄부터 공격해요."),
             (TutorialStep.MergeInfo, "같은 크리처 3마리를 모으면\n1마리로 합쳐져 더 강해져요! (★ → ★★)"),
-            (TutorialStep.Merge, "불똥이를 2마리 더 사서\n3마리를 모아 보세요."),
-            (TutorialStep.SellInfo, "대기석의 크리처를 누르면 팔아서\n골드를 돌려받을 수 있어요."),
+            (TutorialStep.Merge, NewMergeMessage),
+            (TutorialStep.SellInfo, NewSellMessage),
             (TutorialStep.SynergyInfo, "같은 타입 크리처 2마리를 팀에 두면 여기에 시너지가 켜져요. (예: 불 2/4)\n이제 마음껏 플레이해 보세요!"),
         };
         SerializedProperty stepList = so.FindProperty("_steps");
@@ -386,6 +546,32 @@ public static class MainSceneBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
         AssetDatabase.SaveAssets();
         return data;
+    }
+
+    // 이미 있는 튜토리얼 문구 중 예전 기본 문구 그대로인 것만 새 문구로 바꾼다
+    private static void UpdateTutorialMessages(TutorialData data)
+    {
+        var so = new SerializedObject(data);
+        SerializedProperty steps = so.FindProperty("_steps");
+        int updated = 0;
+        for (int i = 0; i < steps.arraySize; i++)
+        {
+            SerializedProperty message = steps.GetArrayElementAtIndex(i).FindPropertyRelative("Message");
+            foreach ((string oldMessage, string newMessage) in TutorialMessageUpdates)
+            {
+                if (message.stringValue == oldMessage)
+                {
+                    message.stringValue = newMessage;
+                    updated++;
+                }
+            }
+        }
+        if (updated > 0)
+        {
+            so.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[튜토리얼] 문구 {updated}개를 정보 창 흐름에 맞게 바꿨습니다");
+        }
     }
 
     // 약한 적 팀: 앞줄 첫 칸에 Lv1 크리처 1마리
@@ -984,7 +1170,8 @@ public static class MainSceneBuilder
     // 상점·배치 화면 (세로 1920 기준, 위에서부터)
     // (상단 표시: 라운드·목숨·골드) / 트레이너·새로고침 / 상점 크리처 5칸 + 아이템 1칸 / 메시지 / 시너지
     // / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 아이템 보관함 3칸 + 전투 시작
-    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, Text goldText, out Text trainerText)
+    private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, Text goldText,
+        CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
         trainerText = CreateText(screen.transform, "TrainerText", "", 30,
@@ -1018,10 +1205,16 @@ public static class MainSceneBuilder
             new Vector2(0f, 0.69f), new Vector2(1f, 0.713f));
         messageText.color = new Color(1f, 0.5f, 0.45f);
 
-        // 팀 칸 바로 위: 지금 켜진 시너지
+        // 팀 칸 바로 위: 지금 켜진 시너지 (눌러도 시너지 표가 열림) + 오른쪽 "시너지" 버튼
         Text synergyText = CreateText(screen.transform, "SynergyText", "", 34,
-            new Vector2(0f, 0.667f), new Vector2(1f, 0.69f));
+            new Vector2(0.02f, 0.665f), new Vector2(0.8f, 0.692f));
         synergyText.color = new Color(0.6f, 0.95f, 0.65f);
+        synergyText.raycastTarget = true;
+        Button synergyTextButton = synergyText.gameObject.AddComponent<Button>();
+        synergyTextButton.targetGraphic = synergyText;
+        Button synergyButton = CreateFreeButton(screen.transform, "시너지",
+            new Vector2(0.82f, 0.664f), new Vector2(0.98f, 0.694f), new Color(0.45f, 0.75f, 0.5f));
+        synergyButton.GetComponentInChildren<Text>().resizeTextMaxSize = 34;
 
         // 팀 칸: 약 300 x 290 (가장 크게). 위가 앞줄
         Color teamColor = new Color(0.22f, 0.32f, 0.3f);
@@ -1035,7 +1228,7 @@ public static class MainSceneBuilder
             teamSlots[i].GetComponent<Image>().color = teamColor;
         }
 
-        CreateText(screen.transform, "BenchLabel", "대기석 (끌어서 배치 / 눌러서 판매)", 38,
+        CreateText(screen.transform, "BenchLabel", "대기석 (끌어서 배치 / 눌러서 정보·판매)", 38,
             new Vector2(0f, 0.31f), new Vector2(1f, 0.345f));
 
         // 대기석 칸: 약 160 x 330
@@ -1072,6 +1265,8 @@ public static class MainSceneBuilder
         so.FindProperty("_config").objectReferenceValue = GetOrCreateShopConfig();
         so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
         so.FindProperty("_synergyText").objectReferenceValue = synergyText;
+        so.FindProperty("_infoPopup").objectReferenceValue = infoPopup;
+        so.FindProperty("_synergyPanel").objectReferenceValue = synergyPanel;
         so.FindProperty("_run").objectReferenceValue = run;
         so.FindProperty("_meta").objectReferenceValue = meta;
         so.FindProperty("_goldText").objectReferenceValue = goldText;
@@ -1101,13 +1296,20 @@ public static class MainSceneBuilder
 
         UnityEventTools.AddVoidPersistentListener(refresh.GetComponent<Button>().onClick, shop.Refresh);
         UnityEventTools.AddVoidPersistentListener(shopItemSlot.GetComponent<Button>().onClick, shop.BuyItem);
+        UnityEventTools.AddVoidPersistentListener(synergyTextButton.onClick, shop.OpenSynergyPanel);
+        UnityEventTools.AddVoidPersistentListener(synergyButton.onClick, shop.OpenSynergyPanel);
+        // 크리처 칸을 누르면 정보 창 (구매·판매는 창의 버튼으로)
         for (int i = 0; i < shopSlots.Length; i++)
         {
-            UnityEventTools.AddIntPersistentListener(shopSlots[i].GetComponent<Button>().onClick, shop.BuyAt, i);
+            UnityEventTools.AddIntPersistentListener(shopSlots[i].GetComponent<Button>().onClick, shop.ShowShopInfo, i);
         }
         for (int i = 0; i < benchSlots.Length; i++)
         {
-            UnityEventTools.AddIntPersistentListener(benchSlots[i].GetComponent<Button>().onClick, shop.SellAt, i);
+            UnityEventTools.AddIntPersistentListener(benchSlots[i].GetComponent<Button>().onClick, shop.ShowBenchInfo, i);
+        }
+        for (int i = 0; i < teamSlots.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(teamSlots[i].GetComponent<Button>().onClick, shop.ShowTeamInfo, i);
         }
 
         return shop;

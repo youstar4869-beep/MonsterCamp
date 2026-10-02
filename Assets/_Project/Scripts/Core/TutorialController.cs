@@ -16,6 +16,8 @@ public class TutorialController : MonoBehaviour
     [SerializeField] private MetaProgress _meta;
     [SerializeField] private ShopScreen _shop;
     [SerializeField] private RectTransform _battleButton;
+    [Tooltip("칸을 누르면 뜨는 정보 창 (구매는 창의 버튼으로)")]
+    [SerializeField] private CreatureInfoPopup _infoPopup;
 
     [Header("화면 (캔버스 맨 위)")]
     [Tooltip("튜토리얼 화면 전체 (처음엔 숨김)")]
@@ -236,6 +238,17 @@ public class TutorialController : MonoBehaviour
     {
         RectTransform target = null;
         RectTransform second = null;
+
+        // 정보 창이 열려 있으면: 구매 단계는 창의 "구매" 버튼, 그 밖에는 "닫기" 버튼을 비춘다
+        if (_infoPopup.IsOpen)
+        {
+            bool buyStep = step == TutorialStep.BuyCreature || step == TutorialStep.Merge;
+            hole = ToOverlayRect(buyStep ? _infoPopup.ActionButtonRect : _infoPopup.CloseButtonRect);
+            hole = Rect.MinMaxRect(hole.xMin - HolePadding, hole.yMin - HolePadding,
+                hole.xMax + HolePadding, hole.yMax + HolePadding);
+            return true;
+        }
+
         switch (step)
         {
             case TutorialStep.BuyCreature:
