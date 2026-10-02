@@ -11,6 +11,20 @@ public class BattleScreen : MonoBehaviour
     private static readonly Color BuffColor = new Color(0.5f, 1f, 0.55f);
     private static readonly Color SkillColor = new Color(1f, 0.9f, 0.35f);
 
+    // 데미지·회복 숫자: 상성 유리는 크고 주황, 불리는 작고 회색, 보통은 흰색, 회복은 초록
+    private static readonly Color DamageColor = Color.white;
+    private static readonly Color StrongDamageColor = new Color(1f, 0.6f, 0.2f);
+    private static readonly Color WeakDamageColor = new Color(0.75f, 0.75f, 0.78f);
+    private static readonly Color HealColor = new Color(0.45f, 1f, 0.5f);
+    private const float DamageScale = 1.1f;
+    private const float StrongDamageScale = 1.5f;
+    private const float WeakDamageScale = 0.8f;
+    private const float HealScale = 0.9f;
+    // 숫자 글은 미리 만들어 두고 돌려 쓴다 (맞을 때마다 새 문자열을 만들지 않게)
+    private const int CachedNumberCount = 1000;
+    private static readonly string[] DamageTexts = new string[CachedNumberCount];
+    private static readonly string[] HealTexts = new string[CachedNumberCount];
+
     [SerializeField] private RunManager _run;
     [SerializeField] private TypeChart _typeChart;
     [SerializeField] private SynergyConfig _synergy;
@@ -126,17 +140,30 @@ public class BattleScreen : MonoBehaviour
 
         switch (battleEvent.Type)
         {
+            case BattleEventType.Attack:
+                view.PlayAttack();
+                break;
             case BattleEventType.Damage:
+                RefreshView(battleEvent.Unit, view);
+                view.PlayHit();
+                ShowDamage(battleEvent, view);
+                break;
             case BattleEventType.Heal:
+                RefreshView(battleEvent.Unit, view);
+                if (battleEvent.Amount > 0)
+                {
+                    _floatingTexts.Show(NumberText(HealTexts, "+", battleEvent.Amount), view.HitTextPosition, HealColor, HealScale);
+                }
+                break;
             case BattleEventType.Shield:
                 RefreshView(battleEvent.Unit, view);
                 break;
             case BattleEventType.Revive:
-                view.gameObject.SetActive(true);
+                view.PlayRevive();
                 RefreshView(battleEvent.Unit, view);
                 break;
             case BattleEventType.Death:
-                view.Hide();
+                view.PlayDeath();
                 break;
             case BattleEventType.Skill:
                 if (!string.IsNullOrEmpty(battleEvent.Text) && view.gameObject.activeInHierarchy)
@@ -145,6 +172,26 @@ public class BattleScreen : MonoBehaviour
                 }
                 break;
         }
+    }
+
+    // 데미지 숫자: 때린 크리처와 맞은 크리처의 상성으로 크기·색 (화상 등 때린 쪽이 없으면 보통)
+    private void ShowDamage(BattleEvent battleEvent, CreatureUnitView view)
+    {
+        float multiplier = battleEvent.Source != null
+            ? _typeMultipliers[(int)battleEvent.Source.Type, (int)battleEvent.Unit.Type]
+            : 1f;
+        Color color = multiplier > 1f ? StrongDamageColor : multiplier < 1f ? WeakDamageColor : DamageColor;
+        float scale = multiplier > 1f ? StrongDamageScale : multiplier < 1f ? WeakDamageScale : DamageScale;
+        _floatingTexts.Show(NumberText(DamageTexts, "", battleEvent.Amount), view.HitTextPosition, color, scale);
+    }
+
+    private static string NumberText(string[] cache, string prefix, int value)
+    {
+        if (value < 0 || value >= cache.Length)
+        {
+            return prefix + value;
+        }
+        return cache[value] ??= prefix + value;
     }
 
     // 상태이상은 빨강, 회복·보호막·강화는 초록, 그 밖의 스킬은 노랑

@@ -22,8 +22,8 @@ public static class MainSceneBuilder
     private const string MetaConfigPath = "Assets/_Project/Data/MetaConfig.asset";
     private const string LockSpritePath = "Assets/_Project/Art/Placeholders/UI/Lock.png";
     private const string TutorialFolder = "Assets/_Project/Data/Tutorial";
-    // 전투 스킬 글 풀 크기 (동시에 떠 있을 수 있는 글 수)
-    private const int FloatingTextCount = 16;
+    // 전투 스킬 글·데미지 숫자 풀 크기 (동시에 떠 있을 수 있는 글 수)
+    private const int FloatingTextCount = 40;
     // 도감 크리처 칸 (1080x1920 기준)
     private const int CodexColumns = 5;
     private const float CodexCellWidth = 186f;
@@ -1116,11 +1116,11 @@ public static class MainSceneBuilder
         for (int i = 0; i < 5; i++)
         {
             bool front = i < 2;
-            playerViews[i] = CreateUnitSlot(front ? playerFront : playerBack, "PlayerSlot" + i, playerColor);
-            enemyViews[i] = CreateUnitSlot(front ? enemyFront : enemyBack, "EnemySlot" + i, enemyColor);
+            playerViews[i] = CreateUnitSlot(front ? playerFront : playerBack, "PlayerSlot" + i, playerColor, true);
+            enemyViews[i] = CreateUnitSlot(front ? enemyFront : enemyBack, "EnemySlot" + i, enemyColor, false);
         }
 
-        // 스킬 글 풀: 크리처 칸보다 위에 그려지도록 칸 다음에 만든다 (전투 중 새로 만들지 않고 돌려 씀)
+        // 스킬 글·데미지 숫자 풀: 크리처 칸보다 위에 그려지도록 칸 다음에 만든다 (전투 중 새로 만들지 않고 돌려 씀)
         FloatingTextPool floatingTexts = CreateFloatingTextPool(screen.transform, FloatingTextCount);
 
         Button speedButton = CreateButton(screen, "1배속");
@@ -1174,8 +1174,9 @@ public static class MainSceneBuilder
         return component;
     }
 
-    // 전투 칸: 바탕(빈 칸 표시) + 크리처(체력바, 그림, 이름). 크리처가 죽으면 크리처만 사라진다
-    private static CreatureUnitView CreateUnitSlot(Transform row, string name, Color color)
+    // 전투 칸: 바탕(빈 칸 표시) + 크리처(체력바, 그림, 이름, 맞으면 깜빡이는 흰 판). 크리처가 죽으면 크리처만 사라진다
+    // facesUp: 공격할 때 튀어나가는 쪽 (내 팀 위, 적 팀 아래)
+    private static CreatureUnitView CreateUnitSlot(Transform row, string name, Color color, bool facesUp)
     {
         var slot = new GameObject(name, typeof(RectTransform), typeof(Image));
         slot.transform.SetParent(row, false);
@@ -1190,6 +1191,12 @@ public static class MainSceneBuilder
         healthBack.transform.SetParent(unit.transform, false);
         Stretch(healthBack.GetComponent<RectTransform>(), new Vector2(0.08f, 0.86f), new Vector2(0.92f, 0.95f));
         healthBack.GetComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f);
+
+        // 체력 칸 뒤 흰 막대: 체력이 줄면 잠깐 뒤에 천천히 따라 줄어든다
+        var healthTrail = new GameObject("Trail", typeof(RectTransform), typeof(Image));
+        healthTrail.transform.SetParent(healthBack.transform, false);
+        Stretch(healthTrail.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        healthTrail.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.85f);
 
         var healthFill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
         healthFill.transform.SetParent(healthBack.transform, false);
@@ -1223,6 +1230,14 @@ public static class MainSceneBuilder
         // 오른쪽 위 작은 아이템 아이콘 (처음엔 숨김)
         ItemIconView itemIcon = CreateItemIcon(unit.transform, new Vector2(0.74f, 0.6f), new Vector2(0.97f, 0.84f), 30);
 
+        // 맞았을 때 깜빡이는 흰 판: 칸 전체를 덮도록 마지막에 만든다 (평소엔 투명)
+        var hitFlash = new GameObject("HitFlash", typeof(RectTransform), typeof(Image));
+        hitFlash.transform.SetParent(unit.transform, false);
+        Stretch(hitFlash.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        var hitFlashImage = hitFlash.GetComponent<Image>();
+        hitFlashImage.color = Color.clear;
+        hitFlashImage.raycastTarget = false;
+
         var view = unit.GetComponent<CreatureUnitView>();
         var so = new SerializedObject(view);
         so.FindProperty("_icon").objectReferenceValue = icon;
@@ -1230,6 +1245,9 @@ public static class MainSceneBuilder
         so.FindProperty("_levelText").objectReferenceValue = levelText;
         so.FindProperty("_healthFill").objectReferenceValue = healthFill.GetComponent<RectTransform>();
         so.FindProperty("_shieldFill").objectReferenceValue = shieldFill.GetComponent<RectTransform>();
+        so.FindProperty("_healthTrail").objectReferenceValue = healthTrail.GetComponent<RectTransform>();
+        so.FindProperty("_hitFlash").objectReferenceValue = hitFlashImage;
+        so.FindProperty("_facesUp").boolValue = facesUp;
         so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
         so.ApplyModifiedPropertiesWithoutUndo();
         unit.SetActive(false);

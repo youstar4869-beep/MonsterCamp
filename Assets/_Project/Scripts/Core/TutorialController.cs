@@ -137,7 +137,9 @@ public class TutorialController : MonoBehaviour
             return;
         }
 
-        if (!IsStepVisible())
+        // "전투 시작" 단계는 전투가 시작되면(상점이 아니게 되면) 보이지 않는 단계가 되므로,
+        // 보이는지보다 끝났는지를 먼저 본다 (아니면 다음 단계인 전투 설명이 나오지 않는다)
+        if (!IsStepVisible() && !IsStepDone())
         {
             Hide();
             return;
