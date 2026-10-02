@@ -10,8 +10,8 @@ public class TrainerCardView : MonoBehaviour
     [Tooltip("잠겼을 때 덮는 자물쇠 표시 (처음엔 숨김)")]
     [SerializeField] private GameObject _lockOverlay;
     [SerializeField] private Text _lockText;
-    [SerializeField] private Color _normalColor = new Color(0.25f, 0.28f, 0.34f);
-    [SerializeField] private Color _selectedColor = new Color(0.85f, 0.62f, 0.2f);
+    [Tooltip("평소 = 칸 색, 고르면 = 칸 색과 주요 버튼 색 사이")]
+    [SerializeField] private UITheme _theme;
 
     public void Show(TrainerData trainer)
     {
@@ -21,7 +21,7 @@ public class TrainerCardView : MonoBehaviour
 
     public void SetSelected(bool selected)
     {
-        _background.color = selected ? _selectedColor : _normalColor;
+        _background.color = selected ? Color.Lerp(_theme.Slot, _theme.ButtonPrimary, 0.75f) : _theme.Slot;
     }
 
     // cost: 해금에 필요한 별

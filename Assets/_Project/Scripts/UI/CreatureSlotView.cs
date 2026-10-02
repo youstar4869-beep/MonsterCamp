@@ -11,6 +11,9 @@ public class CreatureSlotView : MonoBehaviour
     [SerializeField] private Text _priceText;
     [SerializeField] private Text _levelText;
     [SerializeField] private ItemIconView _itemIcon;
+    [Tooltip("칸 아래 가는 막대: 크리처 타입 색 (비어 있으면 숨김)")]
+    [SerializeField] private Image _typeBar;
+    [SerializeField] private UITheme _theme;
     [Tooltip("합성 시 반짝이는 흰 덮개")]
     [SerializeField] private Image _flash;
     [SerializeField] private float _flashDuration = 0.4f;
@@ -26,6 +29,8 @@ public class CreatureSlotView : MonoBehaviour
         _priceText.text = priceLabel;
         _levelText.text = CreatureInstance.ToStars(level);
         _itemIcon.Show(item);
+        _typeBar.color = _theme.TypeColor(creature.Type);
+        _typeBar.enabled = true;
         _button.interactable = true;
     }
 
@@ -36,6 +41,7 @@ public class CreatureSlotView : MonoBehaviour
         _priceText.text = "";
         _levelText.text = "";
         _itemIcon.Show(null);
+        _typeBar.enabled = false;
         _button.interactable = false;
     }
 

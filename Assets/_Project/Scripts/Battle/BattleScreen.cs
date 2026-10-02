@@ -7,15 +7,7 @@ using UnityEngine.UI;
 // 결과 이벤트(피해, 회복, 사망, 스킬)를 받아 보여 주기만 한다
 public class BattleScreen : MonoBehaviour
 {
-    private static readonly Color DebuffColor = new Color(1f, 0.45f, 0.4f);
-    private static readonly Color BuffColor = new Color(0.5f, 1f, 0.55f);
-    private static readonly Color SkillColor = new Color(1f, 0.9f, 0.35f);
-
-    // 데미지·회복 숫자: 상성 유리는 크고 주황, 불리는 작고 회색, 보통은 흰색, 회복은 초록
-    private static readonly Color DamageColor = Color.white;
-    private static readonly Color StrongDamageColor = new Color(1f, 0.6f, 0.2f);
-    private static readonly Color WeakDamageColor = new Color(0.75f, 0.75f, 0.78f);
-    private static readonly Color HealColor = new Color(0.45f, 1f, 0.5f);
+    // 데미지·회복 숫자 크기: 상성 유리는 크게, 불리는 작게 (색은 UITheme)
     private const float DamageScale = 1.1f;
     private const float StrongDamageScale = 1.5f;
     private const float WeakDamageScale = 0.8f;
@@ -28,6 +20,8 @@ public class BattleScreen : MonoBehaviour
     [SerializeField] private RunManager _run;
     [SerializeField] private TypeChart _typeChart;
     [SerializeField] private SynergyConfig _synergy;
+    [Tooltip("데미지 숫자·스킬 글 색")]
+    [SerializeField] private UITheme _theme;
     [Tooltip("0~1 앞줄, 2~4 뒷줄")]
     [SerializeField] private CreatureUnitView[] _playerViews;
     [SerializeField] private CreatureUnitView[] _enemyViews;
@@ -152,7 +146,7 @@ public class BattleScreen : MonoBehaviour
                 RefreshView(battleEvent.Unit, view);
                 if (battleEvent.Amount > 0)
                 {
-                    _floatingTexts.Show(NumberText(HealTexts, "+", battleEvent.Amount), view.HitTextPosition, HealColor, HealScale);
+                    _floatingTexts.Show(NumberText(HealTexts, "+", battleEvent.Amount), view.HitTextPosition, _theme.Heal, HealScale);
                 }
                 break;
             case BattleEventType.Shield:
@@ -180,7 +174,7 @@ public class BattleScreen : MonoBehaviour
         float multiplier = battleEvent.Source != null
             ? _typeMultipliers[(int)battleEvent.Source.Type, (int)battleEvent.Unit.Type]
             : 1f;
-        Color color = multiplier > 1f ? StrongDamageColor : multiplier < 1f ? WeakDamageColor : DamageColor;
+        Color color = multiplier > 1f ? _theme.DamageStrong : multiplier < 1f ? _theme.DamageWeak : _theme.DamageNormal;
         float scale = multiplier > 1f ? StrongDamageScale : multiplier < 1f ? WeakDamageScale : DamageScale;
         _floatingTexts.Show(NumberText(DamageTexts, "", battleEvent.Amount), view.HitTextPosition, color, scale);
     }
@@ -195,7 +189,7 @@ public class BattleScreen : MonoBehaviour
     }
 
     // 상태이상은 빨강, 회복·보호막·강화는 초록, 그 밖의 스킬은 노랑
-    private static Color ColorOf(string text)
+    private Color ColorOf(string text)
     {
         switch (text)
         {
@@ -204,7 +198,7 @@ public class BattleScreen : MonoBehaviour
             case "화상":
             case "둔화":
             case "약화":
-                return DebuffColor;
+                return _theme.SkillDebuff;
             case "회복":
             case "치유":
             case "보호막":
@@ -212,9 +206,9 @@ public class BattleScreen : MonoBehaviour
             case "가속":
             case "체력 증가":
             case "분노":
-                return BuffColor;
+                return _theme.SkillBuff;
             default:
-                return SkillColor;
+                return _theme.Skill;
         }
     }
 

@@ -21,6 +21,9 @@ public class CreatureUnitView : MonoBehaviour
     [Tooltip("맞았을 때 깜빡이는 흰 판 (칸 전체를 덮음, 평소엔 투명)")]
     [SerializeField] private Image _hitFlash;
     [SerializeField] private ItemIconView _itemIcon;
+    [Tooltip("칸 아래 가는 막대: 크리처 타입 색")]
+    [SerializeField] private Image _typeBar;
+    [SerializeField] private UITheme _theme;
     [Tooltip("내 팀이면 위(적 쪽)로, 적 팀이면 아래로 튀어나간다")]
     [SerializeField] private bool _facesUp = true;
 
@@ -74,6 +77,8 @@ public class CreatureUnitView : MonoBehaviour
         _nameText.text = creature.DisplayName;
         _levelText.text = CreatureInstance.ToStars(level);
         _itemIcon.Show(item);
+        _typeBar.color = _theme.TypeColor(creature.Type);
+        _typeBar.enabled = true;
         ResetEffects();
         SetHealth(1f, 0f);
         SetDisabled(false);

@@ -16,6 +16,8 @@ public class CreatureInfoPopup : MonoBehaviour
     [SerializeField] private Text _itemText;
     [SerializeField] private Text _synergyText;
     [SerializeField] private Text _messageText;
+    [Tooltip("타입·가격 줄을 타입 색으로")]
+    [SerializeField] private UITheme _theme;
 
     [Header("버튼")]
     [SerializeField] private RectTransform _closeButton;
@@ -42,6 +44,7 @@ public class CreatureInfoPopup : MonoBehaviour
         _icon.sprite = creature.GetSprite(level);
         _nameText.text = creature.DisplayName;
         _infoText.text = $"{TypeSynergy.GetTypeName(creature.Type)} · {creature.Tier}골드 · Lv{level} {CreatureInstance.ToStars(level)}";
+        _infoText.color = _theme.TypeColor(creature.Type);
         _statsText.text = $"체력 {creature.GetMaxHealth(level)}   공격력 {creature.GetAttack(level)}   공격 속도 {creature.AttackSpeed:0.##}/초";
         _skillText.text = $"능력: {creature.SkillDescription}";
         _itemText.text = item != null ? $"장착: {item.DisplayName} — {item.Description}" : "장착한 아이템 없음";

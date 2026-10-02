@@ -5,9 +5,10 @@ using UnityEngine.UI;
 // 켜진 단계는 밝게, 안 켜진 단계는 흐리게. 창 바깥이나 닫기 버튼을 누르면 닫힌다
 public class SynergyPanel : MonoBehaviour
 {
-    private static readonly Color OnColor = new Color(1f, 0.92f, 0.55f);
-    private static readonly Color OffColor = new Color(1f, 1f, 1f, 0.35f);
+    // 안 켜진 단계 글의 진하기
+    private const float OffAlpha = 0.35f;
 
+    [SerializeField] private UITheme _theme;
     [Tooltip("CreatureType 순서 (불, 물, 풀, 번개, 바위)")]
     [SerializeField] private Text[] _typeTexts;
     [SerializeField] private Text[] _tier1Texts;
@@ -23,7 +24,8 @@ public class SynergyPanel : MonoBehaviour
             int activeTier = config.GetTier(count);
 
             _typeTexts[type].text = $"{TypeSynergy.GetTypeName(creatureType)} {count}/{config.GetNextThreshold(count)}";
-            _typeTexts[type].color = activeTier > 0 ? OnColor : Color.white;
+            // 켜진 타입은 타입 색, 안 켜진 타입은 흰색
+            _typeTexts[type].color = activeTier > 0 ? _theme.TypeColor(creatureType) : _theme.Text;
             SetTierText(_tier1Texts[type], config, creatureType, 1, activeTier);
             SetTierText(_tier2Texts[type], config, creatureType, 2, activeTier);
         }
@@ -36,7 +38,7 @@ public class SynergyPanel : MonoBehaviour
     }
 
     // 지금 켜진 단계만 밝게 (2단계가 켜지면 1단계는 흐리게)
-    private static void SetTierText(Text text, SynergyConfig config, CreatureType type, int tier, int activeTier)
+    private void SetTierText(Text text, SynergyConfig config, CreatureType type, int tier, int activeTier)
     {
         if (tier > config.TierCount)
         {
@@ -44,6 +46,8 @@ public class SynergyPanel : MonoBehaviour
             return;
         }
         text.text = $"{tier}단계 ({config.GetThreshold(tier)}마리): {config.GetEffectText(type, tier)}";
-        text.color = tier == activeTier ? OnColor : OffColor;
+        Color off = _theme.Text;
+        off.a = OffAlpha;
+        text.color = tier == activeTier ? _theme.Accent : off;
     }
 }

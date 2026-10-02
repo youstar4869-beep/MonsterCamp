@@ -32,6 +32,8 @@ public static class MainSceneBuilder
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
 
     private static Font _font;
+    // 색·글자 크기·둥근 모서리 (Data/UITheme)
+    private static UITheme _theme;
 
     [MenuItem("MonsterCamp/Build Main Scene")]
     public static void Build()
@@ -47,13 +49,16 @@ public static class MainSceneBuilder
             return;
         }
 
-        _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        _theme = UIThemeBuilder.GetOrCreate();
+        // 한글 글꼴이 없으면 Unity 기본 글꼴 (기기 글꼴로 한글을 대신 그림)
+        _font = _theme.Font != null ? _theme.Font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         CreateCamera();
         CreateEventSystem();
-        Transform canvas = CreateCanvas();
+        // 모든 화면은 안전 영역(노치·둥근 모서리 제외) 안에 만든다. 바깥은 카메라 배경색(테마 바탕색)
+        Transform canvas = CreateSafeArea(CreateCanvas());
 
         var flow = new GameObject("ScreenFlow").AddComponent<ScreenFlow>();
         var run = new GameObject("RunManager").AddComponent<RunManager>();
@@ -81,9 +86,9 @@ public static class MainSceneBuilder
 
         // 결과 화면: 클리어/게임 오버 + 설명 + 별 + 타이틀로
         Text resultTitle = result.transform.Find("Title").GetComponent<Text>();
-        Text resultDetail = CreateText(result.transform, "Detail", "", 56, new Vector2(0.05f, 0.62f), new Vector2(0.95f, 0.72f));
-        Text resultStars = CreateText(result.transform, "Stars", "", 56, new Vector2(0.05f, 0.44f), new Vector2(0.95f, 0.6f));
-        resultStars.color = new Color(1f, 0.85f, 0.3f);
+        Text resultDetail = CreateText(result.transform, "Detail", "", _theme.HeadingSize, new Vector2(0.05f, 0.62f), new Vector2(0.95f, 0.72f));
+        Text resultStars = CreateText(result.transform, "Stars", "", _theme.HeadingSize, new Vector2(0.05f, 0.44f), new Vector2(0.95f, 0.6f));
+        resultStars.color = _theme.Gold;
         AddButton(result, "타이틀로", flow, GameScreen.Title);
 
         BattleScreen battleScreen = BuildBattleUI(battle, run);
@@ -140,7 +145,7 @@ public static class MainSceneBuilder
         var cam = go.AddComponent<Camera>();
         cam.orthographic = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = Color.black;
+        cam.backgroundColor = _theme.Background;
     }
 
     private static void CreateEventSystem()
@@ -166,18 +171,33 @@ public static class MainSceneBuilder
         return go.transform;
     }
 
+    // 캔버스 안의 안전 영역 판 (SafeAreaFitter가 실행 중 Screen.safeArea에 맞춘다)
+    private static Transform CreateSafeArea(Transform canvas)
+    {
+        var go = new GameObject("SafeArea", typeof(RectTransform), typeof(SafeAreaFitter));
+        go.transform.SetParent(canvas, false);
+        Stretch(go.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        return go.transform;
+    }
+
+    // 둥근 모서리 (radius: 1080x1920 기준 픽셀, 0이면 테마 기본값)
+    private static void Round(Image image, float radius = 0f)
+    {
+        UIThemeBuilder.Round(image, _theme, radius);
+    }
+
     // 전체 화면 패널 + 상단 제목 + 하단 버튼 영역(ButtonArea)
     private static GameObject CreateScreen(Transform canvas, string name, string titleText)
     {
         var screen = new GameObject(name, typeof(RectTransform), typeof(Image));
         screen.transform.SetParent(canvas, false);
         Stretch(screen.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
-        screen.GetComponent<Image>().color = new Color(0.12f, 0.14f, 0.18f);
+        screen.GetComponent<Image>().color = _theme.Background;
 
         var title = new GameObject("Title", typeof(RectTransform), typeof(Text));
         title.transform.SetParent(screen.transform, false);
         Stretch(title.GetComponent<RectTransform>(), new Vector2(0f, 0.75f), new Vector2(1f, 0.9f));
-        SetupText(title.GetComponent<Text>(), titleText, 96);
+        SetupText(title.GetComponent<Text>(), titleText, _theme.TitleSize);
 
         var buttonArea = new GameObject("ButtonArea", typeof(RectTransform), typeof(VerticalLayoutGroup));
         buttonArea.transform.SetParent(screen.transform, false);
@@ -202,29 +222,30 @@ public static class MainSceneBuilder
         Button newGameButton = CreateButton(screen, "새 게임");
         AddButton(screen, "도감", flow, GameScreen.Codex);
         Button replayButton = CreateFreeButton(screen.transform, "튜토리얼 다시 보기",
-            new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.08f), new Color(0.5f, 0.53f, 0.6f));
-        replayButton.GetComponentInChildren<Text>().resizeTextMaxSize = 34;
+            new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.08f), _theme.ButtonSecondary);
+        replayButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
 
-        Text messageText = CreateText(screen.transform, "MessageText", "", 40, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
-        messageText.color = new Color(1f, 0.5f, 0.45f);
+        Text messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
+        messageText.color = _theme.Negative;
 
         // 확인 창: 화면 전체를 어둡게 덮어 뒤의 버튼이 눌리지 않게 한다 (가장 위에 그려지도록 마지막에 만든다)
         var panel = new GameObject("ConfirmPanel", typeof(RectTransform), typeof(Image));
         panel.transform.SetParent(screen.transform, false);
         Stretch(panel.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
-        panel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.7f);
+        panel.GetComponent<Image>().color = _theme.Dim;
 
         var box = new GameObject("Box", typeof(RectTransform), typeof(Image));
         box.transform.SetParent(panel.transform, false);
         Stretch(box.GetComponent<RectTransform>(), new Vector2(0.08f, 0.36f), new Vector2(0.92f, 0.64f));
-        box.GetComponent<Image>().color = new Color(0.2f, 0.22f, 0.28f);
+        box.GetComponent<Image>().color = _theme.Panel;
+        Round(box.GetComponent<Image>(), 36f);
 
-        CreateText(box.transform, "Question", "진행 중인 판이 지워져요.\n새로 시작할까요?", 52,
+        CreateText(box.transform, "Question", "진행 중인 판이 지워져요.\n새로 시작할까요?", _theme.LargeSize,
             new Vector2(0.05f, 0.48f), new Vector2(0.95f, 0.92f));
         Button confirmButton = CreateFreeButton(box.transform, "새로 시작", new Vector2(0.06f, 0.1f), new Vector2(0.48f, 0.4f),
-            new Color(0.95f, 0.5f, 0.4f));
+            _theme.ButtonDanger);
         Button cancelButton = CreateFreeButton(box.transform, "취소", new Vector2(0.52f, 0.1f), new Vector2(0.94f, 0.4f),
-            new Color(0.7f, 0.72f, 0.78f));
+            _theme.ButtonSecondary);
         panel.SetActive(false);
 
         var title = screen.AddComponent<TitleScreen>();
@@ -251,8 +272,9 @@ public static class MainSceneBuilder
         go.transform.SetParent(parent, false);
         Stretch(go.GetComponent<RectTransform>(), anchorMin, anchorMax);
         go.GetComponent<Image>().color = color;
-        Text text = CreateText(go.transform, "Text", label, 52, Vector2.zero, Vector2.one);
-        text.color = Color.black;
+        Round(go.GetComponent<Image>());
+        Text text = CreateText(go.transform, "Text", label, _theme.LargeSize, Vector2.zero, Vector2.one);
+        text.color = _theme.ButtonText;
         Button button = go.GetComponent<Button>();
         AddPressFeedback(button);
         return button;
@@ -262,7 +284,7 @@ public static class MainSceneBuilder
     private static void AddPressFeedback(Button button)
     {
         ColorBlock colors = button.colors;
-        colors.pressedColor = new Color(0.7f, 0.7f, 0.7f);
+        colors.pressedColor = _theme.ButtonPressed;
         button.colors = colors;
         button.gameObject.AddComponent<ButtonPressFeedback>();
     }
@@ -287,12 +309,13 @@ public static class MainSceneBuilder
     private static CreatureInfoPopup CreateCreatureInfoPopup(Transform canvas)
     {
         RectTransform root = CreateModalRoot(canvas, "CreatureInfoPopup", out Button backgroundButton);
-        RectTransform window = CreatePanel(root, "Window", new Color(0.16f, 0.18f, 0.24f), true);
+        RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
+        Round(window.GetComponent<Image>(), 36f);
         Stretch(window, new Vector2(0.06f, 0.22f), new Vector2(0.94f, 0.8f));
 
         Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.74f, 0.875f), new Vector2(0.97f, 0.985f),
-            new Color(0.7f, 0.72f, 0.78f));
-        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = 40;
+            _theme.ButtonSecondary);
+        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
 
         var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         iconGo.transform.SetParent(window, false);
@@ -301,25 +324,25 @@ public static class MainSceneBuilder
         icon.preserveAspect = true;
         icon.raycastTarget = false;
 
-        Text nameText = CreateLeftText(window, "Name", 60, new Vector2(0.37f, 0.83f), new Vector2(0.72f, 0.95f));
-        Text infoText = CreateLeftText(window, "Info", 38, new Vector2(0.37f, 0.73f), new Vector2(0.97f, 0.82f));
-        infoText.color = new Color(1f, 0.85f, 0.3f);
-        Text statsText = CreateLeftText(window, "Stats", 34, new Vector2(0.37f, 0.64f), new Vector2(0.97f, 0.72f));
-        Text skillText = CreateLeftText(window, "Skill", 36, new Vector2(0.05f, 0.46f), new Vector2(0.95f, 0.61f));
-        Text itemText = CreateLeftText(window, "Item", 32, new Vector2(0.05f, 0.36f), new Vector2(0.95f, 0.45f));
-        itemText.color = new Color(0.8f, 0.82f, 0.9f);
-        Text synergyText = CreateLeftText(window, "Synergy", 32, new Vector2(0.05f, 0.26f), new Vector2(0.95f, 0.35f));
-        synergyText.color = new Color(0.6f, 0.95f, 0.65f);
-        Text messageText = CreateText(window, "Message", "", 40, new Vector2(0.05f, 0.17f), new Vector2(0.95f, 0.25f));
-        messageText.color = new Color(1f, 0.6f, 0.5f);
+        Text nameText = CreateLeftText(window, "Name", _theme.HeadingSize, new Vector2(0.37f, 0.83f), new Vector2(0.72f, 0.95f));
+        Text infoText = CreateLeftText(window, "Info", _theme.BodySize, new Vector2(0.37f, 0.73f), new Vector2(0.97f, 0.82f));
+        infoText.color = _theme.Gold;
+        Text statsText = CreateLeftText(window, "Stats", _theme.SmallSize, new Vector2(0.37f, 0.64f), new Vector2(0.97f, 0.72f));
+        Text skillText = CreateLeftText(window, "Skill", _theme.SmallSize, new Vector2(0.05f, 0.46f), new Vector2(0.95f, 0.61f));
+        Text itemText = CreateLeftText(window, "Item", _theme.SmallSize, new Vector2(0.05f, 0.36f), new Vector2(0.95f, 0.45f));
+        itemText.color = _theme.TextSub;
+        Text synergyText = CreateLeftText(window, "Synergy", _theme.SmallSize, new Vector2(0.05f, 0.26f), new Vector2(0.95f, 0.35f));
+        synergyText.color = _theme.Positive;
+        Text messageText = CreateText(window, "Message", "", _theme.BodySize, new Vector2(0.05f, 0.17f), new Vector2(0.95f, 0.25f));
+        messageText.color = _theme.Negative;
 
         // 선택 버튼(오른쪽)과 확인 단계의 취소(같은 자리), 실행(반대쪽 왼쪽)
         Button actionButton = CreateFreeButton(window, "구매", new Vector2(0.52f, 0.03f), new Vector2(0.95f, 0.15f),
-            new Color(0.95f, 0.75f, 0.25f));
+            _theme.ButtonPrimary);
         Button cancelButton = CreateFreeButton(window, "취소", new Vector2(0.52f, 0.03f), new Vector2(0.95f, 0.15f),
-            new Color(0.7f, 0.72f, 0.78f));
+            _theme.ButtonSecondary);
         Button confirmButton = CreateFreeButton(window, "팔기", new Vector2(0.05f, 0.03f), new Vector2(0.48f, 0.15f),
-            new Color(0.95f, 0.5f, 0.4f));
+            _theme.ButtonDanger);
         actionButton.gameObject.SetActive(false);
         cancelButton.gameObject.SetActive(false);
         confirmButton.gameObject.SetActive(false);
@@ -340,6 +363,7 @@ public static class MainSceneBuilder
         so.FindProperty("_confirmButton").objectReferenceValue = confirmButton;
         so.FindProperty("_confirmLabel").objectReferenceValue = confirmButton.GetComponentInChildren<Text>(true);
         so.FindProperty("_cancelButton").objectReferenceValue = cancelButton;
+        so.FindProperty("_theme").objectReferenceValue = _theme;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, popup.Close);
@@ -356,13 +380,14 @@ public static class MainSceneBuilder
     private static SynergyPanel CreateSynergyPanel(Transform canvas)
     {
         RectTransform root = CreateModalRoot(canvas, "SynergyPanel", out Button backgroundButton);
-        RectTransform window = CreatePanel(root, "Window", new Color(0.16f, 0.18f, 0.24f), true);
+        RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
+        Round(window.GetComponent<Image>(), 36f);
         Stretch(window, new Vector2(0.04f, 0.2f), new Vector2(0.96f, 0.82f));
 
-        CreateText(window, "Title", "타입 시너지", 64, new Vector2(0.05f, 0.88f), new Vector2(0.72f, 0.98f));
+        CreateText(window, "Title", "타입 시너지", _theme.HeadingSize, new Vector2(0.05f, 0.88f), new Vector2(0.72f, 0.98f));
         Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.75f, 0.88f), new Vector2(0.97f, 0.985f),
-            new Color(0.7f, 0.72f, 0.78f));
-        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = 40;
+            _theme.ButtonSecondary);
+        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
 
         int typeCount = TypeSynergy.TypeCount;
         var typeTexts = new Text[typeCount];
@@ -375,21 +400,23 @@ public static class MainSceneBuilder
             float rowTop = top - rowHeight * i;
             float rowBottom = rowTop - rowHeight + 0.01f;
             RectTransform row = CreatePanel(window, "Row" + i, new Color(1f, 1f, 1f, 0.05f), false);
+            Round(row.GetComponent<Image>(), 16f);
             Stretch(row, new Vector2(0.03f, rowBottom), new Vector2(0.97f, rowTop));
-            typeTexts[i] = CreateLeftText(row, "Type", 46, new Vector2(0.03f, 0.1f), new Vector2(0.27f, 0.9f));
-            tier1Texts[i] = CreateLeftText(row, "Tier1", 30, new Vector2(0.29f, 0.52f), new Vector2(0.98f, 0.95f));
-            tier2Texts[i] = CreateLeftText(row, "Tier2", 30, new Vector2(0.29f, 0.05f), new Vector2(0.98f, 0.48f));
+            typeTexts[i] = CreateLeftText(row, "Type", _theme.LargeSize, new Vector2(0.03f, 0.1f), new Vector2(0.27f, 0.9f));
+            tier1Texts[i] = CreateLeftText(row, "Tier1", _theme.TinySize, new Vector2(0.29f, 0.52f), new Vector2(0.98f, 0.95f));
+            tier2Texts[i] = CreateLeftText(row, "Tier2", _theme.TinySize, new Vector2(0.29f, 0.05f), new Vector2(0.98f, 0.48f));
         }
 
-        Text note = CreateText(window, "Note", "같은 크리처는 1마리로, 5골드 크리처는 2마리로 세요", 34,
+        Text note = CreateText(window, "Note", "같은 크리처는 1마리로, 5골드 크리처는 2마리로 세요", _theme.SmallSize,
             new Vector2(0.04f, 0.03f), new Vector2(0.96f, 0.1f));
-        note.color = new Color(0.85f, 0.85f, 0.9f);
+        note.color = _theme.TextSub;
 
         var panel = root.gameObject.AddComponent<SynergyPanel>();
         var so = new SerializedObject(panel);
         SetArray(so.FindProperty("_typeTexts"), typeTexts);
         SetArray(so.FindProperty("_tier1Texts"), tier1Texts);
         SetArray(so.FindProperty("_tier2Texts"), tier2Texts);
+        so.FindProperty("_theme").objectReferenceValue = _theme;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, panel.Close);
@@ -402,7 +429,7 @@ public static class MainSceneBuilder
     // 화면 전체를 덮는 어두운 바탕. 바탕(창 바깥)을 누르면 backgroundButton이 눌린다
     private static RectTransform CreateModalRoot(Transform canvas, string name, out Button backgroundButton)
     {
-        RectTransform root = CreatePanel(canvas, name, new Color(0f, 0f, 0f, 0.65f), true);
+        RectTransform root = CreatePanel(canvas, name, _theme.Dim, true);
         backgroundButton = root.gameObject.AddComponent<Button>();
         backgroundButton.transition = Selectable.Transition.None;
         return root;
@@ -434,7 +461,7 @@ public static class MainSceneBuilder
         var overlayRect = overlay.GetComponent<RectTransform>();
         Stretch(overlayRect, Vector2.zero, Vector2.one);
 
-        Color dark = new Color(0f, 0f, 0f, 0.72f);
+        Color dark = _theme.Dim;
         RectTransform blockTop = CreatePanel(overlay.transform, "BlockTop", dark, true);
         RectTransform blockBottom = CreatePanel(overlay.transform, "BlockBottom", dark, true);
         RectTransform blockLeft = CreatePanel(overlay.transform, "BlockLeft", dark, true);
@@ -445,7 +472,7 @@ public static class MainSceneBuilder
         var frame = new GameObject("Frame", typeof(RectTransform));
         frame.transform.SetParent(overlay.transform, false);
         var frameRect = frame.GetComponent<RectTransform>();
-        Color frameColor = new Color(1f, 0.85f, 0.25f);
+        Color frameColor = _theme.Accent;
         const float thickness = 8f;
         SetBorder(CreatePanel(frame.transform, "Top", frameColor, false), new Vector2(0f, 1f), Vector2.one,
             new Vector2(-thickness, 0f), new Vector2(thickness, thickness));
@@ -457,16 +484,17 @@ public static class MainSceneBuilder
             Vector2.zero, new Vector2(thickness, 0f));
 
         // 말풍선: 설명 + (설명 단계에서만) 확인 버튼
-        RectTransform bubble = CreatePanel(overlay.transform, "Bubble", new Color(0.1f, 0.12f, 0.18f, 0.97f), true);
-        Text bubbleText = CreateText(bubble, "Text", "", 42, new Vector2(0.04f, 0.06f), new Vector2(0.74f, 0.94f));
+        RectTransform bubble = CreatePanel(overlay.transform, "Bubble", _theme.Panel, true);
+        Round(bubble.GetComponent<Image>(), 28f);
+        Text bubbleText = CreateText(bubble, "Text", "", _theme.BodySize, new Vector2(0.04f, 0.06f), new Vector2(0.74f, 0.94f));
         bubbleText.alignment = TextAnchor.MiddleLeft;
         Button confirmButton = CreateFreeButton(bubble, "확인", new Vector2(0.77f, 0.18f), new Vector2(0.97f, 0.82f),
-            new Color(0.95f, 0.75f, 0.25f));
+            _theme.ButtonPrimary);
 
         // 오른쪽 위 건너뛰기 (항상 맨 위)
         Button skipButton = CreateFreeButton(overlay.transform, "건너뛰기", new Vector2(0.76f, 0.88f), new Vector2(0.98f, 0.945f),
-            new Color(0.75f, 0.77f, 0.82f));
-        skipButton.GetComponentInChildren<Text>().resizeTextMaxSize = 38;
+            _theme.ButtonSecondary);
+        skipButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
 
         overlay.SetActive(false);
 
@@ -649,10 +677,10 @@ public static class MainSceneBuilder
         Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.925f), new Vector2(1f, 0.985f));
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.25f, 0.015f), new Vector2(0.75f, 0.1f));
 
-        Text starsText = CreateText(screen.transform, "StarsText", "", 52, new Vector2(0f, 0.88f), new Vector2(1f, 0.925f));
-        starsText.color = new Color(1f, 0.85f, 0.3f);
+        Text starsText = CreateText(screen.transform, "StarsText", "", _theme.LargeSize, new Vector2(0f, 0.88f), new Vector2(1f, 0.925f));
+        starsText.color = _theme.Gold;
 
-        Text trainerLabel = CreateText(screen.transform, "TrainerLabel", "트레이너", 36, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
+        Text trainerLabel = CreateText(screen.transform, "TrainerLabel", "트레이너", _theme.SmallSize, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
         trainerLabel.alignment = TextAnchor.MiddleLeft;
         Transform trainerRow = CreateRow(screen.transform, "TrainerRow", new Vector2(0.03f, 0.7f), new Vector2(0.97f, 0.85f));
         TrainerData[] trainers = GetOrCreateTrainers();
@@ -662,7 +690,7 @@ public static class MainSceneBuilder
             trainerEntries[i] = CreateCodexEntry(trainerRow, "Trainer" + i, false);
         }
 
-        Text creatureLabel = CreateText(screen.transform, "CreatureLabel", "크리처", 36, new Vector2(0.03f, 0.665f), new Vector2(0.97f, 0.695f));
+        Text creatureLabel = CreateText(screen.transform, "CreatureLabel", "크리처", _theme.SmallSize, new Vector2(0.03f, 0.665f), new Vector2(0.97f, 0.695f));
         creatureLabel.alignment = TextAnchor.MiddleLeft;
         // 크리처 35종은 위아래로 스크롤. 가격이 바뀌면 새 줄, 한 줄에 최대 5칸 (1·2골드 2줄, 3·4·5골드 1줄)
         CreatureData[] creatures = GetSortedCreatures();
@@ -685,8 +713,8 @@ public static class MainSceneBuilder
             column++;
         }
 
-        Text messageText = CreateText(screen.transform, "MessageText", "", 36, new Vector2(0f, 0.1f), new Vector2(1f, 0.13f));
-        messageText.color = new Color(0.6f, 0.95f, 0.65f);
+        Text messageText = CreateText(screen.transform, "MessageText", "", _theme.SmallSize, new Vector2(0f, 0.1f), new Vector2(1f, 0.13f));
+        messageText.color = _theme.Positive;
 
         AddButton(screen, "뒤로", flow, GameScreen.Title);
 
@@ -769,7 +797,8 @@ public static class MainSceneBuilder
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(CodexEntryView));
         go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = new Color(0.25f, 0.28f, 0.34f);
+        go.GetComponent<Image>().color = _theme.Slot;
+        Round(go.GetComponent<Image>());
 
         Image icon = null;
         Text nameText;
@@ -782,27 +811,27 @@ public static class MainSceneBuilder
             icon = iconGo.GetComponent<Image>();
             icon.preserveAspect = true;
             icon.raycastTarget = false;
-            nameText = CreateText(go.transform, "Name", "", 28, new Vector2(0.02f, 0.34f), new Vector2(0.98f, 0.46f));
-            infoText = CreateText(go.transform, "Info", "", 22, new Vector2(0.02f, 0.25f), new Vector2(0.98f, 0.34f));
+            nameText = CreateText(go.transform, "Name", "", _theme.TinySize, new Vector2(0.02f, 0.34f), new Vector2(0.98f, 0.46f));
+            infoText = CreateText(go.transform, "Info", "", _theme.TinySize, new Vector2(0.02f, 0.25f), new Vector2(0.98f, 0.34f));
         }
         else
         {
-            nameText = CreateText(go.transform, "Name", "", 40, new Vector2(0.04f, 0.7f), new Vector2(0.96f, 0.95f));
-            infoText = CreateText(go.transform, "Info", "", 24, new Vector2(0.04f, 0.3f), new Vector2(0.96f, 0.7f));
+            nameText = CreateText(go.transform, "Name", "", _theme.BodySize, new Vector2(0.04f, 0.7f), new Vector2(0.96f, 0.95f));
+            infoText = CreateText(go.transform, "Info", "", _theme.TinySize, new Vector2(0.04f, 0.3f), new Vector2(0.96f, 0.7f));
         }
-        infoText.color = new Color(0.85f, 0.85f, 0.9f);
+        infoText.color = _theme.TextSub;
 
         // 잠금 덮개는 해금 버튼보다 먼저 만들어 버튼은 어두워지지 않게 한다
         // 크리처 칸은 그림 위에, 트레이너 칸은 오른쪽 위에 자물쇠
         Vector2 lockMin = withIcon ? new Vector2(0.3f, 0.55f) : new Vector2(0.8f, 0.6f);
         Vector2 lockMax = withIcon ? new Vector2(0.7f, 0.88f) : new Vector2(0.96f, 0.95f);
-        GameObject lockOverlay = CreateLockOverlay(go.transform, lockMin, lockMax, out _, Vector2.zero, Vector2.zero, 24);
+        GameObject lockOverlay = CreateLockOverlay(go.transform, lockMin, lockMax, out _, Vector2.zero, Vector2.zero, _theme.TinySize);
 
         Button unlockButton = CreateFreeButton(go.transform, "해금", new Vector2(0.06f, 0.03f), new Vector2(0.94f, 0.23f),
-            new Color(0.95f, 0.75f, 0.25f));
+            _theme.ButtonPrimary);
         Text unlockLabel = unlockButton.GetComponentInChildren<Text>();
-        unlockLabel.resizeTextMaxSize = 30;
-        unlockLabel.fontSize = 30;
+        unlockLabel.resizeTextMaxSize = _theme.TinySize;
+        unlockLabel.fontSize = _theme.TinySize;
         // 버튼 높이가 약 60px라 위쪽(이름·설명 글자 쪽)으로 눌리는 범위를 넓힌다
         AddHitArea(unlockButton, 0f, 6f, 0f, 60f);
 
@@ -826,7 +855,8 @@ public static class MainSceneBuilder
         overlay.transform.SetParent(parent, false);
         Stretch(overlay.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
         var dim = overlay.GetComponent<Image>();
-        dim.color = new Color(0f, 0f, 0f, 0.6f);
+        dim.color = _theme.Dim;
+        Round(dim);
         dim.raycastTarget = false;
 
         var lockGo = new GameObject("Lock", typeof(RectTransform), typeof(Image));
@@ -838,7 +868,7 @@ public static class MainSceneBuilder
         lockImage.raycastTarget = false;
 
         label = CreateText(overlay.transform, "LockText", "", fontSize, labelMin, labelMax);
-        label.color = new Color(1f, 0.85f, 0.3f);
+        label.color = _theme.Gold;
 
         overlay.SetActive(false);
         return overlay;
@@ -954,10 +984,11 @@ public static class MainSceneBuilder
             var card = new GameObject("TrainerCard" + i, typeof(RectTransform), typeof(Image), typeof(Button), typeof(TrainerCardView));
             card.transform.SetParent(cardArea.transform, false);
             var background = card.GetComponent<Image>();
+            Round(background, 32f);
 
-            Text nameText = CreateText(card.transform, "Name", "", 56, new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.92f));
-            Text descriptionText = CreateText(card.transform, "Description", "", 36, new Vector2(0.05f, 0.08f), new Vector2(0.95f, 0.55f));
-            descriptionText.color = new Color(0.9f, 0.9f, 0.9f);
+            Text nameText = CreateText(card.transform, "Name", "", _theme.HeadingSize, new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.92f));
+            Text descriptionText = CreateText(card.transform, "Description", "", _theme.SmallSize, new Vector2(0.05f, 0.08f), new Vector2(0.95f, 0.55f));
+            descriptionText.color = _theme.TextSub;
 
             // 잠겼을 때: 카드 전체를 어둡게 + 오른쪽에 자물쇠와 필요한 별
             GameObject lockOverlay = CreateLockOverlay(card.transform, new Vector2(0.8f, 0.5f), new Vector2(0.96f, 0.92f),
@@ -970,13 +1001,14 @@ public static class MainSceneBuilder
             cardSo.FindProperty("_descriptionText").objectReferenceValue = descriptionText;
             cardSo.FindProperty("_lockOverlay").objectReferenceValue = lockOverlay;
             cardSo.FindProperty("_lockText").objectReferenceValue = lockText;
+            cardSo.FindProperty("_theme").objectReferenceValue = _theme;
             cardSo.ApplyModifiedPropertiesWithoutUndo();
-            background.color = new Color(0.25f, 0.28f, 0.34f);
+            background.color = _theme.Slot;
             cardButtons[i] = card.GetComponent<Button>();
         }
 
-        Text messageText = CreateText(screen.transform, "MessageText", "", 44, new Vector2(0f, 0.2f), new Vector2(1f, 0.26f));
-        messageText.color = new Color(1f, 0.5f, 0.45f);
+        Text messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize, new Vector2(0f, 0.2f), new Vector2(1f, 0.26f));
+        messageText.color = _theme.Negative;
 
         Button confirmButton = CreateButton(screen, "선택 완료");
 
@@ -1044,16 +1076,16 @@ public static class MainSceneBuilder
         hud.transform.SetParent(canvas, false);
         Stretch(hud.GetComponent<RectTransform>(), new Vector2(0f, 0.945f), Vector2.one);
         var background = hud.GetComponent<Image>();
-        background.color = new Color(0.06f, 0.07f, 0.1f);
+        background.color = _theme.Bar;
         background.raycastTarget = false;
 
-        roundText = CreateText(hud.transform, "RoundText", "", 44, new Vector2(0.03f, 0f), new Vector2(0.42f, 1f));
+        roundText = CreateText(hud.transform, "RoundText", "", _theme.BodySize, new Vector2(0.03f, 0f), new Vector2(0.42f, 1f));
         roundText.alignment = TextAnchor.MiddleLeft;
-        livesText = CreateText(hud.transform, "LivesText", "", 44, new Vector2(0.42f, 0f), new Vector2(0.7f, 1f));
-        livesText.color = new Color(1f, 0.45f, 0.5f);
-        goldText = CreateText(hud.transform, "GoldText", "", 44, new Vector2(0.7f, 0f), new Vector2(0.97f, 1f));
+        livesText = CreateText(hud.transform, "LivesText", "", _theme.BodySize, new Vector2(0.42f, 0f), new Vector2(0.7f, 1f));
+        livesText.color = _theme.Heart;
+        goldText = CreateText(hud.transform, "GoldText", "", _theme.BodySize, new Vector2(0.7f, 0f), new Vector2(0.97f, 1f));
         goldText.alignment = TextAnchor.MiddleRight;
-        goldText.color = new Color(1f, 0.85f, 0.3f);
+        goldText.color = _theme.Gold;
 
         hud.SetActive(false);
         return hud;
@@ -1075,13 +1107,14 @@ public static class MainSceneBuilder
         var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(area, false);
         go.GetComponent<RectTransform>().sizeDelta = new Vector2(0, 160);
-        go.GetComponent<Image>().color = new Color(0.95f, 0.75f, 0.25f);
+        go.GetComponent<Image>().color = _theme.ButtonPrimary;
+        Round(go.GetComponent<Image>(), 32f);
 
         var text = new GameObject("Text", typeof(RectTransform), typeof(Text));
         text.transform.SetParent(go.transform, false);
         Stretch(text.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
-        SetupText(text.GetComponent<Text>(), label, 60);
-        text.GetComponent<Text>().color = Color.black;
+        SetupText(text.GetComponent<Text>(), label, _theme.HeadingSize);
+        text.GetComponent<Text>().color = _theme.ButtonText;
 
         Button button = go.GetComponent<Button>();
         AddPressFeedback(button);
@@ -1097,19 +1130,19 @@ public static class MainSceneBuilder
         screen.transform.Find("Title").gameObject.SetActive(false);
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.25f, 0.015f), new Vector2(0.75f, 0.105f));
 
-        Color playerColor = new Color(0.22f, 0.32f, 0.45f);
-        Color enemyColor = new Color(0.45f, 0.24f, 0.24f);
+        Color playerColor = _theme.PlayerUnit;
+        Color enemyColor = _theme.EnemyUnit;
 
-        Text enemyLabel = CreateText(screen.transform, "EnemyLabel", "적 팀", 40, new Vector2(0f, 0.895f), new Vector2(1f, 0.935f));
+        Text enemyLabel = CreateText(screen.transform, "EnemyLabel", "적 팀", _theme.BodySize, new Vector2(0f, 0.895f), new Vector2(1f, 0.935f));
         Transform enemyBack = CreateRow(screen.transform, "EnemyBackRow", new Vector2(0.03f, 0.745f), new Vector2(0.97f, 0.89f));
         Transform enemyFront = CreateRow(screen.transform, "EnemyFrontRow", new Vector2(0.2f, 0.595f), new Vector2(0.8f, 0.74f));
 
-        Text bannerText = CreateText(screen.transform, "BannerText", "", 110, new Vector2(0f, 0.475f), new Vector2(1f, 0.585f));
-        bannerText.color = new Color(1f, 0.85f, 0.3f);
+        Text bannerText = CreateText(screen.transform, "BannerText", "", _theme.HugeSize, new Vector2(0f, 0.475f), new Vector2(1f, 0.585f));
+        bannerText.color = _theme.Gold;
 
         Transform playerFront = CreateRow(screen.transform, "PlayerFrontRow", new Vector2(0.2f, 0.32f), new Vector2(0.8f, 0.465f));
         Transform playerBack = CreateRow(screen.transform, "PlayerBackRow", new Vector2(0.03f, 0.17f), new Vector2(0.97f, 0.315f));
-        CreateText(screen.transform, "PlayerLabel", "내 팀", 40, new Vector2(0f, 0.125f), new Vector2(1f, 0.165f));
+        CreateText(screen.transform, "PlayerLabel", "내 팀", _theme.BodySize, new Vector2(0f, 0.125f), new Vector2(1f, 0.165f));
 
         var playerViews = new CreatureUnitView[5];
         var enemyViews = new CreatureUnitView[5];
@@ -1136,6 +1169,7 @@ public static class MainSceneBuilder
         }
         so.FindProperty("_typeChart").objectReferenceValue = typeChart;
         so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
+        so.FindProperty("_theme").objectReferenceValue = _theme;
         SetArray(so.FindProperty("_playerViews"), playerViews);
         SetArray(so.FindProperty("_enemyViews"), enemyViews);
         so.FindProperty("_enemyLabel").objectReferenceValue = enemyLabel;
@@ -1159,7 +1193,7 @@ public static class MainSceneBuilder
         for (int i = 0; i < count; i++)
         {
             // 위치는 띄울 때 정하므로 가운데 기준 고정 크기
-            Text text = CreateText(pool.transform, "Text" + i, "", 44, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            Text text = CreateText(pool.transform, "Text" + i, "", _theme.BodySize, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
             text.rectTransform.sizeDelta = new Vector2(320f, 70f);
             text.fontStyle = FontStyle.Bold;
             text.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
@@ -1181,33 +1215,35 @@ public static class MainSceneBuilder
         var slot = new GameObject(name, typeof(RectTransform), typeof(Image));
         slot.transform.SetParent(row, false);
         slot.GetComponent<Image>().color = new Color(color.r, color.g, color.b, 0.35f);
+        Round(slot.GetComponent<Image>());
 
         var unit = new GameObject("Unit", typeof(RectTransform), typeof(Image), typeof(CreatureUnitView));
         unit.transform.SetParent(slot.transform, false);
         Stretch(unit.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
         unit.GetComponent<Image>().color = color;
+        Round(unit.GetComponent<Image>());
 
         var healthBack = new GameObject("HealthBar", typeof(RectTransform), typeof(Image));
         healthBack.transform.SetParent(unit.transform, false);
         Stretch(healthBack.GetComponent<RectTransform>(), new Vector2(0.08f, 0.86f), new Vector2(0.92f, 0.95f));
-        healthBack.GetComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f);
+        healthBack.GetComponent<Image>().color = _theme.HealthBarBack;
 
         // 체력 칸 뒤 흰 막대: 체력이 줄면 잠깐 뒤에 천천히 따라 줄어든다
         var healthTrail = new GameObject("Trail", typeof(RectTransform), typeof(Image));
         healthTrail.transform.SetParent(healthBack.transform, false);
         Stretch(healthTrail.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
-        healthTrail.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.85f);
+        healthTrail.GetComponent<Image>().color = _theme.HealthTrail;
 
         var healthFill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
         healthFill.transform.SetParent(healthBack.transform, false);
         Stretch(healthFill.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
-        healthFill.GetComponent<Image>().color = new Color(0.3f, 0.9f, 0.35f);
+        healthFill.GetComponent<Image>().color = _theme.HealthBar;
 
         // 보호막: 체력 칸 뒤에 이어지는 흰 칸 (보호막이 있을 때만 보임)
         var shieldFill = new GameObject("Shield", typeof(RectTransform), typeof(Image));
         shieldFill.transform.SetParent(healthBack.transform, false);
         Stretch(shieldFill.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
-        shieldFill.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.9f);
+        shieldFill.GetComponent<Image>().color = _theme.HealthTrail;
 
         var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         iconGo.transform.SetParent(unit.transform, false);
@@ -1216,10 +1252,10 @@ public static class MainSceneBuilder
         icon.preserveAspect = true;
 
         // 체력바 바로 아래 레벨 별
-        Text levelText = CreateText(unit.transform, "Level", "", 32, new Vector2(0f, 0.74f), new Vector2(1f, 0.85f));
-        levelText.color = new Color(1f, 0.85f, 0.2f);
+        Text levelText = CreateText(unit.transform, "Level", "", _theme.SmallSize, new Vector2(0f, 0.74f), new Vector2(1f, 0.85f));
+        levelText.color = _theme.Accent;
 
-        Text nameText = CreateText(unit.transform, "Name", "", 30, new Vector2(0.03f, 0.04f), new Vector2(0.97f, 0.24f));
+        Text nameText = CreateText(unit.transform, "Name", "", _theme.TinySize, new Vector2(0.03f, 0.04f), new Vector2(0.97f, 0.24f));
 
         foreach (Image image in unit.GetComponentsInChildren<Image>())
         {
@@ -1228,7 +1264,8 @@ public static class MainSceneBuilder
         slot.GetComponent<Image>().raycastTarget = false;
 
         // 오른쪽 위 작은 아이템 아이콘 (처음엔 숨김)
-        ItemIconView itemIcon = CreateItemIcon(unit.transform, new Vector2(0.74f, 0.6f), new Vector2(0.97f, 0.84f), 30);
+        ItemIconView itemIcon = CreateItemIcon(unit.transform, new Vector2(0.74f, 0.6f), new Vector2(0.97f, 0.84f), _theme.TinySize);
+        Image typeBar = CreateTypeBar(unit.transform);
 
         // 맞았을 때 깜빡이는 흰 판: 칸 전체를 덮도록 마지막에 만든다 (평소엔 투명)
         var hitFlash = new GameObject("HitFlash", typeof(RectTransform), typeof(Image));
@@ -1237,6 +1274,8 @@ public static class MainSceneBuilder
         var hitFlashImage = hitFlash.GetComponent<Image>();
         hitFlashImage.color = Color.clear;
         hitFlashImage.raycastTarget = false;
+        Round(hitFlashImage);
+        hitFlash.transform.SetSiblingIndex(hitFlash.transform.parent.childCount - 1);
 
         var view = unit.GetComponent<CreatureUnitView>();
         var so = new SerializedObject(view);
@@ -1248,6 +1287,8 @@ public static class MainSceneBuilder
         so.FindProperty("_healthTrail").objectReferenceValue = healthTrail.GetComponent<RectTransform>();
         so.FindProperty("_hitFlash").objectReferenceValue = hitFlashImage;
         so.FindProperty("_facesUp").boolValue = facesUp;
+        so.FindProperty("_typeBar").objectReferenceValue = typeBar;
+        so.FindProperty("_theme").objectReferenceValue = _theme;
         so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
         so.ApplyModifiedPropertiesWithoutUndo();
         unit.SetActive(false);
@@ -1261,10 +1302,10 @@ public static class MainSceneBuilder
         CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
-        trainerText = CreateText(screen.transform, "TrainerText", "", 30,
+        trainerText = CreateText(screen.transform, "TrainerText", "", _theme.TinySize,
             new Vector2(0.02f, 0.875f), new Vector2(0.29f, 0.935f));
         trainerText.alignment = TextAnchor.MiddleLeft;
-        trainerText.color = new Color(0.85f, 0.85f, 0.9f);
+        trainerText.color = _theme.TextSub;
 
         // 제목 자리는 상단 표시가 차지한다
         screen.transform.Find("Title").gameObject.SetActive(false);
@@ -1274,10 +1315,11 @@ public static class MainSceneBuilder
         var refresh = new GameObject("RefreshButton", typeof(RectTransform), typeof(Image), typeof(Button));
         refresh.transform.SetParent(screen.transform, false);
         Stretch(refresh.GetComponent<RectTransform>(), new Vector2(0.3f, 0.87f), new Vector2(0.7f, 0.935f));
-        refresh.GetComponent<Image>().color = new Color(0.4f, 0.75f, 0.95f);
+        refresh.GetComponent<Image>().color = _theme.ButtonInfo;
+        Round(refresh.GetComponent<Image>());
         AddPressFeedback(refresh.GetComponent<Button>());
-        Text refreshLabel = CreateText(refresh.transform, "Text", "새로고침", 48, Vector2.zero, Vector2.one);
-        refreshLabel.color = Color.black;
+        Text refreshLabel = CreateText(refresh.transform, "Text", "새로고침", _theme.LargeSize, Vector2.zero, Vector2.one);
+        refreshLabel.color = _theme.ButtonText;
 
         // 상점 칸: 크리처 5칸 + 아이템 1칸, 각 약 155 x 290
         Transform shopRow = CreateRow(screen.transform, "ShopSlots", new Vector2(0.03f, 0.715f), new Vector2(0.97f, 0.865f));
@@ -1287,29 +1329,29 @@ public static class MainSceneBuilder
             shopSlots[i] = CreateSlot(shopRow, "ShopSlot" + i, "");
         }
         ItemSlotView shopItemSlot = CreateItemSlot(shopRow, "ShopItemSlot", "");
-        shopItemSlot.GetComponent<Image>().color = new Color(0.32f, 0.26f, 0.4f);
+        shopItemSlot.GetComponent<Image>().color = _theme.ItemSlot;
 
-        Text messageText = CreateText(screen.transform, "MessageText", "", 40,
+        Text messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize,
             new Vector2(0f, 0.69f), new Vector2(1f, 0.713f));
-        messageText.color = new Color(1f, 0.5f, 0.45f);
+        messageText.color = _theme.Negative;
 
         // 팀 칸 바로 위: 지금 켜진 시너지 (눌러도 시너지 표가 열림) + 오른쪽 "시너지" 버튼
-        Text synergyText = CreateText(screen.transform, "SynergyText", "", 34,
+        Text synergyText = CreateText(screen.transform, "SynergyText", "", _theme.SmallSize,
             new Vector2(0.02f, 0.665f), new Vector2(0.8f, 0.692f));
-        synergyText.color = new Color(0.6f, 0.95f, 0.65f);
+        synergyText.color = _theme.Positive;
         synergyText.raycastTarget = true;
         Button synergyTextButton = synergyText.gameObject.AddComponent<Button>();
         synergyTextButton.targetGraphic = synergyText;
         // 시너지 줄은 높이가 약 50px라 위쪽(메시지 줄, 눌리지 않음)으로 눌리는 범위를 넓힌다 (아래는 팀 칸)
         AddHitArea(synergyText, 0f, 0f, 0f, 40f);
         Button synergyButton = CreateFreeButton(screen.transform, "시너지",
-            new Vector2(0.82f, 0.664f), new Vector2(0.98f, 0.694f), new Color(0.45f, 0.75f, 0.5f));
-        synergyButton.GetComponentInChildren<Text>().resizeTextMaxSize = 34;
+            new Vector2(0.82f, 0.664f), new Vector2(0.98f, 0.694f), _theme.ButtonGood);
+        synergyButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
         // 시너지 버튼 아래·위는 비어 있어(팀 앞줄은 0.2~0.8) 눌리는 범위를 약 140px로
         AddHitArea(synergyButton, 0f, 46f, 0f, 38f);
 
         // 팀 칸: 약 300 x 290 (가장 크게). 위가 앞줄
-        Color teamColor = new Color(0.22f, 0.32f, 0.3f);
+        Color teamColor = _theme.TeamSlot;
         Transform frontRow = CreateRow(screen.transform, "TeamFrontRow", new Vector2(0.2f, 0.515f), new Vector2(0.8f, 0.665f));
         Transform backRow = CreateRow(screen.transform, "TeamBackRow", new Vector2(0.03f, 0.355f), new Vector2(0.97f, 0.505f));
         var teamSlots = new CreatureSlotView[5];
@@ -1320,7 +1362,7 @@ public static class MainSceneBuilder
             teamSlots[i].GetComponent<Image>().color = teamColor;
         }
 
-        CreateText(screen.transform, "BenchLabel", "대기석 (끌어서 배치 / 눌러서 정보·판매)", 38,
+        CreateText(screen.transform, "BenchLabel", "대기석 (끌어서 배치 / 눌러서 정보·판매)", _theme.BodySize,
             new Vector2(0f, 0.31f), new Vector2(1f, 0.345f));
 
         // 대기석 칸: 약 160 x 330
@@ -1348,15 +1390,15 @@ public static class MainSceneBuilder
         var dragIcon = dragIconGo.GetComponent<Image>();
         dragIcon.raycastTarget = false;
         dragIcon.preserveAspect = true;
-        Text dragLabel = CreateText(dragIconGo.transform, "Label", "", 100, Vector2.zero, Vector2.one);
+        Text dragLabel = CreateText(dragIconGo.transform, "Label", "", _theme.HugeSize, Vector2.zero, Vector2.one);
         dragLabel.color = Color.black;
         dragIconGo.SetActive(false);
 
         // 상단 골드 바로 아래: 라운드 시작 때 잠깐 보이는 "+10 +이자 2" (상단 표시 아래로 삐져나오게)
-        Text goldIncomeText = CreateText(goldText.transform.parent, "GoldIncomeText", "", 38,
+        Text goldIncomeText = CreateText(goldText.transform.parent, "GoldIncomeText", "", _theme.BodySize,
             new Vector2(0.7f, -1f), new Vector2(0.97f, 0f));
         goldIncomeText.alignment = TextAnchor.MiddleRight;
-        goldIncomeText.color = new Color(0.55f, 1f, 0.55f);
+        goldIncomeText.color = _theme.Positive;
         goldIncomeText.gameObject.SetActive(false);
 
         var shop = screen.AddComponent<ShopScreen>();
@@ -1551,10 +1593,11 @@ public static class MainSceneBuilder
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(CreatureSlotView));
         go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = new Color(0.25f, 0.28f, 0.34f);
+        go.GetComponent<Image>().color = _theme.Slot;
+        Round(go.GetComponent<Image>());
 
-        Text levelText = CreateText(go.transform, "Level", "", 34, new Vector2(0f, 0.83f), new Vector2(1f, 0.98f));
-        levelText.color = new Color(1f, 0.85f, 0.2f);
+        Text levelText = CreateText(go.transform, "Level", "", _theme.SmallSize, new Vector2(0f, 0.83f), new Vector2(1f, 0.98f));
+        levelText.color = _theme.Accent;
 
         var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         iconGo.transform.SetParent(go.transform, false);
@@ -1563,12 +1606,14 @@ public static class MainSceneBuilder
         icon.preserveAspect = true;
         icon.raycastTarget = false;
 
-        Text nameText = CreateText(go.transform, "Name", "", 30, new Vector2(0.03f, 0.2f), new Vector2(0.97f, 0.4f));
-        Text priceText = CreateText(go.transform, "Price", "", 28, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.2f));
-        priceText.color = new Color(1f, 0.85f, 0.3f);
+        Text nameText = CreateText(go.transform, "Name", "", _theme.TinySize, new Vector2(0.03f, 0.2f), new Vector2(0.97f, 0.4f));
+        Text priceText = CreateText(go.transform, "Price", "", _theme.TinySize, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.2f));
+        priceText.color = _theme.Gold;
 
         // 오른쪽 위 작은 아이템 아이콘 (장착했을 때만 보임)
-        ItemIconView itemIcon = CreateItemIcon(go.transform, new Vector2(0.7f, 0.64f), new Vector2(0.97f, 0.86f), 30);
+        ItemIconView itemIcon = CreateItemIcon(go.transform, new Vector2(0.7f, 0.64f), new Vector2(0.97f, 0.86f), _theme.TinySize);
+
+        Image typeBar = CreateTypeBar(go.transform);
 
         // 가장 위에 그려지도록 마지막에 만든다
         var flashGo = new GameObject("Flash", typeof(RectTransform), typeof(Image));
@@ -1577,6 +1622,7 @@ public static class MainSceneBuilder
         var flash = flashGo.GetComponent<Image>();
         flash.color = Color.clear;
         flash.raycastTarget = false;
+        Round(flash);
 
         var view = go.GetComponent<CreatureSlotView>();
         var so = new SerializedObject(view);
@@ -1587,6 +1633,8 @@ public static class MainSceneBuilder
         so.FindProperty("_levelText").objectReferenceValue = levelText;
         so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
         so.FindProperty("_flash").objectReferenceValue = flash;
+        so.FindProperty("_typeBar").objectReferenceValue = typeBar;
+        so.FindProperty("_theme").objectReferenceValue = _theme;
         so.FindProperty("_emptyLabel").stringValue = emptyLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
         return view;
@@ -1597,12 +1645,13 @@ public static class MainSceneBuilder
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(ItemSlotView));
         go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = new Color(0.25f, 0.28f, 0.34f);
+        go.GetComponent<Image>().color = _theme.Slot;
+        Round(go.GetComponent<Image>());
 
-        ItemIconView icon = CreateItemIcon(go.transform, new Vector2(0.22f, 0.42f), new Vector2(0.78f, 0.92f), 64);
-        Text nameText = CreateText(go.transform, "Name", "", 28, new Vector2(0.03f, 0.2f), new Vector2(0.97f, 0.42f));
-        Text priceText = CreateText(go.transform, "Price", "", 28, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.2f));
-        priceText.color = new Color(1f, 0.85f, 0.3f);
+        ItemIconView icon = CreateItemIcon(go.transform, new Vector2(0.22f, 0.42f), new Vector2(0.78f, 0.92f), _theme.HeadingSize);
+        Text nameText = CreateText(go.transform, "Name", "", _theme.TinySize, new Vector2(0.03f, 0.2f), new Vector2(0.97f, 0.42f));
+        Text priceText = CreateText(go.transform, "Price", "", _theme.TinySize, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.2f));
+        priceText.color = _theme.Gold;
 
         var view = go.GetComponent<ItemSlotView>();
         var so = new SerializedObject(view);
@@ -1615,6 +1664,19 @@ public static class MainSceneBuilder
         return view;
     }
 
+    // 칸 아래 가는 막대 (크리처 타입 색, 색은 실행 중 칸이 정한다)
+    private static Image CreateTypeBar(Transform parent)
+    {
+        var go = new GameObject("TypeBar", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>(), new Vector2(0.2f, 0.012f), new Vector2(0.8f, 0.032f));
+        var image = go.GetComponent<Image>();
+        image.raycastTarget = false;
+        Round(image, 4f);
+        image.enabled = false;
+        return image;
+    }
+
     // 아이템 아이콘: 색 네모 + 한 글자 (처음엔 숨김)
     private static ItemIconView CreateItemIcon(Transform parent, Vector2 anchorMin, Vector2 anchorMax, int fontSize)
     {
@@ -1623,6 +1685,7 @@ public static class MainSceneBuilder
         Stretch(go.GetComponent<RectTransform>(), anchorMin, anchorMax);
         var background = go.GetComponent<Image>();
         background.raycastTarget = false;
+        Round(background, 12f);
 
         Text label = CreateText(go.transform, "Label", "", fontSize, Vector2.zero, Vector2.one);
         label.color = Color.black;
@@ -1643,10 +1706,6 @@ public static class MainSceneBuilder
         Stretch(go.GetComponent<RectTransform>(), anchorMin, anchorMax);
         var text = go.GetComponent<Text>();
         SetupText(text, value, size);
-        // 칸이 좁아도 글자가 잘리지 않게
-        text.resizeTextForBestFit = true;
-        text.resizeTextMinSize = 16;
-        text.resizeTextMaxSize = size;
         return text;
     }
 
@@ -1665,8 +1724,12 @@ public static class MainSceneBuilder
         text.font = _font;
         text.fontSize = size;
         text.alignment = TextAnchor.MiddleCenter;
-        text.color = Color.white;
+        text.color = _theme.Text;
         text.raycastTarget = false;
+        // 칸이 좁아도 글자가 잘리거나 사라지지 않게 (한글 글꼴은 줄 높이가 커서 칸에 안 맞으면 줄이 통째로 안 보인다)
+        text.resizeTextForBestFit = true;
+        text.resizeTextMinSize = 16;
+        text.resizeTextMaxSize = size;
     }
 
     private static void Stretch(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax)
