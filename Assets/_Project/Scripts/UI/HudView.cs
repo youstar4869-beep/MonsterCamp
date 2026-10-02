@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // 상단 정보바: 라운드(깃발), 목숨(하트), 골드(동전), 이번 판에서 받은 별.
-// 골드가 바뀌면 숫자가 잠깐 커졌다 돌아온다 (그동안만 Update가 켜진다)
+// 골드가 바뀌면 숫자가 잠깐 커졌다 돌아온다 (그동안만 Update가 켜진다. 씬에는 꺼진 채로 저장)
 public class HudView : MonoBehaviour
 {
     [SerializeField] private Text _roundText;
@@ -20,12 +20,6 @@ public class HudView : MonoBehaviour
 
     private int _gold = -1;
     private float _popTime;
-
-    private void Awake()
-    {
-        // 골드가 바뀔 때만 켠다
-        enabled = false;
-    }
 
     public void SetRound(int round, int roundCount, bool isBoss)
     {

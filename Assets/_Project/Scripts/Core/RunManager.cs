@@ -10,6 +10,8 @@ public class RunManager : MonoBehaviour
     [SerializeField] private BattleScreen _battle;
     [SerializeField] private MetaProgress _meta;
     [SerializeField] private TutorialController _tutorial;
+    [Tooltip("상점에서 띄우는 도움말 (보스 전 팁, 마지막 라운드 재도전 안내)")]
+    [SerializeField] private TipPopup _tip;
     [Tooltip("저장 파일의 트레이너 이름을 찾을 때 사용")]
     [SerializeField] private TrainerData[] _trainers;
 
@@ -35,6 +37,13 @@ public class RunManager : MonoBehaviour
     private int _pendingGold;
     // 상점 단계일 때만 저장한다 (전투 중·판 밖에서는 저장하지 않음)
     private bool _inShop;
+    // 마지막 라운드에서 져서 다시 도전하면 상점에서 안내 (BALANCE_REPORT.md 3-3)
+    private bool _showRetryTip;
+
+    private const string BossTipTitle = "보스 라운드!";
+    private const string BossTipMessage = "다음 전투는 보스예요.\n앞줄에는 체력 높은 크리처를 두세요.";
+    private const string RetryTipTitle = "다시 도전!";
+    private const string RetryTipMessage = "같은 팀으로는 같은 결과가 나오기 쉬워요.\n팀 구성을 바꿔 다시 도전해 보세요.";
 
     // 트레이너 선택 화면의 "선택 완료"
     public void StartRun(TrainerData trainer)
@@ -44,6 +53,7 @@ public class RunManager : MonoBehaviour
         _lives = _config.MaxLives;
         _runStars = 0;
         _pendingGold = 0;
+        _showRetryTip = false;
         _trainerText.text = $"트레이너: {trainer.DisplayName}";
         _shop.ResetRun();
         // 첫 판(또는 다시 보기)이면 튜토리얼 시작
@@ -82,6 +92,7 @@ public class RunManager : MonoBehaviour
         _shop.LoadSave(data);
         _inShop = true;
         UpdateHud();
+        ShowShopTips();
         return true;
     }
 
@@ -154,6 +165,10 @@ public class RunManager : MonoBehaviour
         {
             _round++;
         }
+        else
+        {
+            _showRetryTip = true;
+        }
         StartRound();
     }
 
@@ -169,8 +184,27 @@ public class RunManager : MonoBehaviour
         _pendingGold = 0;
         _inShop = true;
         UpdateHud();
+        ShowShopTips();
         // 상점 단계가 시작될 때 자동 저장
         SaveRun();
+    }
+
+    // 상점 도움말: 마지막 라운드 재도전이면 팀을 바꿔 보라는 안내 (매번),
+    // 중간 보스 라운드 상점이면 앞줄 팁 (계정마다 한 번, 튜토리얼 중에는 안 보임)
+    private void ShowShopTips()
+    {
+        if (_showRetryTip)
+        {
+            _showRetryTip = false;
+            _tip.Show(RetryTipTitle, RetryTipMessage);
+            return;
+        }
+        if (!_tutorial.IsActive && !_meta.FrontRowTipShown && _round < _config.RoundCount
+            && _config.GetEnemyTeam(_round).IsBoss)
+        {
+            _tip.Show(BossTipTitle, BossTipMessage);
+            _meta.SetFrontRowTipShown();
+        }
     }
 
     private void ShowResult(bool cleared)

@@ -30,6 +30,10 @@ public class BattleScreen : MonoBehaviour
     [Tooltip("적 팀 이름 (보스면 '보스:' 표시)")]
     [SerializeField] private Text _enemyLabel;
     [SerializeField] private Text _bannerText;
+    [Tooltip("승리·패배·보스 등장 글이 튀어나오게 (_bannerText에 붙어 있음)")]
+    [SerializeField] private PopText _bannerPop;
+    [Tooltip("보스 등장 글이 보이는 시간 (초)")]
+    [SerializeField] private float _bossBannerSeconds = 1f;
     [SerializeField] private Text _speedLabel;
     [Tooltip("승리/패배 표시 후 다음으로 넘어가기까지 (초)")]
     [SerializeField] private float _resultDelay = 1.5f;
@@ -88,7 +92,11 @@ public class BattleScreen : MonoBehaviour
         RefreshAllViews();
 
         _enemyLabel.text = enemyTeam.IsBoss ? $"보스: {enemyTeam.DisplayName}" : enemyTeam.DisplayName;
-        _bannerText.text = "";
+        _bannerPop.Clear();
+        if (enemyTeam.IsBoss)
+        {
+            _bannerPop.Pop("보스 등장!", _theme.ButtonDanger, _bossBannerSeconds);
+        }
         UpdateSpeedLabel();
         _running = true;
     }
@@ -251,7 +259,7 @@ public class BattleScreen : MonoBehaviour
     private IEnumerator Finish(bool won)
     {
         _running = false;
-        _bannerText.text = won ? "승리!" : "패배... 목숨 -1";
+        _bannerPop.Pop(won ? "승리!" : "패배... 목숨 -1", won ? _theme.Accent : _theme.Negative);
         yield return new WaitForSeconds(_resultDelay);
         _run.OnBattleEnd(won);
     }

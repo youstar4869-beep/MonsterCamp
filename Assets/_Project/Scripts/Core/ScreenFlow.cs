@@ -18,6 +18,10 @@ public class ScreenFlow : MonoBehaviour
     [SerializeField] private GameObject[] _screens;
     [Tooltip("라운드·목숨·골드 상단 표시. 상점과 전투 화면에서만 보인다")]
     [SerializeField] private GameObject _hud;
+    [Tooltip("화면이 바뀔 때 짧은 페이드 (없으면 바로 바뀜)")]
+    [SerializeField] private ScreenFader _fader;
+
+    private GameScreen? _current;
 
     private void Start()
     {
@@ -26,6 +30,12 @@ public class ScreenFlow : MonoBehaviour
 
     public void Show(GameScreen screen)
     {
+        // 같은 화면을 다시 보여 줄 때는 페이드하지 않는다
+        if (_fader != null && _current.HasValue && _current.Value != screen)
+        {
+            _fader.Play();
+        }
+        _current = screen;
         for (int i = 0; i < _screens.Length; i++)
         {
             _screens[i].SetActive(i == (int)screen);

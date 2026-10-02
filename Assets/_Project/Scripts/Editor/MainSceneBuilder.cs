@@ -58,7 +58,8 @@ public static class MainSceneBuilder
         CreateCamera();
         CreateEventSystem();
         // 모든 화면은 안전 영역(노치·둥근 모서리 제외) 안에 만든다. 바깥은 카메라 배경색(테마 바탕색)
-        Transform canvas = CreateSafeArea(CreateCanvas());
+        Transform canvasRoot = CreateCanvas();
+        Transform canvas = CreateSafeArea(canvasRoot);
 
         var flow = new GameObject("ScreenFlow").AddComponent<ScreenFlow>();
         var run = new GameObject("RunManager").AddComponent<RunManager>();
@@ -80,6 +81,7 @@ public static class MainSceneBuilder
         // 정보 창·시너지 표: 화면·상단 표시보다 위, 튜토리얼보다 아래 (다른 화면에서도 다시 쓸 수 있게 캔버스에)
         CreatureInfoPopup infoPopup = CreateCreatureInfoPopup(canvas);
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
+        TipPopup tipPopup = CreateTipPopup(canvas);
 
         BuildTitleUI(title, flow, run, tutorial);
         BuildCodexUI(codex, flow, meta);
@@ -117,6 +119,7 @@ public static class MainSceneBuilder
         serializedRun.FindProperty("_battle").objectReferenceValue = battleScreen;
         serializedRun.FindProperty("_meta").objectReferenceValue = meta;
         serializedRun.FindProperty("_tutorial").objectReferenceValue = tutorial;
+        serializedRun.FindProperty("_tip").objectReferenceValue = tipPopup;
         serializedRun.FindProperty("_resultStars").objectReferenceValue = resultStars;
         serializedRun.FindProperty("_hud").objectReferenceValue = hud;
         serializedRun.FindProperty("_trainerText").objectReferenceValue = trainerText;
@@ -128,6 +131,8 @@ public static class MainSceneBuilder
         var serializedFlow = new SerializedObject(flow);
         SetArray(serializedFlow.FindProperty("_screens"), new Object[] { title, trainer, shop, battle, result, codex });
         serializedFlow.FindProperty("_hud").objectReferenceValue = hud.gameObject;
+        // 페이드 판은 튜토리얼까지 모두 덮도록 맨 마지막에, 안전 영역 밖까지 캔버스 전체에 만든다
+        serializedFlow.FindProperty("_fader").objectReferenceValue = CreateFader(canvasRoot);
         serializedFlow.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -423,6 +428,43 @@ public static class MainSceneBuilder
 
         root.gameObject.SetActive(false);
         return panel;
+    }
+
+    // 상점 도움말 창: 어두운 바탕(누르면 닫힘) + 가운데 창(제목, 설명, 확인)
+    private static TipPopup CreateTipPopup(Transform canvas)
+    {
+        RectTransform root = CreateModalRoot(canvas, "TipPopup", out Button backgroundButton);
+        RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
+        Round(window.GetComponent<Image>(), 36f);
+        Stretch(window, new Vector2(0.08f, 0.38f), new Vector2(0.92f, 0.62f));
+
+        Text titleText = CreateText(window, "Title", "", _theme.HeadingSize, new Vector2(0.05f, 0.72f), new Vector2(0.95f, 0.94f));
+        titleText.color = _theme.Accent;
+        Text messageText = CreateText(window, "Message", "", _theme.BodySize, new Vector2(0.05f, 0.33f), new Vector2(0.95f, 0.72f));
+        Button okButton = CreateFreeButton(window, "확인", new Vector2(0.3f, 0.06f), new Vector2(0.7f, 0.28f), _theme.ButtonPrimary);
+
+        var popup = root.gameObject.AddComponent<TipPopup>();
+        var so = new SerializedObject(popup);
+        so.FindProperty("_titleText").objectReferenceValue = titleText;
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, popup.Close);
+        UnityEventTools.AddVoidPersistentListener(okButton.onClick, popup.Close);
+        root.gameObject.SetActive(false);
+        return popup;
+    }
+
+    // 화면이 바뀔 때 잠깐 덮는 어두운 판 (누르는 것은 막지 않음, 처음엔 꺼짐)
+    private static ScreenFader CreateFader(Transform canvasRoot)
+    {
+        RectTransform panel = CreatePanel(canvasRoot, "ScreenFader", _theme.Background, false);
+        var fader = panel.gameObject.AddComponent<ScreenFader>();
+        var so = new SerializedObject(fader);
+        so.FindProperty("_image").objectReferenceValue = panel.GetComponent<Image>();
+        so.ApplyModifiedPropertiesWithoutUndo();
+        panel.gameObject.SetActive(false);
+        return fader;
     }
 
     // 화면 전체를 덮는 어두운 바탕. 바탕(창 바깥)을 누르면 backgroundButton이 눌린다
@@ -1136,6 +1178,7 @@ public static class MainSceneBuilder
         so.FindProperty("_starsText").objectReferenceValue = starsText;
         so.ApplyModifiedPropertiesWithoutUndo();
 
+        view.enabled = false;
         hud.SetActive(false);
         return view;
     }
@@ -1200,7 +1243,14 @@ public static class MainSceneBuilder
         Transform enemyFront = CreateRow(screen.transform, "EnemyFrontRow", new Vector2(0.2f, 0.595f), new Vector2(0.8f, 0.74f));
 
         Text bannerText = CreateText(screen.transform, "BannerText", "", _theme.HugeSize, new Vector2(0f, 0.475f), new Vector2(1f, 0.585f));
-        bannerText.color = _theme.Gold;
+        bannerText.color = _theme.Accent;
+        bannerText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+        // 승리·패배·보스 등장 글이 튀어나오게 (움직일 때만 켜짐)
+        var bannerPop = bannerText.gameObject.AddComponent<PopText>();
+        var popSo = new SerializedObject(bannerPop);
+        popSo.FindProperty("_text").objectReferenceValue = bannerText;
+        popSo.ApplyModifiedPropertiesWithoutUndo();
+        bannerPop.enabled = false;
 
         Transform playerFront = CreateRow(screen.transform, "PlayerFrontRow", new Vector2(0.2f, 0.32f), new Vector2(0.8f, 0.465f));
         Transform playerBack = CreateRow(screen.transform, "PlayerBackRow", new Vector2(0.03f, 0.17f), new Vector2(0.97f, 0.315f));
@@ -1236,6 +1286,7 @@ public static class MainSceneBuilder
         SetArray(so.FindProperty("_enemyViews"), enemyViews);
         so.FindProperty("_enemyLabel").objectReferenceValue = enemyLabel;
         so.FindProperty("_bannerText").objectReferenceValue = bannerText;
+        so.FindProperty("_bannerPop").objectReferenceValue = bannerPop;
         so.FindProperty("_speedLabel").objectReferenceValue = speedLabel;
         so.FindProperty("_floatingTexts").objectReferenceValue = floatingTexts;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -1457,8 +1508,9 @@ public static class MainSceneBuilder
         dragIconGo.SetActive(false);
 
         // 상단 골드 바로 아래: 라운드 시작 때 잠깐 보이는 "+10 +이자 2" (상단 표시 아래로 삐져나오게)
-        Text goldIncomeText = CreateText(goldText.transform.parent, "GoldIncomeText", "", _theme.BodySize,
-            new Vector2(0.7f, -1f), new Vector2(0.99f, 0f));
+        // 길면 ("+10 +이자 3 (최대 50)") 두 줄까지 (새로고침 버튼 오른쪽 빈 곳)
+        Text goldIncomeText = CreateText(goldText.transform.parent, "GoldIncomeText", "", _theme.SmallSize,
+            new Vector2(0.71f, -1.25f), new Vector2(0.995f, 0f));
         goldIncomeText.alignment = TextAnchor.MiddleRight;
         goldIncomeText.color = _theme.Positive;
         goldIncomeText.gameObject.SetActive(false);

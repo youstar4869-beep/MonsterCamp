@@ -49,6 +49,13 @@ public class MetaProgress : MonoBehaviour
     }
 
     public bool TutorialCompleted => Data.tutorialCompleted;
+    public bool FrontRowTipShown => Data.frontRowTipShown;
+
+    public void SetFrontRowTipShown()
+    {
+        Data.frontRowTipShown = true;
+        SaveAndNotify();
+    }
 
     public void SetTutorialCompleted(bool completed)
     {

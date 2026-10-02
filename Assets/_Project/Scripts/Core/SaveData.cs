@@ -15,6 +15,8 @@ public class MetaSaveData
     public List<string> unlockedCreatures = new List<string>();
     // 튜토리얼을 끝냈거나 건너뛰었으면 true (첫 판에서만 튜토리얼)
     public bool tutorialCompleted;
+    // 5라운드 보스 전 "앞줄에는 체력 높은 크리처" 도움말을 봤으면 true (한 번만 보여 줌)
+    public bool frontRowTipShown;
 }
 
 // run.json: 진행 중인 판 (상점 단계 상태)
