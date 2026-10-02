@@ -10,9 +10,10 @@ public static class TierUpdateMenu
     private const string ShopConfigPath = "Assets/_Project/Data/ShopConfig.asset";
     private const string MetaConfigPath = "Assets/_Project/Data/MetaConfig.asset";
 
-    // 5골드 5종은 각 별 10개로 잠근다 (지금 잠긴 3골드 3종은 푼다)
+    // 5골드 중 3종은 각 별 10개로 잠근다 (지금 잠긴 3골드 3종은 푼다).
+    // 태양불사조·심해룡은 처음부터 열림 (2026-10-02 처음 계정 밸런스, BALANCE_REPORT.md 3-1)
     private static readonly string[] LockedFiveGold =
-        { "SunPhoenix", "AbyssDragon", "ElderTreant", "VoltQilin", "MountainTortoise" };
+        { "ElderTreant", "VoltQilin", "MountainTortoise" };
     private const int FiveGoldUnlockCost = 10;
 
     // CREATURE_TIERS.md 3번 표: (시작 라운드, 1~5골드 %)
