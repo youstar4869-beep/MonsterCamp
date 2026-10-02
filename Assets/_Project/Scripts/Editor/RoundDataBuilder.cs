@@ -36,16 +36,16 @@ public static class RoundDataBuilder
         new RoundSeed("개울가 무리", false, "Pebblet:1", "Sproutee:1", "Plopper:1", "Zappy:1", null),
         new RoundSeed("숲 어귀", false, "HearthBear:1", "VineFox:1", "Embit:1", "SprayOtter:1", null),
         // 보스: 4골드 바위골렘 (세기 332 → 338)
-        new RoundSeed("바위 성채", true, "StoneGolem:1", "GravelShell:2", "Embit:2", "LavaMane:1", "Pebblet:1"),
-        new RoundSeed("물안개 호수", false, "HearthBear:2", "VineFox:1", "FlashWeasel:1", "SprayOtter:2", null),
+        new RoundSeed("바위 성채", true, "StoneGolem:1", "CrystalHog:2", "TideWhale:1", "LavaMane:1", "Pebblet:2"),
+        new RoundSeed("물안개 호수", false, "HearthBear:2", "VineFox:2", "FlashWeasel:2", "PetalMoth:2", "Embit:2"),
         // 4골드 불꽃늑대 (384 → 383)
-        new RoundSeed("천둥 협곡", false, "GravelShell:2", "VineFox:2", "BlazeWolf:1", "Zappy:2", "SprayOtter:1"),
+        new RoundSeed("천둥 협곡", false, "GravelShell:2", "VineFox:2", "BlazeWolf:1", "FlashWeasel:1", "SprayOtter:2"),
         // 4골드 바위골렘·소용돌이문어 (405 → 397)
-        new RoundSeed("깊은 숲", false, "StoneGolem:1", "HearthBear:2", "FlashWeasel:2", "WhirlOctopus:1", "Zappy:1"),
+        new RoundSeed("깊은 숲", false, "StoneGolem:1", "HearthBear:2", "FlashWeasel:2", "WhirlOctopus:1", "LavaMane:1"),
         // 4골드 덩굴파리지옥 + 5골드 태양불사조 (487 → 489)
-        new RoundSeed("용암 동굴", false, "GravelShell:2", "Flytrap:1", "SunPhoenix:1", "FlashWeasel:2", "SprayOtter:2"),
+        new RoundSeed("용암 동굴", false, "GravelShell:2", "Flytrap:1", "SunPhoenix:1", "FlashWeasel:2", "TideWhale:1"),
         // 보스: 5골드 산맥거북·뇌광기린 + 4골드 바위골렘 (685 → 670)
-        new RoundSeed("폭풍 왕좌", true, "MountainTortoise:1", "StoneGolem:2", "VoltQilin:1", "LavaMane:2", "TideWhale:2"),
+        new RoundSeed("폭풍 왕좌", true, "MountainTortoise:1", "StoneGolem:2", "VoltQilin:1", "LavaMane:2", "Flytrap:1"),
     };
 
     // 1~5골드 개편 때 바뀐 라운드 (기존 에셋을 이 값으로 덮어씀)

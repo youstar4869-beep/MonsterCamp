@@ -15,17 +15,17 @@ MonoBehaviour:
   _thresholds: 0200000004000000
   _fireAttackBonus:
   - 0.15
-  - 0.35
+  - 1
   _waterHealthBonus:
   - 0.15
-  - 0.35
+  - 0.7
   _grassRegenPercent:
   - 0.02
-  - 0.05
+  - 0.11
   _grassRegenInterval: 1
   _electricSpeedBonus:
   - 0.15
-  - 0.35
+  - 0.55
   _rockDamageReduction:
   - 0.1
-  - 0.25
+  - 0.4

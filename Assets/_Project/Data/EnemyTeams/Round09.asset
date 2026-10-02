@@ -23,5 +23,5 @@ MonoBehaviour:
     Level: 1
   - Creature: {fileID: 11400000, guid: f6bb2043f730504409a6129c0ed91b9c, type: 2}
     Level: 2
-  - Creature: {fileID: 11400000, guid: 0fc5511a7cf81774d89ee1472f65eb3d, type: 2}
-    Level: 2
+  - Creature: {fileID: 11400000, guid: 0645507553a0629479dd0ff054f84a9c, type: 2}
+    Level: 1

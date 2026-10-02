@@ -15,7 +15,7 @@ MonoBehaviour:
   _displayName: "\uB3CC\uBA69\uAD70"
   _type: 4
   _tier: 1
-  _maxHealth: 140
+  _maxHealth: 158
   _attack: 8
   _attackSpeed: 0.75
   _skillDescription: "\uBC1B\uB294 \uD53C\uD574 10% \uAC10\uC18C"
