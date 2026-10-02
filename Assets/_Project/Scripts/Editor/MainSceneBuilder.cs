@@ -1299,7 +1299,21 @@ public static class MainSceneBuilder
         dragLabel.color = Color.black;
         dragIconGo.SetActive(false);
 
+        // 상단 골드 바로 아래: 라운드 시작 때 잠깐 보이는 "+10 +이자 2" (상단 표시 아래로 삐져나오게)
+        Text goldIncomeText = CreateText(goldText.transform.parent, "GoldIncomeText", "", 38,
+            new Vector2(0.7f, -1f), new Vector2(0.97f, 0f));
+        goldIncomeText.alignment = TextAnchor.MiddleRight;
+        goldIncomeText.color = new Color(0.55f, 1f, 0.55f);
+        goldIncomeText.gameObject.SetActive(false);
+
         var shop = screen.AddComponent<ShopScreen>();
+
+        // 상단 골드 글자를 누르면 골드 규칙 안내
+        goldText.raycastTarget = true;
+        Button goldButton = goldText.gameObject.AddComponent<Button>();
+        goldButton.targetGraphic = goldText;
+        UnityEventTools.AddVoidPersistentListener(goldButton.onClick, shop.ShowGoldHelp);
+
         var so = new SerializedObject(shop);
         so.FindProperty("_config").objectReferenceValue = GetOrCreateShopConfig();
         so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
@@ -1309,6 +1323,7 @@ public static class MainSceneBuilder
         so.FindProperty("_run").objectReferenceValue = run;
         so.FindProperty("_meta").objectReferenceValue = meta;
         so.FindProperty("_goldText").objectReferenceValue = goldText;
+        so.FindProperty("_goldIncomeText").objectReferenceValue = goldIncomeText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.FindProperty("_refreshLabel").objectReferenceValue = refreshLabel;
         SetArray(so.FindProperty("_shopSlots"), shopSlots);

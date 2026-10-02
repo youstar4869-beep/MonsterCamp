@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: ShopConfig
   m_EditorClassIdentifier: Assembly-CSharp::ShopConfig
   _roundGold: 10
+  _interestStep: 5
+  _maxInterest: 3
+  _maxGold: 50
   _refreshCost: 1
   _tierPrices: 0100000002000000030000000400000005000000
   _levelSellMultipliers: 010000000300000009000000

@@ -15,9 +15,15 @@ public class ShopConfig : ScriptableObject
         public int[] Percents;
     }
 
-    [Tooltip("라운드가 시작될 때 골드를 이 값으로 다시 채운다")]
+    [Tooltip("라운드가 시작될 때 남은 골드에 더해 주는 골드")]
     [FormerlySerializedAs("_startGold")]
     [SerializeField, Min(0)] private int _roundGold = 10;
+    [Tooltip("이자: 라운드 시작 전 남은 골드 이 값마다 1골드")]
+    [SerializeField, Min(1)] private int _interestStep = 5;
+    [Tooltip("이자 최대 골드")]
+    [SerializeField, Min(0)] private int _maxInterest = 3;
+    [Tooltip("가질 수 있는 골드 최대치 (넘으면 이 값으로)")]
+    [SerializeField, Min(1)] private int _maxGold = 50;
     [SerializeField, Min(0)] private int _refreshCost = 1;
     [Tooltip("등급 1~5 구매 가격")]
     [SerializeField] private int[] _tierPrices = { 1, 2, 3, 4, 5 };
@@ -38,7 +44,16 @@ public class ShopConfig : ScriptableObject
     [SerializeField] private ItemData[] _itemPool;
 
     public int RoundGold => _roundGold;
+    public int InterestStep => _interestStep;
+    public int MaxInterest => _maxInterest;
+    public int MaxGold => _maxGold;
     public int RefreshCost => _refreshCost;
+
+    // 남은 골드 5골드마다 1골드, 최대 3골드 (수치는 에셋)
+    public int GetInterest(int leftoverGold)
+    {
+        return Mathf.Min(_maxInterest, Mathf.Max(0, leftoverGold) / Mathf.Max(1, _interestStep));
+    }
 
     public int GetPrice(CreatureData creature)
     {

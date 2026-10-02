@@ -115,7 +115,7 @@ public class RunManager : MonoBehaviour
     public void OnBattleEnd(bool won)
     {
         bool lastRound = _round >= _config.RoundCount;
-        // 골드는 라운드 시작 때 다시 채우므로, 이겨서 받은 골드는 다음 라운드 골드에 더한다
+        // 이겨서 받은 골드(행운 동전)는 다음 라운드 시작 때 라운드 골드와 함께 더한다
         _pendingGold = won ? _winGold : 0;
 
         if (won)
@@ -161,8 +161,10 @@ public class RunManager : MonoBehaviour
     {
         _flow.Show(GameScreen.Shop);
         // 상인: 라운드 골드 +1, 행운 동전: 지난 전투 승리 시 +1
-        // 튜토리얼 중이면 정해 둔 상점 목록 (아니면 null → 랜덤)
-        _shop.StartRound(_round, _trainer.RoundGoldBonus + _pendingGold, _tutorial.GetPresetShop(_round));
+        // 튜토리얼 중이면 정해 둔 상점 목록 (아니면 null → 랜덤).
+        // 튜토리얼 라운드는 골드를 정해 둔 만큼만 주도록 남은 골드·이자를 넘기지 않는다
+        CreatureData[] presetShop = _tutorial.GetPresetShop(_round);
+        _shop.StartRound(_round, _trainer.RoundGoldBonus + _pendingGold, presetShop, presetShop == null);
         _tutorial.OnShopStarted(_round);
         _pendingGold = 0;
         _inShop = true;

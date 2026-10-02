@@ -7,6 +7,9 @@ using UnityEngine.UI;
 public class ShopScreen : MonoBehaviour
 {
     private const int MergeCount = 3;
+    // 라운드 시작 때 들어온 골드를 보여 주는 시간 (초)
+    private const float IncomeShowSeconds = 2.5f;
+    private const string GoldHelp = "남은 골드는 다음 라운드로 넘어가요. {0}골드마다 이자 1골드(최대 {1})";
 
     [SerializeField] private ShopConfig _config;
     [SerializeField] private SynergyConfig _synergy;
@@ -18,8 +21,10 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private MetaProgress _meta;
     [Tooltip("지금 켜진 타입 시너지 (예: 불 2/4)")]
     [SerializeField] private Text _synergyText;
-    [Tooltip("상단 표시에 있는 골드 글자")]
+    [Tooltip("상단 표시에 있는 골드 글자 (누르면 골드 규칙 안내)")]
     [SerializeField] private Text _goldText;
+    [Tooltip("라운드 시작 때 골드 아래에 잠깐 보이는 \"+10 +이자 2\"")]
+    [SerializeField] private Text _goldIncomeText;
     [SerializeField] private Text _messageText;
     [SerializeField] private Text _refreshLabel;
     [SerializeField] private CreatureSlotView[] _shopSlots;
@@ -39,7 +44,9 @@ public class ShopScreen : MonoBehaviour
     private CreatureInstance[] _bench;
     private CreatureInstance[] _team;
     private ItemData[] _items;
+    // 라운드가 끝나도 남아서 다음 라운드로 넘어간다 (새 런은 0)
     private int _gold;
+    private Coroutine _incomeRoutine;
     // 지금 라운드 (상점 등급 확률에 사용)
     private int _round = 1;
     private SlotDragHandler _dragSource;
@@ -59,18 +66,26 @@ public class ShopScreen : MonoBehaviour
         _bench = new CreatureInstance[_benchSlots.Length];
         _team = new CreatureInstance[_teamSlots.Length];
         _items = new ItemData[_itemSlots.Length];
+        _gold = 0;
+        HideIncome();
     }
 
-    // 라운드 시작: 골드를 다시 채우고 상점을 새로 뽑는다. 대기석·팀·보관함은 그대로
+    // 라운드 시작: 골드를 더하고 상점을 새로 뽑는다. 대기석·팀·보관함은 그대로
+    // 새 골드 = 남은 골드 + 라운드 골드 + bonusGold + 이자(남은 골드 기준), 최대치까지
     // round: 지금 라운드 (등급 확률), bonusGold: 트레이너 능력, 행운 동전 등으로 더 받는 골드
     // presetOffers: 튜토리얼처럼 상점 목록을 정해 둘 때 (null이면 랜덤, 아이템 칸은 비움)
-    public void StartRound(int round, int bonusGold, CreatureData[] presetOffers)
+    // carryGold: false면 남은 골드·이자 없이 라운드 골드만 (튜토리얼 라운드)
+    public void StartRound(int round, int bonusGold, CreatureData[] presetOffers, bool carryGold)
     {
         _round = round;
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
         ClosePopups();
-        _gold = _config.RoundGold + bonusGold;
+        int leftover = carryGold ? _gold : 0;
+        int interest = _config.GetInterest(leftover);
+        int total = leftover + _config.RoundGold + bonusGold + interest;
+        _gold = Mathf.Min(_config.MaxGold, total);
+        ShowIncome(_config.RoundGold + bonusGold, interest, total > _config.MaxGold);
         if (presetOffers != null)
         {
             for (int i = 0; i < _offers.Length; i++)
@@ -152,7 +167,8 @@ public class ShopScreen : MonoBehaviour
             _offers[i] = _config.FindCreature(data.shopCreatures[i]);
         }
         _itemOffer = _config.FindItem(data.shopItem);
-        _gold = Mathf.Max(0, data.gold);
+        // 저장된 골드가 그대로 다음 라운드의 남은 골드가 된다
+        _gold = Mathf.Clamp(data.gold, 0, _config.MaxGold);
 
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
@@ -399,7 +415,55 @@ public class ShopScreen : MonoBehaviour
         }
 
         ShowMessage("");
+        HideIncome();
         _run.BeginBattle(_team);
+    }
+
+    // 상단 골드 글자를 누르면: 골드 규칙 안내 (상점 화면일 때만)
+    public void ShowGoldHelp()
+    {
+        if (!gameObject.activeInHierarchy || _dragSource != null)
+        {
+            return;
+        }
+        ShowMessage(string.Format(GoldHelp, _config.InterestStep, _config.MaxInterest));
+    }
+
+    // 골드 아래에 "+10 +이자 2"를 잠깐 보여 준다
+    private void ShowIncome(int income, int interest, bool capped)
+    {
+        if (_goldIncomeText == null)
+        {
+            return;
+        }
+        HideIncome();
+        string text = interest > 0 ? $"+{income} +이자 {interest}" : $"+{income}";
+        _goldIncomeText.text = capped ? $"{text} (최대 {_config.MaxGold})" : text;
+        _goldIncomeText.gameObject.SetActive(true);
+        if (gameObject.activeInHierarchy)
+        {
+            _incomeRoutine = StartCoroutine(HideIncomeLater());
+        }
+    }
+
+    private System.Collections.IEnumerator HideIncomeLater()
+    {
+        yield return new WaitForSeconds(IncomeShowSeconds);
+        _incomeRoutine = null;
+        HideIncome();
+    }
+
+    private void HideIncome()
+    {
+        if (_incomeRoutine != null)
+        {
+            StopCoroutine(_incomeRoutine);
+            _incomeRoutine = null;
+        }
+        if (_goldIncomeText != null)
+        {
+            _goldIncomeText.gameObject.SetActive(false);
+        }
     }
 
     // 끌기 시작. 빈 칸이거나 이미 다른 칸을 끌고 있으면 false
@@ -654,7 +718,7 @@ public class ShopScreen : MonoBehaviour
 
     private void UpdateView()
     {
-        _goldText.text = $"골드 {_gold}";
+        _goldText.text = $"골드 {_gold} (?)";
         _refreshLabel.text = $"새로고침 ({_config.RefreshCost}G)";
 
         for (int i = 0; i < _shopSlots.Length; i++)
