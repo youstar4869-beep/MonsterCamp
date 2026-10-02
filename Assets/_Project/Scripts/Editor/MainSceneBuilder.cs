@@ -68,6 +68,10 @@ public static class MainSceneBuilder
         var serializedMeta = new SerializedObject(meta);
         serializedMeta.FindProperty("_config").objectReferenceValue = GetOrCreateMetaConfig();
         serializedMeta.ApplyModifiedPropertiesWithoutUndo();
+        var audio = new GameObject("AudioManager").AddComponent<AudioManager>();
+        var serializedAudio = new SerializedObject(audio);
+        serializedAudio.FindProperty("_config").objectReferenceValue = SfxBuilder.GetOrCreateConfig();
+        serializedAudio.ApplyModifiedPropertiesWithoutUndo();
 
         GameObject title = CreateScreen(canvas, "TitleScreen", "몬스터 캠프");
         GameObject trainer = CreateScreen(canvas, "TrainerSelectScreen", "트레이너 선택");
@@ -83,7 +87,7 @@ public static class MainSceneBuilder
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
         TipPopup tipPopup = CreateTipPopup(canvas);
 
-        BuildTitleUI(title, flow, run, tutorial);
+        BuildTitleUI(title, flow, run, tutorial, audio);
         BuildCodexUI(codex, flow, meta);
 
         // 결과 화면: 클리어/게임 오버 + 설명 + 별 + 타이틀로
@@ -218,7 +222,8 @@ public static class MainSceneBuilder
     }
 
     // 타이틀 화면: 제목 / 안내 문구 / 이어하기(저장된 판이 있을 때만) / 새 게임 + 새 게임 확인 창
-    private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run, TutorialController tutorial)
+    private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run, TutorialController tutorial,
+        AudioManager audio)
     {
         // 버튼 3개(이어하기, 새 게임, 도감)가 들어가도록 버튼 영역을 넓히고, 맨 아래에 작은 "튜토리얼 다시 보기"
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.09f), new Vector2(0.85f, 0.41f));
@@ -228,6 +233,11 @@ public static class MainSceneBuilder
         Button replayButton = CreateFreeButton(screen.transform, "튜토리얼 다시 보기",
             new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.08f), _theme.ButtonSecondary);
         replayButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
+        // 오른쪽 위 작은 효과음 켜기/끄기
+        Button sfxButton = CreateFreeButton(screen.transform, "효과음 켜짐",
+            new Vector2(0.62f, 0.92f), new Vector2(0.97f, 0.985f), _theme.ButtonSecondary);
+        Text sfxLabel = sfxButton.GetComponentInChildren<Text>();
+        sfxLabel.resizeTextMaxSize = _theme.SmallSize;
 
         Text messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
         messageText.color = _theme.Negative;
@@ -260,6 +270,8 @@ public static class MainSceneBuilder
         so.FindProperty("_continueButton").objectReferenceValue = continueButton.gameObject;
         so.FindProperty("_confirmPanel").objectReferenceValue = panel;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.FindProperty("_audio").objectReferenceValue = audio;
+        so.FindProperty("_sfxLabel").objectReferenceValue = sfxLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(continueButton.onClick, title.Continue);
@@ -267,6 +279,7 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, title.ConfirmNewGame);
         UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, title.CancelNewGame);
         UnityEventTools.AddVoidPersistentListener(replayButton.onClick, title.ReplayTutorial);
+        UnityEventTools.AddVoidPersistentListener(sfxButton.onClick, title.ToggleSfx);
     }
 
     // 위치를 직접 정하는 버튼 (ButtonArea 밖)

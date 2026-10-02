@@ -144,10 +144,12 @@ public class BattleScreen : MonoBehaviour
         {
             case BattleEventType.Attack:
                 view.PlayAttack();
+                AudioManager.Play(Sfx.Attack);
                 break;
             case BattleEventType.Damage:
                 RefreshView(battleEvent.Unit, view);
                 view.PlayHit();
+                AudioManager.Play(Sfx.Hit);
                 ShowDamage(battleEvent, view);
                 break;
             case BattleEventType.Heal:
@@ -166,11 +168,13 @@ public class BattleScreen : MonoBehaviour
                 break;
             case BattleEventType.Death:
                 view.PlayDeath();
+                AudioManager.Play(Sfx.Faint);
                 break;
             case BattleEventType.Skill:
                 if (!string.IsNullOrEmpty(battleEvent.Text) && view.gameObject.activeInHierarchy)
                 {
                     _floatingTexts.Show(battleEvent.Text, view.SkillTextPosition, ColorOf(battleEvent.Text));
+                    AudioManager.Play(Sfx.Skill);
                 }
                 break;
         }
@@ -259,6 +263,7 @@ public class BattleScreen : MonoBehaviour
     private IEnumerator Finish(bool won)
     {
         _running = false;
+        AudioManager.Play(won ? Sfx.Win : Sfx.Lose);
         _bannerPop.Pop(won ? "승리!" : "패배... 목숨 -1", won ? _theme.Accent : _theme.Negative);
         yield return new WaitForSeconds(_resultDelay);
         _run.OnBattleEnd(won);

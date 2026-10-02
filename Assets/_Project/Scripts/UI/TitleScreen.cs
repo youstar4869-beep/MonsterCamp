@@ -12,11 +12,15 @@ public class TitleScreen : MonoBehaviour
     [Tooltip("새 게임 확인 창 (처음엔 숨김)")]
     [SerializeField] private GameObject _confirmPanel;
     [SerializeField] private Text _messageText;
+    [SerializeField] private AudioManager _audio;
+    [Tooltip("효과음 켜기/끄기 버튼 글자")]
+    [SerializeField] private Text _sfxLabel;
 
     private void OnEnable()
     {
         _confirmPanel.SetActive(false);
         _messageText.text = "";
+        UpdateSfxLabel();
 
         // 읽을 수 있는 저장 파일이 있을 때만 이어하기 (깨진 파일은 여기서 백업된다)
         bool canContinue = SaveSystem.TryLoadRun(out _, out bool wasBroken);
@@ -74,6 +78,19 @@ public class TitleScreen : MonoBehaviour
     {
         _tutorial.CancelReplay();
         _confirmPanel.SetActive(false);
+    }
+
+    // "효과음 켜짐/꺼짐"
+    public void ToggleSfx()
+    {
+        _audio.SetSfxEnabled(!_audio.SfxEnabled);
+        AudioManager.Play(Sfx.Button);
+        UpdateSfxLabel();
+    }
+
+    private void UpdateSfxLabel()
+    {
+        _sfxLabel.text = _audio.SfxEnabled ? "효과음 켜짐" : "효과음 꺼짐";
     }
 
     private void ShowBrokenMessage()

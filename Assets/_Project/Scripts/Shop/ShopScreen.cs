@@ -331,6 +331,7 @@ public class ShopScreen : MonoBehaviour
 
         _gold -= price;
         _offers[index] = null;
+        AudioManager.Play(Sfx.Buy);
         ShowMessage("");
 
         if (mergesNow)
@@ -368,6 +369,7 @@ public class ShopScreen : MonoBehaviour
         }
 
         _gold -= _itemOffer.Price;
+        AudioManager.Play(Sfx.Buy);
         _items[itemIndex] = _itemOffer;
         _itemOffer = null;
         ShowMessage("");
@@ -395,6 +397,7 @@ public class ShopScreen : MonoBehaviour
         }
 
         _gold += _config.GetSellPrice(creature);
+        AudioManager.Play(Sfx.Sell);
         GetSlots(area)[index] = null;
         ShowMessage("");
         UpdateView();
@@ -652,6 +655,7 @@ public class ShopScreen : MonoBehaviour
 
         UpdateView();
         GetSlotViews(keepArea)[keepIndex].Flash();
+        AudioManager.Play(Sfx.Merge);
     }
 
     private void CollectSame(CreatureData data, int level)

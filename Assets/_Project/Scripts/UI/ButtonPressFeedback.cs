@@ -26,6 +26,7 @@ public class ButtonPressFeedback : MonoBehaviour, IPointerDownHandler, IPointerU
         if (_button.IsInteractable())
         {
             transform.localScale = Vector3.one * PressedScale;
+            AudioManager.Play(Sfx.Button);
         }
     }
 
