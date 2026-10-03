@@ -244,6 +244,9 @@ public static class MainSceneBuilder
             new Vector2(0.62f, 0.92f), new Vector2(0.97f, 0.985f), _theme.ButtonSecondary);
         Text sfxLabel = sfxButton.GetComponentInChildren<Text>();
         sfxLabel.resizeTextMaxSize = _theme.SmallSize;
+        // 제목 아래 음량 슬라이더 2개
+        Slider sfxSlider = CreateVolumeSlider(screen.transform, "효과음", 0.62f, 0.68f);
+        Slider bgmSlider = CreateVolumeSlider(screen.transform, "배경음", 0.53f, 0.59f);
 
         Text messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
         messageText.color = _theme.Negative;
@@ -279,6 +282,8 @@ public static class MainSceneBuilder
         so.FindProperty("_audio").objectReferenceValue = audio;
         so.FindProperty("_sfxLabel").objectReferenceValue = sfxLabel;
         so.FindProperty("_bgmLabel").objectReferenceValue = bgmLabel;
+        so.FindProperty("_sfxSlider").objectReferenceValue = sfxSlider;
+        so.FindProperty("_bgmSlider").objectReferenceValue = bgmSlider;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(continueButton.onClick, title.Continue);
@@ -288,6 +293,57 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(replayButton.onClick, title.ReplayTutorial);
         UnityEventTools.AddVoidPersistentListener(sfxButton.onClick, title.ToggleSfx);
         UnityEventTools.AddVoidPersistentListener(bgmButton.onClick, title.ToggleBgm);
+        UnityEventTools.AddPersistentListener(sfxSlider.onValueChanged, title.SetSfxVolume);
+        UnityEventTools.AddPersistentListener(bgmSlider.onValueChanged, title.SetBgmVolume);
+    }
+
+    // 음량 슬라이더 한 줄: 왼쪽 이름 + 막대(0~1, 처음 0.7). 손잡이는 크게 해서 손가락으로 잡기 쉽게
+    private static Slider CreateVolumeSlider(Transform parent, string label, float yMin, float yMax)
+    {
+        var row = new GameObject(label + "Volume", typeof(RectTransform));
+        row.transform.SetParent(parent, false);
+        Stretch(row.GetComponent<RectTransform>(), new Vector2(0.1f, yMin), new Vector2(0.9f, yMax));
+        Text text = CreateLeftText(row.transform, "Label", _theme.BodySize, Vector2.zero, new Vector2(0.25f, 1f));
+        text.text = label;
+
+        var resources = new DefaultControls.Resources
+        {
+            standard = _theme.RoundedSprite,
+            background = _theme.RoundedSprite,
+            knob = _theme.RoundedSprite,
+        };
+        GameObject go = DefaultControls.CreateSlider(resources);
+        go.name = "Slider";
+        go.transform.SetParent(row.transform, false);
+        Stretch(go.GetComponent<RectTransform>(), new Vector2(0.28f, 0f), Vector2.one);
+
+        // 막대는 가운데 얇게, 손잡이는 줄 높이 대부분 x 70px
+        var background = (RectTransform)go.transform.Find("Background");
+        Stretch(background, new Vector2(0f, 0.35f), new Vector2(1f, 0.65f));
+        background.GetComponent<Image>().color = _theme.Slot;
+        Round(background.GetComponent<Image>(), 16f);
+        var fillArea = (RectTransform)go.transform.Find("Fill Area");
+        Stretch(fillArea, new Vector2(0f, 0.35f), new Vector2(1f, 0.65f));
+        // 채움은 막대 왼쪽 끝에서 손잡이 가운데까지 (손잡이 영역과 같은 안쪽 여백)
+        fillArea.offsetMin = new Vector2(35f, 0f);
+        fillArea.offsetMax = new Vector2(-35f, 0f);
+        Image fill = fillArea.Find("Fill").GetComponent<Image>();
+        fill.rectTransform.offsetMin = new Vector2(-35f, 0f);
+        fill.rectTransform.offsetMax = Vector2.zero;
+        fill.color = _theme.Accent;
+        Round(fill, 16f);
+        var handleArea = (RectTransform)go.transform.Find("Handle Slide Area");
+        Stretch(handleArea, new Vector2(0f, 0.08f), new Vector2(1f, 0.92f));
+        handleArea.offsetMin = new Vector2(35f, 0f);
+        handleArea.offsetMax = new Vector2(-35f, 0f);
+        Image handle = handleArea.Find("Handle").GetComponent<Image>();
+        handle.rectTransform.sizeDelta = new Vector2(70f, 0f);
+        handle.color = _theme.ButtonPrimary;
+        Round(handle, 24f);
+
+        var slider = go.GetComponent<Slider>();
+        slider.value = 0.7f;
+        return slider;
     }
 
     // 위치를 직접 정하는 버튼 (ButtonArea 밖)

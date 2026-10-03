@@ -17,6 +17,9 @@ public class TitleScreen : MonoBehaviour
     [SerializeField] private Text _sfxLabel;
     [Tooltip("배경음 켜기/끄기 버튼 글자")]
     [SerializeField] private Text _bgmLabel;
+    [Tooltip("효과음·배경음 음량 (0~1)")]
+    [SerializeField] private Slider _sfxSlider;
+    [SerializeField] private Slider _bgmSlider;
 
     private void OnEnable()
     {
@@ -24,6 +27,8 @@ public class TitleScreen : MonoBehaviour
         _messageText.text = "";
         UpdateSfxLabel();
         UpdateBgmLabel();
+        _sfxSlider.SetValueWithoutNotify(_audio.SfxVolume);
+        _bgmSlider.SetValueWithoutNotify(_audio.BgmVolume);
 
         // 읽을 수 있는 저장 파일이 있을 때만 이어하기 (깨진 파일은 여기서 백업된다)
         bool canContinue = SaveSystem.TryLoadRun(out _, out bool wasBroken);
@@ -32,6 +37,12 @@ public class TitleScreen : MonoBehaviour
         {
             ShowBrokenMessage();
         }
+    }
+
+    // 음량 슬라이더로 바꾼 값을 타이틀을 떠날 때 저장
+    private void OnDisable()
+    {
+        PlayerPrefs.Save();
     }
 
     // "이어하기"
@@ -96,6 +107,18 @@ public class TitleScreen : MonoBehaviour
     {
         _audio.SetBgmEnabled(!_audio.BgmEnabled);
         UpdateBgmLabel();
+    }
+
+    // 효과음 음량 슬라이더
+    public void SetSfxVolume(float volume)
+    {
+        _audio.SetSfxVolume(volume);
+    }
+
+    // 배경음 음량 슬라이더
+    public void SetBgmVolume(float volume)
+    {
+        _audio.SetBgmVolume(volume);
     }
 
     private void UpdateBgmLabel()

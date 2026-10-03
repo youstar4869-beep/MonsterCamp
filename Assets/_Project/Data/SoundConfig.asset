@@ -13,49 +13,49 @@ MonoBehaviour:
   m_Name: SoundConfig
   m_EditorClassIdentifier: Assembly-CSharp::SoundConfig
   _sourceCount: 8
-  _defaultVolume: 0.8
+  _defaultVolume: 0.7
   _entries:
   - id: 0
     clip: {fileID: 8300000, guid: fda3477f701798c46ae416439a63e046, type: 3}
-    volume: 0.6
+    volume: 0.35
     minInterval: 0.05
   - id: 1
     clip: {fileID: 8300000, guid: ca921abffcf97cf4fac05eff6ffe8f4f, type: 3}
-    volume: 0.8
+    volume: 0.45
     minInterval: 0
   - id: 2
     clip: {fileID: 8300000, guid: b28702945f7a0aa4d94a591488c14f4e, type: 3}
-    volume: 0.8
+    volume: 0.45
     minInterval: 0
   - id: 3
     clip: {fileID: 8300000, guid: d0c2966210b40c649a831a760c300eed, type: 3}
-    volume: 0.9
+    volume: 0.5
     minInterval: 0
   - id: 4
     clip: {fileID: 8300000, guid: 98620ab71d94eb747a261323afa4cb00, type: 3}
-    volume: 0.35
+    volume: 0.12
     minInterval: 0.15
   - id: 5
     clip: {fileID: 8300000, guid: 159cfa00b861b424c8d16569cc0b6f2d, type: 3}
-    volume: 0.45
+    volume: 0.15
     minInterval: 0.12
   - id: 6
     clip: {fileID: 8300000, guid: 870ae00d1d6f6204db573417de4e0fcc, type: 3}
-    volume: 0.6
+    volume: 0.3
     minInterval: 0.2
   - id: 7
     clip: {fileID: 8300000, guid: ef1c3322b402b2e4f941e8e1160bca11, type: 3}
-    volume: 0.7
+    volume: 0.35
     minInterval: 0.1
   - id: 8
     clip: {fileID: 8300000, guid: 79c3cc6d9c0fd2849b11ff11c7f4f450, type: 3}
-    volume: 0.9
+    volume: 0.5
     minInterval: 0
   - id: 9
     clip: {fileID: 8300000, guid: cf603c610dd2af746a1b3e9f4b8a264c, type: 3}
-    volume: 0.9
+    volume: 0.5
     minInterval: 0
   _shopBgm: {fileID: 8300000, guid: d4691d61dfec9a74d9ef19530477e8cc, type: 3}
   _battleBgm: {fileID: 8300000, guid: a9e98bb0bd6f02743823ac8efd6dbb98, type: 3}
-  _bgmVolume: 0.5
+  _bgmVolume: 0.27
   _bgmFadeSeconds: 0.5

@@ -9,6 +9,7 @@ public class AudioManager : MonoBehaviour
     private const string EnabledKey = "sfxEnabled";
     private const string VolumeKey = "sfxVolume";
     private const string BgmEnabledKey = "bgmEnabled";
+    private const string BgmVolumeKey = "bgmVolume";
 
     [SerializeField] private SoundConfig _config;
 
@@ -24,6 +25,7 @@ public class AudioManager : MonoBehaviour
     private bool? _sfxEnabled;
     private float? _sfxVolume;
     private bool? _bgmEnabled;
+    private float? _bgmVolume;
 
     private readonly AudioSource[] _bgmSources = new AudioSource[2];
     private int _bgmActive;
@@ -34,6 +36,9 @@ public class AudioManager : MonoBehaviour
     public bool SfxEnabled => _sfxEnabled ??= PlayerPrefs.GetInt(EnabledKey, 1) == 1;
     public float SfxVolume => _sfxVolume ??= PlayerPrefs.GetFloat(VolumeKey, _config.DefaultVolume);
     public bool BgmEnabled => _bgmEnabled ??= PlayerPrefs.GetInt(BgmEnabledKey, 1) == 1;
+    public float BgmVolume => _bgmVolume ??= PlayerPrefs.GetFloat(BgmVolumeKey, _config.DefaultVolume);
+    // 실제 배경음 크기 = SoundConfig 배경음 음량 × 설정 음량
+    private float BgmTarget => _config.BgmVolume * BgmVolume;
 
     private void Awake()
     {
@@ -64,6 +69,15 @@ public class AudioManager : MonoBehaviour
             _entries[i] = _config.Find((Sfx)i);
             _lastFrame[i] = -1;
             _lastTime[i] = float.NegativeInfinity;
+        }
+    }
+
+    // 음량 슬라이더는 끄는 동안 계속 바뀌므로 그때마다 쓰지 않고, 앱이 내려갈 때 한 번 저장 (끝날 때는 Unity가 저장)
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused)
+        {
+            PlayerPrefs.Save();
         }
     }
 
@@ -124,7 +138,8 @@ public class AudioManager : MonoBehaviour
 
     private IEnumerator FadeBgm(bool activePlays)
     {
-        float step = _config.BgmVolume / _config.BgmFadeSeconds;
+        // 페이드 시간 안에 끝나게 가장 큰 음량을 기준으로 줄이고 키운다
+        float step = Mathf.Max(0.01f, BgmTarget, _bgmSources[0].volume, _bgmSources[1].volume) / _config.BgmFadeSeconds;
         bool done = false;
         while (!done)
         {
@@ -132,13 +147,14 @@ public class AudioManager : MonoBehaviour
             for (int i = 0; i < _bgmSources.Length; i++)
             {
                 AudioSource source = _bgmSources[i];
-                float target = i == _bgmActive && activePlays ? _config.BgmVolume : 0f;
+                bool plays = i == _bgmActive && activePlays;
+                float target = plays ? BgmTarget : 0f;
                 source.volume = Mathf.MoveTowards(source.volume, target, step * Time.unscaledDeltaTime);
                 if (source.volume != target)
                 {
                     done = false;
                 }
-                else if (target == 0f && source.isPlaying)
+                else if (!plays && source.isPlaying)
                 {
                     source.Stop();
                 }
@@ -149,6 +165,22 @@ public class AudioManager : MonoBehaviour
             }
         }
         _bgmFade = null;
+    }
+
+    public void SetBgmVolume(float volume)
+    {
+        _bgmVolume = Mathf.Clamp01(volume);
+        PlayerPrefs.SetFloat(BgmVolumeKey, _bgmVolume.Value);
+        // 재생 중이면 바로 새 크기로, 페이드 중이면 페이드가 새 크기로 맞춘다. 멈춰 있으면 다시 튼다
+        AudioSource current = _bgmSources[_bgmActive];
+        if (_bgmFade == null && current.isPlaying)
+        {
+            current.volume = BgmTarget;
+        }
+        else if (_bgmFade == null)
+        {
+            ApplyBgm();
+        }
     }
 
     public void SetSfxEnabled(bool enabled)
@@ -162,7 +194,6 @@ public class AudioManager : MonoBehaviour
     {
         _sfxVolume = Mathf.Clamp01(volume);
         PlayerPrefs.SetFloat(VolumeKey, _sfxVolume.Value);
-        PlayerPrefs.Save();
     }
 
     private void PlaySfx(Sfx sfx)

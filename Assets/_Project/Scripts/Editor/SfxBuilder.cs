@@ -12,6 +12,9 @@ public static class SfxBuilder
     public const int SampleRate = 22050;
     // 여러 소리가 겹쳐도 깨지지 않게 최대 크기를 낮춘다
     private const float Peak = 0.5f;
+    // 사각파가 날카롭지 않게: 진폭을 줄이고 높은 배음을 깎는다 (한 극 저역 통과, 약 3.5kHz). 배경음도 같이 쓴다
+    public const float SquareGain = 0.6f;
+    public static readonly float SquareSmoothing = 1f - Mathf.Exp(-2f * Mathf.PI * 3500f / SampleRate);
 
     private enum Wave
     {
@@ -43,19 +46,19 @@ public static class SfxBuilder
         }
     }
 
-    // 기본 음량·간격 (SoundConfig를 처음 만들 때만 쓴다). 공격·피격은 2배속에서 시끄럽지 않게 간격을 둔다
+    // 기본 음량·간격 (SoundConfig를 처음 만들 때만 쓴다). 공격·피격은 자주 나므로 작게, 2배속에서 시끄럽지 않게 간격도 둔다
     private static readonly Dictionary<Sfx, (float volume, float interval)> Defaults = new Dictionary<Sfx, (float, float)>
     {
-        { Sfx.Button, (0.6f, 0.05f) },
-        { Sfx.Buy, (0.8f, 0f) },
-        { Sfx.Sell, (0.8f, 0f) },
-        { Sfx.Merge, (0.9f, 0f) },
-        { Sfx.Attack, (0.35f, 0.15f) },
-        { Sfx.Hit, (0.45f, 0.12f) },
-        { Sfx.Skill, (0.6f, 0.2f) },
-        { Sfx.Faint, (0.7f, 0.1f) },
-        { Sfx.Win, (0.9f, 0f) },
-        { Sfx.Lose, (0.9f, 0f) },
+        { Sfx.Button, (0.35f, 0.05f) },
+        { Sfx.Buy, (0.45f, 0f) },
+        { Sfx.Sell, (0.45f, 0f) },
+        { Sfx.Merge, (0.5f, 0f) },
+        { Sfx.Attack, (0.12f, 0.15f) },
+        { Sfx.Hit, (0.15f, 0.12f) },
+        { Sfx.Skill, (0.3f, 0.2f) },
+        { Sfx.Faint, (0.35f, 0.1f) },
+        { Sfx.Win, (0.5f, 0f) },
+        { Sfx.Lose, (0.5f, 0f) },
     };
 
     [MenuItem("MonsterCamp/효과음 만들기")]
@@ -228,10 +231,15 @@ public static class SfxBuilder
         float noisePhase = 0f;
         float phase = 0f;
 
-        foreach (Note note in notes)
+        float lowPass = 0f;
+
+        for (int n = 0; n < notes.Length; n++)
         {
+            Note note = notes[n];
             int count = Mathf.RoundToInt(note.Seconds * SampleRate);
             int attack = Mathf.Min(count, SampleRate / 500);
+            // 끝을 부드럽게: 마지막 음은 뒤 30%(최소 10ms), 중간 음은 5ms 동안 줄인다
+            int release = Mathf.Min(count, n == notes.Length - 1 ? Mathf.Max(count * 3 / 10, SampleRate / 100) : SampleRate / 200);
             for (int i = 0; i < count; i++)
             {
                 float t = (float)i / count;
@@ -261,12 +269,28 @@ public static class SfxBuilder
                         value = noiseValue;
                         break;
                 }
+                if (note.Wave == Wave.Square || note.Wave == Wave.Pulse)
+                {
+                    lowPass += (value * SquareGain - lowPass) * SquareSmoothing;
+                    value = lowPass;
+                }
 
-                float envelope = (i < attack ? (float)i / attack : 1f) * (1f - note.Decay * t);
+                float envelope = (i < attack ? (float)i / attack : 1f) * (1f - note.Decay * t) * FadeOut(count - i, release);
                 samples.Add(value * envelope * note.Volume * Peak);
             }
         }
         return samples.ToArray();
+    }
+
+    // 남은 샘플이 release보다 적으면 1 → 0으로 부드럽게 (smoothstep)
+    public static float FadeOut(int remaining, int release)
+    {
+        if (remaining >= release)
+        {
+            return 1f;
+        }
+        float x = (float)remaining / release;
+        return x * x * (3f - 2f * x);
     }
 
     // 16비트 모노 PCM WAV

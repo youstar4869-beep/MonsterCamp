@@ -241,13 +241,15 @@ public static class BgmBuilder
     }
 
     // 한 음을 buffer에 더한다. to가 0이면 높이 그대로, 아니면 from → to로 미끄러짐 (노이즈는 값이 바뀌는 빠르기).
-    // 시작 2ms는 서서히 커지고 끝 5ms는 0까지 줄여 딸깍 소리가 나지 않게 한다. 곡 끝을 넘는 부분은 자른다
+    // 시작 2ms는 서서히 커지고, 끝은 음 길이의 25%(노이즈 북은 5ms) 동안 부드럽게 0까지 줄인다. 곡 끝을 넘는 부분은 자른다.
+    // 사각파는 효과음과 같이 진폭을 줄이고 높은 배음을 깎아 덜 날카롭게
     private static void AddTone(float[] buffer, int start, float lengthSamples, Wave wave, float from, float to,
         float volume, float decay, System.Random random)
     {
         int length = Mathf.Min(Mathf.RoundToInt(lengthSamples), buffer.Length - start);
         int attack = Mathf.Min(length, SampleRate / 500);
-        int release = Mathf.Min(length, SampleRate / 200);
+        int release = Mathf.Min(length, wave == Wave.Noise ? SampleRate / 200 : Mathf.Max(SampleRate / 200, length / 4));
+        float lowPass = 0f;
         float phase = 0f;
         float noisePhase = 1f;
         float noiseValue = 0f;
@@ -279,15 +281,16 @@ public static class BgmBuilder
                     value = noiseValue;
                     break;
             }
+            if (wave == Wave.Square || wave == Wave.Pulse)
+            {
+                lowPass += (value * SfxBuilder.SquareGain - lowPass) * SfxBuilder.SquareSmoothing;
+                value = lowPass;
+            }
 
-            float envelope = (1f - decay * t);
+            float envelope = (1f - decay * t) * SfxBuilder.FadeOut(length - i, release);
             if (i < attack)
             {
                 envelope *= (float)i / attack;
-            }
-            if (i >= length - release)
-            {
-                envelope *= (float)(length - i) / release;
             }
             buffer[start + i] += value * envelope * volume;
         }

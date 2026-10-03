@@ -40,17 +40,18 @@ public class SoundConfig : ScriptableObject
 
     [Tooltip("효과음을 동시에 낼 수 있는 수 (AudioSource 개수)")]
     [SerializeField] private int _sourceCount = 8;
-    [Tooltip("처음 실행할 때 효과음 음량 (설정에서 바꾸면 PlayerPrefs에 저장)")]
+    [Tooltip("처음 실행할 때 효과음·배경음 설정 음량 (타이틀 슬라이더로 바꾸면 PlayerPrefs에 저장)")]
     [Range(0f, 1f)]
-    [SerializeField] private float _defaultVolume = 0.8f;
+    [SerializeField] private float _defaultVolume = 0.7f;
     [SerializeField] private Entry[] _entries = new Entry[0];
 
     [Header("배경음")]
     [Tooltip("상점·타이틀 등 전투가 아닌 화면")]
     [SerializeField] private AudioClip _shopBgm;
     [SerializeField] private AudioClip _battleBgm;
+    [Tooltip("효과음(구매·판매 0.45)의 60% 정도. 실제 크기 = 이 값 × 설정 음량")]
     [Range(0f, 1f)]
-    [SerializeField] private float _bgmVolume = 0.5f;
+    [SerializeField] private float _bgmVolume = 0.27f;
     [Tooltip("곡이 바뀔 때 페이드 시간 (초)")]
     [SerializeField] private float _bgmFadeSeconds = 0.5f;
 
