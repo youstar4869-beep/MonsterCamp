@@ -8,7 +8,8 @@ public enum GameScreen
     Battle,
     Result,
     // 버튼에 숫자로 연결되어 있으므로 새 화면은 항상 끝에 추가
-    Codex
+    Codex,
+    DifficultySelect
 }
 
 // 화면(패널) 전환. 한 번에 한 화면만 켠다.
@@ -18,7 +19,7 @@ public class ScreenFlow : MonoBehaviour
 
     // GameScreen 순서대로 넣는다.
     [SerializeField] private GameObject[] _screens;
-    [Tooltip("라운드·목숨·골드 상단 표시. 상점과 전투 화면에서만 보인다")]
+    [Tooltip("층·목숨·골드 상단 표시. 상점과 전투 화면에서만 보인다")]
     [SerializeField] private GameObject _hud;
     [Tooltip("화면이 바뀔 때 짧은 페이드 (없으면 바로 바뀜)")]
     [SerializeField] private ScreenFader _fader;

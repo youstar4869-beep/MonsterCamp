@@ -1,0 +1,37 @@
+using UnityEngine;
+
+// 난이도 하나: 층 수, 목숨, 층마다 적 능력치 증가, 골드 규칙, 클리어 별, 열리는 조건
+[CreateAssetMenu(fileName = "Difficulty", menuName = "MonsterCamp/Difficulty")]
+public class DifficultyData : ScriptableObject
+{
+    [SerializeField] private string _displayName;
+    [Tooltip("난이도 선택 카드의 한 줄 설명")]
+    [SerializeField] private string _description;
+    [SerializeField, Min(1)] private int _floorCount = 30;
+    [SerializeField, Min(1)] private int _lives = 3;
+    [Tooltip("층마다 적 체력·공격력 증가 (0.03 = 3%). 1층은 그대로, n층은 1 + 값 × (n - 1)배")]
+    [SerializeField, Min(0f)] private float _enemyStatPerFloor = 0.03f;
+    [Tooltip("이 층마다 보스 (10이면 10, 20, 30...)")]
+    [SerializeField, Min(1)] private int _bossEvery = 10;
+    [Tooltip("이자 최대 골드")]
+    [SerializeField, Min(0)] private int _maxInterest = 3;
+    [SerializeField, Min(0)] private int _refreshCost = 1;
+    [Tooltip("마지막 층을 이겨 클리어하면 받는 별")]
+    [SerializeField, Min(0)] private int _clearStars = 10;
+    [Tooltip("이 난이도를 클리어해야 열림 (비우면 처음부터 열림)")]
+    [SerializeField] private DifficultyData _requiredClear;
+
+    public string DisplayName => _displayName;
+    public string Description => _description;
+    public int FloorCount => _floorCount;
+    public int Lives => _lives;
+    public int MaxInterest => _maxInterest;
+    public int RefreshCost => _refreshCost;
+    public int ClearStars => _clearStars;
+    public DifficultyData RequiredClear => _requiredClear;
+
+    // floor는 1부터
+    public bool IsBossFloor(int floor) => floor % _bossEvery == 0;
+
+    public float GetEnemyStatMultiplier(int floor) => 1f + _enemyStatPerFloor * (floor - 1);
+}

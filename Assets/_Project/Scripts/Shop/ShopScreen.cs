@@ -7,9 +7,9 @@ using UnityEngine.UI;
 public class ShopScreen : MonoBehaviour
 {
     private const int MergeCount = 3;
-    // 라운드 시작 때 들어온 골드를 보여 주는 시간 (초)
+    // 층 시작 때 들어온 골드를 보여 주는 시간 (초)
     private const float IncomeShowSeconds = 2.5f;
-    private const string GoldHelp = "남은 골드는 다음 라운드로 넘어가요. {0}골드마다 이자 1골드(최대 {1})";
+    private const string GoldHelp = "남은 골드는 다음 층으로 넘어가요. {0}골드마다 이자 1골드(최대 {1})";
 
     [SerializeField] private ShopConfig _config;
     [SerializeField] private SynergyConfig _synergy;
@@ -23,7 +23,7 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private Text _synergyText;
     [Tooltip("상단 정보바 (골드 표시, 골드를 누르면 골드 규칙 안내)")]
     [SerializeField] private HudView _hud;
-    [Tooltip("라운드 시작 때 골드 아래에 잠깐 보이는 \"+10 +이자 2\"")]
+    [Tooltip("층 시작 때 골드 아래에 잠깐 보이는 \"+10 +이자 2\"")]
     [SerializeField] private Text _goldIncomeText;
     [SerializeField] private Text _messageText;
     [SerializeField] private Text _refreshLabel;
@@ -44,11 +44,12 @@ public class ShopScreen : MonoBehaviour
     private CreatureInstance[] _bench;
     private CreatureInstance[] _team;
     private ItemData[] _items;
-    // 라운드가 끝나도 남아서 다음 라운드로 넘어간다 (새 런은 0)
+    // 층이 끝나도 남아서 다음 층으로 넘어간다 (새 런은 0)
     private int _gold;
     private Coroutine _incomeRoutine;
-    // 지금 라운드 (상점 등급 확률에 사용)
-    private int _round = 1;
+    // 지금 층과 난이도 (상점 등급 확률, 이자 최대, 새로고침 비용)
+    private int _floor = 1;
+    private DifficultyData _difficulty;
     private SlotDragHandler _dragSource;
 
     // 합성 후보를 모을 때 재사용 (팀 칸 먼저, 그다음 대기석)
@@ -60,29 +61,30 @@ public class ShopScreen : MonoBehaviour
     private readonly System.Text.StringBuilder _synergyBuilder = new System.Text.StringBuilder();
 
     // 새 런 시작: 대기석·팀·아이템 보관함 비우기
-    public void ResetRun()
+    public void ResetRun(DifficultyData difficulty)
     {
         _offers = new CreatureData[_shopSlots.Length];
         _bench = new CreatureInstance[_benchSlots.Length];
         _team = new CreatureInstance[_teamSlots.Length];
         _items = new ItemData[_itemSlots.Length];
         _gold = 0;
+        _difficulty = difficulty;
         HideIncome();
     }
 
-    // 라운드 시작: 골드를 더하고 상점을 새로 뽑는다. 대기석·팀·보관함은 그대로
-    // 새 골드 = 남은 골드 + 라운드 골드 + bonusGold + 이자(남은 골드 기준), 최대치까지
-    // round: 지금 라운드 (등급 확률), bonusGold: 트레이너 능력, 행운 동전 등으로 더 받는 골드
+    // 층 시작: 골드를 더하고 상점을 새로 뽑는다. 대기석·팀·보관함은 그대로
+    // 새 골드 = 남은 골드 + 층 골드 + bonusGold + 이자(남은 골드 기준), 최대치까지
+    // floor: 지금 층 (등급 확률), bonusGold: 트레이너 능력, 행운 동전 등으로 더 받는 골드
     // presetOffers: 튜토리얼처럼 상점 목록을 정해 둘 때 (null이면 랜덤, 아이템 칸은 비움)
-    // carryGold: false면 남은 골드·이자 없이 라운드 골드만 (튜토리얼 라운드)
-    public void StartRound(int round, int bonusGold, CreatureData[] presetOffers, bool carryGold)
+    // carryGold: false면 남은 골드·이자 없이 층 골드만 (튜토리얼 층)
+    public void StartRound(int floor, int bonusGold, CreatureData[] presetOffers, bool carryGold)
     {
-        _round = round;
+        _floor = floor;
         _dragSource = null;
         _dragIcon.gameObject.SetActive(false);
         ClosePopups();
         int leftover = carryGold ? _gold : 0;
-        int interest = _config.GetInterest(leftover);
+        int interest = _config.GetInterest(leftover, _difficulty.MaxInterest);
         int total = leftover + _config.RoundGold + bonusGold + interest;
         _gold = Mathf.Min(_config.MaxGold, total);
         ShowIncome(_config.RoundGold + bonusGold, interest, total > _config.MaxGold);
@@ -152,10 +154,10 @@ public class ShopScreen : MonoBehaviour
     }
 
     // 저장 데이터로 상점 단계를 되살린다. 찾을 수 없는 크리처·아이템은 빈 칸으로 둔다
-    public void LoadSave(RunSaveData data)
+    public void LoadSave(RunSaveData data, DifficultyData difficulty)
     {
-        ResetRun();
-        _round = Mathf.Max(1, data.round);
+        ResetRun(difficulty);
+        _floor = Mathf.Max(1, data.floor);
         FromSave(data.team, _team);
         FromSave(data.bench, _bench);
         for (int i = 0; i < _items.Length && data.items != null && i < data.items.Length; i++)
@@ -167,7 +169,7 @@ public class ShopScreen : MonoBehaviour
             _offers[i] = _config.FindCreature(data.shopCreatures[i]);
         }
         _itemOffer = _config.FindItem(data.shopItem);
-        // 저장된 골드가 그대로 다음 라운드의 남은 골드가 된다
+        // 저장된 골드가 그대로 다음 층의 남은 골드가 된다
         _gold = Mathf.Clamp(data.gold, 0, _config.MaxGold);
 
         _dragSource = null;
@@ -215,13 +217,13 @@ public class ShopScreen : MonoBehaviour
     // 크리처 칸과 아이템 칸을 같이 새로 뽑는다
     public void Refresh()
     {
-        if (_gold < _config.RefreshCost)
+        if (_gold < _difficulty.RefreshCost)
         {
             ShowMessage("골드가 부족해요");
             return;
         }
 
-        _gold -= _config.RefreshCost;
+        _gold -= _difficulty.RefreshCost;
         RollOffers();
         ShowMessage("");
         UpdateView();
@@ -429,7 +431,7 @@ public class ShopScreen : MonoBehaviour
         {
             return;
         }
-        ShowMessage(string.Format(GoldHelp, _config.InterestStep, _config.MaxInterest));
+        ShowMessage(string.Format(GoldHelp, _config.InterestStep, _difficulty.MaxInterest));
     }
 
     // 골드 아래에 "+10 +이자 2"를 잠깐 보여 준다
@@ -710,7 +712,7 @@ public class ShopScreen : MonoBehaviour
         // 잠긴 크리처는 내 상점에 나오지 않는다
         for (int i = 0; i < _offers.Length; i++)
         {
-            _offers[i] = _config.GetRandomCreature(_round, _meta.IsUnlocked);
+            _offers[i] = _config.GetRandomCreature(_config.GetOddsRound(_floor, _difficulty.FloorCount), _meta.IsUnlocked);
         }
         _itemOffer = _config.GetRandomItem();
     }
@@ -723,7 +725,7 @@ public class ShopScreen : MonoBehaviour
     private void UpdateView()
     {
         _hud.SetGold(_gold);
-        _refreshLabel.text = $"새로고침 ({_config.RefreshCost}G)";
+        _refreshLabel.text = $"새로고침 ({_difficulty.RefreshCost}G)";
 
         for (int i = 0; i < _shopSlots.Length; i++)
         {

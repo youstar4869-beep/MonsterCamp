@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// 한 판(런) 진행: 라운드, 목숨, 상점 → 전투 → 다음 라운드, 클리어/게임 오버, 저장/이어하기
+// 한 판(런) 진행: 난이도, 층, 목숨, 상점 → 전투 → 다음 층, 클리어/게임 오버, 저장/이어하기
 public class RunManager : MonoBehaviour
 {
     [SerializeField] private RunConfig _config;
@@ -10,13 +10,15 @@ public class RunManager : MonoBehaviour
     [SerializeField] private BattleScreen _battle;
     [SerializeField] private MetaProgress _meta;
     [SerializeField] private TutorialController _tutorial;
-    [Tooltip("상점에서 띄우는 도움말 (보스 전 팁, 마지막 라운드 재도전 안내)")]
+    [Tooltip("상점에서 띄우는 도움말 (보스 전 팁, 마지막 층 재도전 안내)")]
     [SerializeField] private TipPopup _tip;
     [Tooltip("저장 파일의 트레이너 이름을 찾을 때 사용")]
     [SerializeField] private TrainerData[] _trainers;
+    [Tooltip("저장 파일의 난이도 이름을 찾을 때 사용. 첫 번째(보통)는 예전 저장 이어하기·튜토리얼에 쓴다")]
+    [SerializeField] private DifficultyData[] _difficulties;
 
     [Header("상단 표시")]
-    [Tooltip("라운드·목숨·골드·이번 판 별")]
+    [Tooltip("층·목숨·골드·이번 판 별")]
     [SerializeField] private HudView _hud;
     [Tooltip("상점·배치 화면 위쪽의 트레이너 이름")]
     [SerializeField] private Text _trainerText;
@@ -27,38 +29,50 @@ public class RunManager : MonoBehaviour
     [Tooltip("이번 판에서 받은 별 / 전체 별")]
     [SerializeField] private Text _resultStars;
 
-    private int _round;
+    private DifficultyData _difficulty;
+    private int _floor;
     // 이번 판에서 받은 별 (판이 끝날 때 한꺼번에 meta.json에 더함)
     private int _runStars;
     private int _lives;
     private TrainerData _trainer;
-    // 행운 동전: 이번 전투에서 이기면 받을 골드 / 다음 라운드에 더할 골드
+    // 행운 동전: 이번 전투에서 이기면 받을 골드 / 다음 층에 더할 골드
     private int _winGold;
     private int _pendingGold;
     // 상점 단계일 때만 저장한다 (전투 중·판 밖에서는 저장하지 않음)
     private bool _inShop;
-    // 마지막 라운드에서 져서 다시 도전하면 상점에서 안내 (BALANCE_REPORT.md 3-3)
+    // 마지막 층에서 져서 다시 도전하면 상점에서 안내 (BALANCE_REPORT.md 3-3)
     private bool _showRetryTip;
 
-    private const string BossTipTitle = "보스 라운드!";
+    private const string BossTipTitle = "보스 층!";
     private const string BossTipMessage = "다음 전투는 보스예요.\n앞줄에는 체력 높은 크리처를 두세요.";
     private const string RetryTipTitle = "다시 도전!";
     private const string RetryTipMessage = "같은 팀으로는 같은 결과가 나오기 쉬워요.\n팀 구성을 바꿔 다시 도전해 보세요.";
 
-    // 트레이너 선택 화면의 "선택 완료"
-    public void StartRun(TrainerData trainer)
+    private bool IsBossFloor => _difficulty.IsBossFloor(_floor);
+    private bool IsLastFloor => _floor >= _difficulty.FloorCount;
+
+    // 난이도 선택 화면의 "시작"
+    public void StartRun(TrainerData trainer, DifficultyData difficulty)
     {
         _trainer = trainer;
-        _round = 1;
-        _lives = _config.MaxLives;
+        _difficulty = difficulty;
+        _floor = 1;
+        _lives = difficulty.Lives;
         _runStars = 0;
         _pendingGold = 0;
         _showRetryTip = false;
         _trainerText.text = $"트레이너: {trainer.DisplayName}";
-        _shop.ResetRun();
-        // 첫 판(또는 다시 보기)이면 튜토리얼 시작
-        _tutorial.BeginRun();
-        StartRound();
+        _shop.ResetRun(difficulty);
+        // 첫 판(또는 다시 보기)이면 튜토리얼 시작. 튜토리얼은 보통 난이도 1~2층 기준
+        if (difficulty == _difficulties[0])
+        {
+            _tutorial.BeginRun();
+        }
+        else
+        {
+            _tutorial.Stop();
+        }
+        StartFloor();
     }
 
     // 타이틀의 "이어하기". 저장 파일을 쓸 수 없으면 false (깨진 파일은 백업됨)
@@ -71,9 +85,17 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
+        // 예전 저장(라운드만 있음)은 보통 난이도 같은 층으로
+        if (data.floor == 0 && string.IsNullOrEmpty(data.difficulty))
+        {
+            data.floor = data.round;
+            data.difficulty = _difficulties[0].name;
+        }
+
         TrainerData trainer = FindTrainer(data.trainer);
-        if (trainer == null || data.round < 1 || data.round > _config.RoundCount
-            || data.lives < 1 || data.lives > _config.MaxLives)
+        DifficultyData difficulty = FindDifficulty(data.difficulty);
+        if (trainer == null || difficulty == null || data.floor < 1 || data.floor > difficulty.FloorCount
+            || data.lives < 1 || data.lives > difficulty.Lives)
         {
             Debug.LogWarning("[Save] run.json 내용이 올바르지 않아 백업합니다.");
             SaveSystem.BackupBrokenRun();
@@ -81,15 +103,16 @@ public class RunManager : MonoBehaviour
         }
 
         _trainer = trainer;
-        _round = data.round;
+        _difficulty = difficulty;
+        _floor = data.floor;
         _lives = data.lives;
         _runStars = Mathf.Max(0, data.starsEarned);
         _pendingGold = 0;
         _trainerText.text = $"트레이너: {trainer.DisplayName}";
 
-        // 저장된 상점 단계 그대로 (전투 중에 꺼졌어도 그 라운드 상점부터)
+        // 저장된 상점 단계 그대로 (전투 중에 꺼졌어도 그 층 상점부터)
         _flow.Show(GameScreen.Shop);
-        _shop.LoadSave(data);
+        _shop.LoadSave(data, difficulty);
         _inShop = true;
         UpdateHud();
         ShowShopTips();
@@ -113,45 +136,46 @@ public class RunManager : MonoBehaviour
             }
         }
 
-        // 튜토리얼 중 1~2라운드는 약한 적 팀
-        EnemyTeamData enemy = _tutorial.GetEnemyTeam(_round);
+        // 튜토리얼 중 1~2층은 약한 적 팀
+        EnemyTeamData enemy = _tutorial.GetEnemyTeam(_floor);
         if (enemy == null)
         {
-            enemy = _config.GetEnemyTeam(_round);
+            enemy = _config.GetEnemyTeam(_floor, IsBossFloor);
         }
         _flow.Show(GameScreen.Battle);
-        _battle.StartBattle(team, enemy, _trainer);
+        _battle.StartBattle(team, enemy, _trainer, IsBossFloor, _difficulty.GetEnemyStatMultiplier(_floor));
         _tutorial.OnBattleStarted();
     }
 
     // 전투 화면이 승패 표시를 끝낸 뒤 호출
     public void OnBattleEnd(bool won)
     {
-        bool lastRound = _round >= _config.RoundCount;
-        // 이겨서 받은 골드(행운 동전)는 다음 라운드 시작 때 라운드 골드와 함께 더한다
+        bool lastFloor = IsLastFloor;
+        // 이겨서 받은 골드(행운 동전)는 다음 층 시작 때 층 골드와 함께 더한다
         _pendingGold = won ? _winGold : 0;
 
         if (won)
         {
-            // 별: 이길 때마다 +1, 중간 보스 +3, 클리어 +10 (판이 끝날 때 meta.json에 더함)
+            // 별: 이길 때마다 +1, 보스 층 +3, 클리어는 난이도마다 (판이 끝날 때 meta.json에 더함)
             MetaConfig rules = _meta.Config;
             _runStars += rules.StarsPerWin;
-            if (lastRound)
+            if (lastFloor)
             {
-                _runStars += rules.ClearBonus;
+                _runStars += _difficulty.ClearStars;
             }
-            else if (_config.GetEnemyTeam(_round).IsBoss)
+            else if (IsBossFloor)
             {
                 _runStars += rules.BossBonus;
             }
 
-            if (lastRound)
+            if (lastFloor)
             {
+                _meta.SetCleared(_difficulty);
                 ShowResult(true);
                 return;
             }
-            _round++;
-            StartRound();
+            _floor++;
+            StartFloor();
             return;
         }
 
@@ -162,27 +186,27 @@ public class RunManager : MonoBehaviour
             return;
         }
 
-        // 지더라도 다음 라운드로. 마지막 라운드에서 지면 마지막 라운드를 다시
-        if (!lastRound)
+        // 지더라도 다음 층으로. 마지막 층에서 지면 마지막 층을 다시
+        if (!lastFloor)
         {
-            _round++;
+            _floor++;
         }
         else
         {
             _showRetryTip = true;
         }
-        StartRound();
+        StartFloor();
     }
 
-    private void StartRound()
+    private void StartFloor()
     {
         _flow.Show(GameScreen.Shop);
-        // 상인: 라운드 골드 +1, 행운 동전: 지난 전투 승리 시 +1
+        // 상인: 층 골드 +1, 행운 동전: 지난 전투 승리 시 +1
         // 튜토리얼 중이면 정해 둔 상점 목록 (아니면 null → 랜덤).
-        // 튜토리얼 라운드는 골드를 정해 둔 만큼만 주도록 남은 골드·이자를 넘기지 않는다
-        CreatureData[] presetShop = _tutorial.GetPresetShop(_round);
-        _shop.StartRound(_round, _trainer.RoundGoldBonus + _pendingGold, presetShop, presetShop == null);
-        _tutorial.OnShopStarted(_round);
+        // 튜토리얼 층은 골드를 정해 둔 만큼만 주도록 남은 골드·이자를 넘기지 않는다
+        CreatureData[] presetShop = _tutorial.GetPresetShop(_floor);
+        _shop.StartRound(_floor, _trainer.RoundGoldBonus + _pendingGold, presetShop, presetShop == null);
+        _tutorial.OnShopStarted(_floor);
         _pendingGold = 0;
         _inShop = true;
         UpdateHud();
@@ -191,8 +215,8 @@ public class RunManager : MonoBehaviour
         SaveRun();
     }
 
-    // 상점 도움말: 마지막 라운드 재도전이면 팀을 바꿔 보라는 안내 (매번),
-    // 중간 보스 라운드 상점이면 앞줄 팁 (계정마다 한 번, 튜토리얼 중에는 안 보임)
+    // 상점 도움말: 마지막 층 재도전이면 팀을 바꿔 보라는 안내 (매번),
+    // 마지막이 아닌 보스 층 상점이면 앞줄 팁 (계정마다 한 번, 튜토리얼 중에는 안 보임)
     private void ShowShopTips()
     {
         if (_showRetryTip)
@@ -201,8 +225,7 @@ public class RunManager : MonoBehaviour
             _tip.Show(RetryTipTitle, RetryTipMessage);
             return;
         }
-        if (!_tutorial.IsActive && !_meta.FrontRowTipShown && _round < _config.RoundCount
-            && _config.GetEnemyTeam(_round).IsBoss)
+        if (!_tutorial.IsActive && !_meta.FrontRowTipShown && !IsLastFloor && IsBossFloor)
         {
             _tip.Show(BossTipTitle, BossTipMessage);
             _meta.SetFrontRowTipShown();
@@ -218,10 +241,10 @@ public class RunManager : MonoBehaviour
         SaveSystem.DeleteRun();
         _resultStars.text = $"이번 판 별 +{_runStars}\n전체 별 {_meta.Stars}";
         UpdateHud();
-        _resultTitle.text = cleared ? "클리어!" : "게임 오버";
+        _resultTitle.text = cleared ? $"{_difficulty.DisplayName} 클리어!" : "게임 오버";
         _resultDetail.text = cleared
-            ? $"{_config.RoundCount}라운드 보스까지 승리했어요"
-            : $"{_round}라운드에서 목숨을 모두 잃었어요";
+            ? $"{_difficulty.FloorCount}층 보스까지 승리했어요"
+            : $"{_floor}층에서 목숨을 모두 잃었어요";
         _flow.Show(GameScreen.Result);
     }
 
@@ -261,7 +284,8 @@ public class RunManager : MonoBehaviour
         var data = new RunSaveData
         {
             trainer = _trainer.name,
-            round = _round,
+            difficulty = _difficulty.name,
+            floor = _floor,
             lives = _lives,
             starsEarned = _runStars
         };
@@ -281,9 +305,21 @@ public class RunManager : MonoBehaviour
         return null;
     }
 
+    private DifficultyData FindDifficulty(string id)
+    {
+        foreach (DifficultyData difficulty in _difficulties)
+        {
+            if (difficulty != null && difficulty.name == id)
+            {
+                return difficulty;
+            }
+        }
+        return null;
+    }
+
     private void UpdateHud()
     {
-        _hud.SetRound(_round, _config.RoundCount, _config.GetEnemyTeam(_round).IsBoss);
+        _hud.SetFloor(_floor, _difficulty.FloorCount, IsBossFloor);
         _hud.SetLives(_lives);
         _hud.SetStars(_runStars);
     }

@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MetaConfig
   _starsPerWin: 1
   _bossBonus: 3
-  _clearBonus: 10
   _lockedTrainers:
   - Trainer: {fileID: 11400000, guid: 0b7c17def9017994ba31f1db6b85dcca, type: 2}
     Cost: 15

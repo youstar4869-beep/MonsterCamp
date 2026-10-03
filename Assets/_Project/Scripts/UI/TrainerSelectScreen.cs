@@ -1,10 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// 트레이너 선택 화면: 카드를 눌러 고르고 "선택 완료"로 새 런 시작
+// 트레이너 선택 화면: 카드를 눌러 고르고 "선택 완료"로 난이도 선택 화면으로
 public class TrainerSelectScreen : MonoBehaviour
 {
-    [SerializeField] private RunManager _run;
+    [SerializeField] private DifficultySelectScreen _difficultySelect;
     [SerializeField] private MetaProgress _meta;
     [Tooltip("카드 순서대로")]
     [SerializeField] private TrainerData[] _trainers;
@@ -51,6 +51,6 @@ public class TrainerSelectScreen : MonoBehaviour
             _messageText.text = "트레이너를 골라 주세요";
             return;
         }
-        _run.StartRun(_trainers[_selected]);
+        _difficultySelect.Open(_trainers[_selected]);
     }
 }

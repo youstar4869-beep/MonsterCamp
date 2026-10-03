@@ -1,16 +1,16 @@
 using UnityEngine;
 
-// 한 판(런) 설정: 목숨, 라운드별 적 팀
+// 한 판(런) 설정: 층별 적 팀 (층 수·목숨은 DifficultyData)
 [CreateAssetMenu(fileName = "RunConfig", menuName = "MonsterCamp/Run Config")]
 public class RunConfig : ScriptableObject
 {
-    [SerializeField, Min(1)] private int _maxLives = 3;
-    [Tooltip("라운드 순서대로. 개수 = 총 라운드 수")]
+    [Tooltip("1~10층 적 팀 순서대로. 마지막 팀은 보스 층에 쓴다")]
     [SerializeField] private EnemyTeamData[] _rounds;
 
-    public int MaxLives => _maxLives;
-    public int RoundCount => _rounds.Length;
-
-    // round는 1부터
-    public EnemyTeamData GetEnemyTeam(int round) => _rounds[round - 1];
+    // floor는 1부터. 임시 규칙 (TODO 22에서 자동 생성으로 바꿈):
+    // 보스 층은 마지막 팀, 나머지는 (층 - 1) % 팀 수 + 1번째 팀
+    public EnemyTeamData GetEnemyTeam(int floor, bool isBoss)
+    {
+        return isBoss ? _rounds[_rounds.Length - 1] : _rounds[(floor - 1) % _rounds.Length];
+    }
 }

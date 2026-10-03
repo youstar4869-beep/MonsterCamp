@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// 트레이너 선택 카드 1장: 이름, 설명, 선택 표시, 잠금 표시
+// 트레이너·난이도 선택 카드 1장: 이름, 설명, 선택 표시, 잠금 표시
 public class TrainerCardView : MonoBehaviour
 {
     [SerializeField] private Image _background;
@@ -15,8 +15,13 @@ public class TrainerCardView : MonoBehaviour
 
     public void Show(TrainerData trainer)
     {
-        _nameText.text = trainer.DisplayName;
-        _descriptionText.text = trainer.Description;
+        Show(trainer.DisplayName, trainer.Description);
+    }
+
+    public void Show(string displayName, string description)
+    {
+        _nameText.text = displayName;
+        _descriptionText.text = description;
     }
 
     public void SetSelected(bool selected)
@@ -27,7 +32,12 @@ public class TrainerCardView : MonoBehaviour
     // cost: 해금에 필요한 별
     public void SetLocked(bool locked, int cost)
     {
+        SetLocked(locked, $"★{cost} 필요\n도감에서 해금");
+    }
+
+    public void SetLocked(bool locked, string message)
+    {
         _lockOverlay.SetActive(locked);
-        _lockText.text = $"★{cost} 필요\n도감에서 해금";
+        _lockText.text = message;
     }
 }

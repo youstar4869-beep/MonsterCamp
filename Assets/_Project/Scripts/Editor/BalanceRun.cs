@@ -15,6 +15,8 @@ public class BalanceRun
     private const int MergeCount = 3;
 
     private readonly ShopConfig _config;
+    // 이자 최대, 새로고침 비용, 층 수 (상점 등급 확률)
+    private readonly DifficultyData _difficulty;
     // 상점에 나올 수 있는 크리처 (잠긴 크리처 제외용)
     private readonly System.Func<CreatureData, bool> _canAppear;
 
@@ -33,32 +35,34 @@ public class BalanceRun
     private readonly List<(bool team, int index)> _mergeCandidates = new List<(bool, int)>();
     private readonly List<ItemData> _returnedItems = new List<ItemData>();
 
-    public BalanceRun(ShopConfig config, System.Func<CreatureData, bool> canAppear)
+    public BalanceRun(ShopConfig config, DifficultyData difficulty, System.Func<CreatureData, bool> canAppear)
     {
         _config = config;
+        _difficulty = difficulty;
         _canAppear = canAppear;
     }
 
     public ShopConfig Config => _config;
+    public int RefreshCost => _difficulty.RefreshCost;
 
-    // ShopScreen.StartRound와 같은 골드 계산: 남은 골드 + 라운드 골드 + bonusGold + 이자, 최대치까지
+    // ShopScreen.StartRound와 같은 골드 계산: 남은 골드 + 층 골드 + bonusGold + 이자, 최대치까지. round = 층
     // (튜토리얼은 시뮬레이션하지 않는다: 항상 남은 골드·이자를 넘긴다)
     public void StartRound(int round, int bonusGold)
     {
         Round = round;
         int leftover = Gold;
-        int interest = _config.GetInterest(leftover);
+        int interest = _config.GetInterest(leftover, _difficulty.MaxInterest);
         Gold = Mathf.Min(_config.MaxGold, leftover + _config.RoundGold + bonusGold + interest);
         RollOffers();
     }
 
     public bool Refresh()
     {
-        if (Gold < _config.RefreshCost)
+        if (Gold < _difficulty.RefreshCost)
         {
             return false;
         }
-        Gold -= _config.RefreshCost;
+        Gold -= _difficulty.RefreshCost;
         RollOffers();
         return true;
     }
@@ -68,7 +72,7 @@ public class BalanceRun
     {
         for (int i = 0; i < Offers.Length; i++)
         {
-            Offers[i] = _config.GetRandomCreature(Round, _canAppear);
+            Offers[i] = _config.GetRandomCreature(_config.GetOddsRound(Round, _difficulty.FloorCount), _canAppear);
             if (Offers[i] != null)
             {
                 Offered.TryGetValue(Offers[i], out int count);

@@ -5,8 +5,8 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-// 밸런스 시뮬레이터: 화면 없이 한 판 전체(1~10라운드, 목숨 3)를 봇으로 여러 번 돌리고 통계를 낸다.
-// 실제 에셋(ShopConfig, SynergyConfig, RunConfig, TypeChart, 트레이너, 아이템, 적 팀)을 그대로 쓰고,
+// 밸런스 시뮬레이터: 화면 없이 한 판 전체(난이도의 1층~마지막 층, 목숨 3)를 봇으로 여러 번 돌리고 통계를 낸다.
+// 실제 에셋(ShopConfig, SynergyConfig, RunConfig, DifficultyData, TypeChart, 트레이너, 아이템, 적 팀)을 그대로 쓰고,
 // 전투는 BattleSetupFactory + BattleSimulation을 그대로 부른다.
 // [게임과 다른 점] 튜토리얼 라운드는 없음, 해금은 둘 중 하나(모두 열림 / 처음 계정처럼 MetaConfig의 잠금 그대로),
 // 전투 시간 제한 MaxBattleSeconds (게임에는 제한이 없음, 넘으면 패배로 셈), 전투 프레임 1/60초 고정
@@ -73,6 +73,7 @@ public class BalanceSimulator
     private readonly ShopConfig _shop;
     private readonly SynergyConfig _synergy;
     private readonly RunConfig _runConfig;
+    private readonly DifficultyData _difficulty;
     private readonly TrainerData[] _trainers;
     private readonly System.Func<CreatureData, bool> _canAppear;
     private readonly CreatureData[] _creatures;
@@ -88,11 +89,13 @@ public class BalanceSimulator
     public TrainerData[] Trainers => _trainers;
 
     // lockedLikeNewAccount: true면 MetaConfig에서 잠긴 트레이너·크리처를 빼고 돌린다 (처음 시작한 계정)
-    public BalanceSimulator(bool lockedLikeNewAccount = false)
+    // difficulty: Data/Difficulty 안 에셋 이름 (Normal, Hard, Impossible)
+    public BalanceSimulator(bool lockedLikeNewAccount = false, string difficulty = "Normal")
     {
         _shop = Load<ShopConfig>("ShopConfig");
         _synergy = Load<SynergyConfig>("SynergyConfig");
         _runConfig = Load<RunConfig>("RunConfig");
+        _difficulty = Load<DifficultyData>("Difficulty/" + difficulty);
         _typeMultipliers = BattleSetupFactory.CreateTypeMultipliers(Load<TypeChart>("TypeChart"));
         _trainers = LoadAll<TrainerData>(DataFolder + "/Trainers");
         _canAppear = _ => true;
@@ -151,8 +154,8 @@ public class BalanceSimulator
         var stats = new BotStats
         {
             Bot = bot,
-            RoundBattles = new int[_runConfig.RoundCount + 1],
-            RoundWins = new int[_runConfig.RoundCount + 1],
+            RoundBattles = new int[_difficulty.FloorCount + 1],
+            RoundWins = new int[_difficulty.FloorCount + 1],
         };
         foreach (CreatureData creature in _creatures)
         {
@@ -189,16 +192,16 @@ public class BalanceSimulator
     }
 
     // RunManager.StartRun / OnBattleEnd / StartRound와 같은 흐름
-    // [게임과 따로 구현] RunManager는 화면 전환·저장과 묶인 MonoBehaviour라서 라운드·목숨 규칙을 여기로 옮겨 왔다
+    // [게임과 따로 구현] RunManager는 화면 전환·저장과 묶인 MonoBehaviour라서 층·목숨 규칙을 여기로 옮겨 왔다
     private void PlayGame(BalanceBotKind bot, int gameSeed, TrainerData trainer, CreatureType focus, BotStats stats)
     {
         // 상점 확률은 ShopConfig가 UnityEngine.Random을 쓰므로 판마다 시드를 정한다
         Random.InitState(gameSeed);
         var random = new System.Random(gameSeed);
-        var run = new BalanceRun(_shop, _canAppear);
+        var run = new BalanceRun(_shop, _difficulty, _canAppear);
 
         int round = 1;
-        int lives = _runConfig.MaxLives;
+        int lives = _difficulty.Lives;
         int pendingGold = 0;
         bool cleared = false;
         run.StartRound(round, trainer.RoundGoldBonus + pendingGold);
@@ -229,18 +232,20 @@ public class BalanceSimulator
                         { Creature = creature.Data, Level = creature.Level, Item = creature.Item, SlotIndex = i });
                 }
             }
-            SetEnemyTeam(_runConfig.GetEnemyTeam(round));
+            bool isBoss = _difficulty.IsBossFloor(round);
+            EnemyTeamData enemy = _runConfig.GetEnemyTeam(round, isBoss);
+            SetEnemyTeam(enemy);
 
             // 시간 초과(0.5)는 패배로 센다
             bool timeout = false;
             float margin = 0f;
             bool won = _players.Count > 0
-                       && Fight(_players, _enemies, trainer, random.Next(), _typeMultipliers, out timeout, out margin) > 0.75f;
+                       && Fight(_players, _enemies, trainer, random.Next(), _typeMultipliers, out timeout, out margin,
+                           _difficulty.GetEnemyStatMultiplier(round)) > 0.75f;
             if (_gameLog != null)
             {
-                EnemyTeamData enemy = _runConfig.GetEnemyTeam(round);
-                _gameLog.AppendLine($"  {round}라운드 골드 {startGold}→{run.Gold} | 팀 {DescribeTeam(run.Team)} | " +
-                                    $"적 {enemy.DisplayName}{(enemy.IsBoss ? "(보스)" : "")} | " +
+                _gameLog.AppendLine($"  {round}층 골드 {startGold}→{run.Gold} | 팀 {DescribeTeam(run.Team)} | " +
+                                    $"적 {enemy.DisplayName}{(isBoss ? "(보스)" : "")} | " +
                                     $"{(won ? "승" : timeout ? "시간 초과" : "패")} (이긴 쪽 남은 체력 {margin * 100f:0}%)" +
                                     $" | 목숨 {(won ? lives : lives - 1)}");
             }
@@ -256,7 +261,7 @@ public class BalanceSimulator
                 }
             }
 
-            bool lastRound = round >= _runConfig.RoundCount;
+            bool lastRound = round >= _difficulty.FloorCount;
             pendingGold = won ? winGold : 0;
             if (won)
             {
@@ -274,7 +279,7 @@ public class BalanceSimulator
                 {
                     break;
                 }
-                // 지더라도 다음 라운드로. 마지막 라운드에서 지면 마지막 라운드를 다시
+                // 지더라도 다음 층으로. 마지막 층에서 지면 마지막 층을 다시
                 if (!lastRound)
                 {
                     round++;
@@ -283,7 +288,7 @@ public class BalanceSimulator
             run.StartRound(round, trainer.RoundGoldBonus + pendingGold);
         }
 
-        _gameLog?.AppendLine(cleared ? "  → 클리어" : $"  → {round}라운드에서 게임 오버");
+        _gameLog?.AppendLine(cleared ? "  → 클리어" : $"  → {round}층에서 게임 오버");
         stats.Games++;
         stats.Clears += cleared ? 1 : 0;
         stats.ReachedSum += round;
@@ -376,12 +381,13 @@ public class BalanceSimulator
         return Fight(players, enemies, trainer, seed, multipliers, out timeout, out _);
     }
 
-    // margin: 이긴 쪽 남은 체력 비율 (0~1, 시간 초과면 0)
+    // margin: 이긴 쪽 남은 체력 비율 (0~1, 시간 초과면 0). enemyMultiplier: 층마다 적 능력치 증가
     private float Fight(List<BattleSetupFactory.Member> players, List<BattleSetupFactory.Member> enemies,
-        TrainerData trainer, int seed, float[,] multipliers, out bool timeout, out float margin)
+        TrainerData trainer, int seed, float[,] multipliers, out bool timeout, out float margin, float enemyMultiplier = 1f)
     {
         List<BattleUnitSetup> playerSetups = BattleSetupFactory.CreateTeam(players, _synergy, trainer);
         List<BattleUnitSetup> enemySetups = BattleSetupFactory.CreateTeam(enemies, _synergy, null);
+        BattleSetupFactory.ScaleStats(enemySetups, enemyMultiplier);
         var simulation = new BattleSimulation(playerSetups, enemySetups, multipliers, seed);
         simulation.Start();
         while (!simulation.IsOver && simulation.ElapsedTime < MaxBattleSeconds)
@@ -546,10 +552,10 @@ public class BalanceSimulator
         foreach (BotStats stats in bots)
         {
             text.AppendLine($"[{BotName(stats.Bot)} 봇] {stats.Games}판  클리어 {Pct(stats.ClearRate)}  " +
-                            $"평균 도달 라운드 {stats.AverageReached:0.00}" +
+                            $"평균 도달 층 {stats.AverageReached:0.00}" +
                             $"  마지막 팀 시너지 1단계+ {Pct(Rate(stats.SynergyTier1Games, stats.Games))} · 2단계 {Pct(Rate(stats.SynergyTier2Games, stats.Games))}" +
                             (stats.Timeouts > 0 ? $"  시간 초과 전투 {stats.Timeouts}" : ""));
-            text.Append("  라운드 승률:");
+            text.Append("  층 승률:");
             for (int round = 1; round < stats.RoundBattles.Length; round++)
             {
                 text.Append($" {round}:{Pct(stats.RoundWinRate(round))}");
@@ -608,10 +614,10 @@ public class BalanceSimulator
         if (bots.Count > 0)
         {
             int roundCount = bots[0].RoundBattles.Length - 1;
-            var csv = new StringBuilder("봇,판 수,클리어율,평균 도달 라운드,시간 초과 전투,시너지 1단계+ 판 비율,시너지 2단계 판 비율");
+            var csv = new StringBuilder("봇,판 수,클리어율,평균 도달 층,시간 초과 전투,시너지 1단계+ 판 비율,시너지 2단계 판 비율");
             for (int round = 1; round <= roundCount; round++)
             {
-                csv.Append($",{round}라운드 승률");
+                csv.Append($",{round}층 승률");
             }
             csv.AppendLine();
             foreach (BotStats stats in bots)
@@ -625,7 +631,7 @@ public class BalanceSimulator
             }
             File.WriteAllText(Path.Combine(folder, "bots.csv"), csv.ToString(), encoding);
 
-            csv = new StringBuilder("봇,라운드,전투 수,승리,승률\n");
+            csv = new StringBuilder("봇,층,전투 수,승리,승률\n");
             foreach (BotStats stats in bots)
             {
                 for (int round = 1; round <= roundCount; round++)

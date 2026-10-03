@@ -51,8 +51,9 @@ public class BattleScreen : MonoBehaviour
 
     // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
     // 매 전투 새로 계산하므로 체력은 항상 가득 찬 상태로 시작한다.
-    // trainer는 내 팀에만 적용 (적 팀은 시너지만)
-    public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer)
+    // trainer는 내 팀에만 적용 (적 팀은 시너지만). enemyStatMultiplier: 층마다 적 체력·공격력 증가
+    public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer,
+        bool isBoss, float enemyStatMultiplier)
     {
         StopAllCoroutines();
         _floatingTexts.HideAll();
@@ -75,6 +76,7 @@ public class BattleScreen : MonoBehaviour
         // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력·아이템은 내 팀만 (시너지와 겹쳐서 적용)
         List<BattleUnitSetup> players = BattleSetupFactory.CreateTeam(_playerMembers, _synergy, trainer);
         List<BattleUnitSetup> enemies = BattleSetupFactory.CreateTeam(_enemyMembers, _synergy, null);
+        BattleSetupFactory.ScaleStats(enemies, enemyStatMultiplier);
 
         int seed = System.Environment.TickCount;
         if (_logSeed)
@@ -91,9 +93,9 @@ public class BattleScreen : MonoBehaviour
         _simulation.Start();
         RefreshAllViews();
 
-        _enemyLabel.text = enemyTeam.IsBoss ? $"보스: {enemyTeam.DisplayName}" : enemyTeam.DisplayName;
+        _enemyLabel.text = isBoss ? $"보스: {enemyTeam.DisplayName}" : enemyTeam.DisplayName;
         _bannerPop.Clear();
-        if (enemyTeam.IsBoss)
+        if (isBoss)
         {
             _bannerPop.Pop("보스 등장!", _theme.ButtonDanger, _bossBannerSeconds);
         }

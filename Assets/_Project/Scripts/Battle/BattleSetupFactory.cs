@@ -68,6 +68,22 @@ public static class BattleSetupFactory
         return setups;
     }
 
+    // 층마다 적 능력치 증가: 체력·공격력에 배율을 곱한다 (1이면 그대로)
+    public static void ScaleStats(List<BattleUnitSetup> team, float multiplier)
+    {
+        if (multiplier == 1f)
+        {
+            return;
+        }
+        for (int i = 0; i < team.Count; i++)
+        {
+            BattleUnitSetup setup = team[i];
+            setup.MaxHealth = (int)System.Math.Round(setup.MaxHealth * multiplier);
+            setup.Attack = (int)System.Math.Round(setup.Attack * multiplier);
+            team[i] = setup;
+        }
+    }
+
     // [공격 타입, 방어 타입] 상성 배율표
     public static float[,] CreateTypeMultipliers(TypeChart chart)
     {

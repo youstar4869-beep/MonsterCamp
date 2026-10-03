@@ -17,6 +17,8 @@ public class MetaSaveData
     public bool tutorialCompleted;
     // 5라운드 보스 전 "앞줄에는 체력 높은 크리처" 도움말을 봤으면 true (한 번만 보여 줌)
     public bool frontRowTipShown;
+    // 클리어한 난이도 (에셋 이름). 다음 난이도를 여는 데 쓴다
+    public List<string> clearedDifficulties = new List<string>();
 }
 
 // run.json: 진행 중인 판 (상점 단계 상태)
@@ -27,6 +29,10 @@ public class RunSaveData
 
     public int version = CurrentVersion;
     public string trainer;
+    // 난이도 에셋 이름과 지금 층 (1부터)
+    public string difficulty;
+    public int floor;
+    // 예전 저장(층 구조 전)의 라운드. floor가 0이면 보통 난이도 같은 층으로 이어한다
     public int round;
     public int lives;
     public int gold;

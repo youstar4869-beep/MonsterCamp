@@ -18,6 +18,8 @@ public static class MainSceneBuilder
     private const string RunConfigPath = "Assets/_Project/Data/RunConfig.asset";
     private const string SynergyConfigPath = "Assets/_Project/Data/SynergyConfig.asset";
     private const string TrainerFolder = "Assets/_Project/Data/Trainers";
+    private const string DifficultyFolder = "Assets/_Project/Data/Difficulty";
+    private static readonly string[] DifficultyIds = { "Normal", "Hard", "Impossible" };
     private const string ItemFolder = "Assets/_Project/Data/Items";
     private const string MetaConfigPath = "Assets/_Project/Data/MetaConfig.asset";
     private const string LockSpritePath = "Assets/_Project/Art/Placeholders/UI/Lock.png";
@@ -81,9 +83,11 @@ public static class MainSceneBuilder
         GameObject battle = CreateScreen(canvas, "BattleScreen", "전투");
         GameObject result = CreateScreen(canvas, "ResultScreen", "결과");
         GameObject codex = CreateScreen(canvas, "CodexScreen", "도감");
+        GameObject difficulty = CreateScreen(canvas, "DifficultySelectScreen", "난이도 선택");
+        DifficultyData[] difficulties = LoadDifficulties();
 
         // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
-        HudView hud = CreateHud(canvas, out Text goldText);
+        HudView hud = CreateHud(canvas, difficulties, out Text goldText);
         // 정보 창·시너지 표: 화면·상단 표시보다 위, 튜토리얼보다 아래 (다른 화면에서도 다시 쓸 수 있게 캔버스에)
         CreatureInfoPopup infoPopup = CreateCreatureInfoPopup(canvas);
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
@@ -111,8 +115,9 @@ public static class MainSceneBuilder
         // ⚙ 버튼과 설정 창은 튜토리얼 중에도 누를 수 있게 그 위에 (씬에 하나)
         BuildSettingsUI(canvas, gearSprite, flow, run, audio);
 
-        // 새 런 시작 (1라운드 상점으로 이동은 RunManager가 한다)
-        BuildTrainerSelectUI(trainer, run, meta);
+        // 트레이너 → 난이도 → 새 런 시작 (1층 상점으로 이동은 RunManager가 한다)
+        DifficultySelectScreen difficultySelect = BuildDifficultySelectUI(difficulty, run, flow, meta, difficulties);
+        BuildTrainerSelectUI(trainer, difficultySelect, meta);
 
         var runConfig = AssetDatabase.LoadAssetAtPath<RunConfig>(RunConfigPath);
         if (runConfig == null)
@@ -122,6 +127,7 @@ public static class MainSceneBuilder
         var serializedRun = new SerializedObject(run);
         serializedRun.FindProperty("_config").objectReferenceValue = runConfig;
         SetArray(serializedRun.FindProperty("_trainers"), GetOrCreateTrainers());
+        SetArray(serializedRun.FindProperty("_difficulties"), difficulties);
         serializedRun.FindProperty("_flow").objectReferenceValue = flow;
         serializedRun.FindProperty("_shop").objectReferenceValue = shopScreen;
         serializedRun.FindProperty("_battle").objectReferenceValue = battleScreen;
@@ -137,7 +143,7 @@ public static class MainSceneBuilder
 
         // GameScreen enum 순서와 같아야 한다.
         var serializedFlow = new SerializedObject(flow);
-        SetArray(serializedFlow.FindProperty("_screens"), new Object[] { title, trainer, shop, battle, result, codex });
+        SetArray(serializedFlow.FindProperty("_screens"), new Object[] { title, trainer, shop, battle, result, codex, difficulty });
         serializedFlow.FindProperty("_hud").objectReferenceValue = hud.gameObject;
         // 페이드 판은 튜토리얼까지 모두 덮도록 맨 마지막에, 안전 영역 밖까지 캔버스 전체에 만든다
         serializedFlow.FindProperty("_fader").objectReferenceValue = CreateFader(canvasRoot);
@@ -1134,7 +1140,59 @@ public static class MainSceneBuilder
     }
 
     // 트레이너 선택 화면: 제목 / 카드 3장(이름·설명, 눌러서 선택) / 안내 문구 / 선택 완료
-    private static void BuildTrainerSelectUI(GameObject screen, RunManager run, MetaProgress meta)
+    private static void BuildTrainerSelectUI(GameObject screen, DifficultySelectScreen difficultySelect, MetaProgress meta)
+    {
+        TrainerData[] trainers = GetOrCreateTrainers();
+        TrainerCardView[] cards = CreateSelectCards(screen, "TrainerCard", trainers.Length, out Button[] cardButtons, out Text messageText);
+
+        Button confirmButton = CreateButton(screen, "선택 완료");
+
+        var select = screen.AddComponent<TrainerSelectScreen>();
+        var so = new SerializedObject(select);
+        so.FindProperty("_difficultySelect").objectReferenceValue = difficultySelect;
+        so.FindProperty("_meta").objectReferenceValue = meta;
+        SetArray(so.FindProperty("_trainers"), trainers);
+        SetArray(so.FindProperty("_cards"), cards);
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        for (int i = 0; i < cardButtons.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(cardButtons[i].onClick, select.Select, i);
+        }
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, select.Confirm);
+    }
+
+    // 난이도 선택 화면 (트레이너 선택 다음): 카드 3장 + 뒤로(트레이너 선택) + 시작
+    private static DifficultySelectScreen BuildDifficultySelectUI(GameObject screen, RunManager run, ScreenFlow flow,
+        MetaProgress meta, DifficultyData[] difficulties)
+    {
+        TrainerCardView[] cards = CreateSelectCards(screen, "DifficultyCard", difficulties.Length, out Button[] cardButtons, out Text messageText);
+
+        AddButton(screen, "뒤로", flow, GameScreen.TrainerSelect);
+        Button confirmButton = CreateButton(screen, "시작");
+
+        var select = screen.AddComponent<DifficultySelectScreen>();
+        var so = new SerializedObject(select);
+        so.FindProperty("_run").objectReferenceValue = run;
+        so.FindProperty("_flow").objectReferenceValue = flow;
+        so.FindProperty("_meta").objectReferenceValue = meta;
+        SetArray(so.FindProperty("_difficulties"), difficulties);
+        SetArray(so.FindProperty("_cards"), cards);
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        for (int i = 0; i < cardButtons.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(cardButtons[i].onClick, select.Select, i);
+        }
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, select.Confirm);
+        return select;
+    }
+
+    // 선택 화면 카드 count장 (이름, 설명, 잠금 덮개) + 아래 안내 글
+    private static TrainerCardView[] CreateSelectCards(GameObject screen, string namePrefix, int count,
+        out Button[] cardButtons, out Text messageText)
     {
         Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.8f), new Vector2(1f, 0.92f));
 
@@ -1148,12 +1206,11 @@ public static class MainSceneBuilder
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = true;
 
-        TrainerData[] trainers = GetOrCreateTrainers();
-        var cards = new TrainerCardView[trainers.Length];
-        var cardButtons = new Button[trainers.Length];
-        for (int i = 0; i < trainers.Length; i++)
+        var cards = new TrainerCardView[count];
+        cardButtons = new Button[count];
+        for (int i = 0; i < count; i++)
         {
-            var card = new GameObject("TrainerCard" + i, typeof(RectTransform), typeof(Image), typeof(Button), typeof(TrainerCardView));
+            var card = new GameObject(namePrefix + i, typeof(RectTransform), typeof(Image), typeof(Button), typeof(TrainerCardView));
             card.transform.SetParent(cardArea.transform, false);
             var background = card.GetComponent<Image>();
             Round(background, 32f);
@@ -1162,7 +1219,7 @@ public static class MainSceneBuilder
             Text descriptionText = CreateText(card.transform, "Description", "", _theme.SmallSize, new Vector2(0.05f, 0.08f), new Vector2(0.95f, 0.55f));
             descriptionText.color = _theme.TextSub;
 
-            // 잠겼을 때: 카드 전체를 어둡게 + 오른쪽에 자물쇠와 필요한 별
+            // 잠겼을 때: 카드 전체를 어둡게 + 오른쪽에 자물쇠와 열리는 조건
             GameObject lockOverlay = CreateLockOverlay(card.transform, new Vector2(0.8f, 0.5f), new Vector2(0.96f, 0.92f),
                 out Text lockText, new Vector2(0.62f, 0.06f), new Vector2(0.98f, 0.48f), 32);
 
@@ -1179,25 +1236,24 @@ public static class MainSceneBuilder
             cardButtons[i] = card.GetComponent<Button>();
         }
 
-        Text messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize, new Vector2(0f, 0.2f), new Vector2(1f, 0.26f));
+        messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize, new Vector2(0f, 0.2f), new Vector2(1f, 0.26f));
         messageText.color = _theme.Negative;
+        return cards;
+    }
 
-        Button confirmButton = CreateButton(screen, "선택 완료");
-
-        var select = screen.AddComponent<TrainerSelectScreen>();
-        var so = new SerializedObject(select);
-        so.FindProperty("_run").objectReferenceValue = run;
-        so.FindProperty("_meta").objectReferenceValue = meta;
-        SetArray(so.FindProperty("_trainers"), trainers);
-        SetArray(so.FindProperty("_cards"), cards);
-        so.FindProperty("_messageText").objectReferenceValue = messageText;
-        so.ApplyModifiedPropertiesWithoutUndo();
-
-        for (int i = 0; i < cardButtons.Length; i++)
+    // 난이도 에셋 3개 (보통, 어려움, 불가능 순서. 수치는 에셋에서 조정)
+    private static DifficultyData[] LoadDifficulties()
+    {
+        var difficulties = new DifficultyData[DifficultyIds.Length];
+        for (int i = 0; i < DifficultyIds.Length; i++)
         {
-            UnityEventTools.AddIntPersistentListener(cardButtons[i].onClick, select.Select, i);
+            difficulties[i] = AssetDatabase.LoadAssetAtPath<DifficultyData>($"{DifficultyFolder}/{DifficultyIds[i]}.asset");
+            if (difficulties[i] == null)
+            {
+                Debug.LogError($"난이도 에셋이 없습니다: {DifficultyFolder}/{DifficultyIds[i]}.asset");
+            }
         }
-        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, select.Confirm);
+        return difficulties;
     }
 
     // 트레이너 3명 에셋. 없는 것만 기본값(GAME_DESIGN.md 5번)으로 만든다 (조정한 값 보호)
@@ -1241,9 +1297,9 @@ public static class MainSceneBuilder
         return trainer;
     }
 
-    // 상단 정보바 (상점·전투 화면에서만 보인다): [깃발 2/10 보스] [하트 3개] [동전 골드 ?] [별 이번 판 별]
+    // 상단 정보바 (상점·전투 화면에서만 보인다): [깃발 12/30층 보스] [하트 3개] [동전 골드 ?] [별 이번 판 별]
     // 아이콘은 32x32 픽셀 그림 (HudIconBuilder). goldText: 누르면 골드 규칙 안내 (상점이 연결)
-    private static HudView CreateHud(Transform canvas, out Text goldText)
+    private static HudView CreateHud(Transform canvas, DifficultyData[] difficulties, out Text goldText)
     {
         // 아이콘 그림은 먼저 만든다 (만드는 중에 에셋을 가져오면 아래 연결이 끊길 수 있음)
         Sprite flagSprite = HudIconBuilder.Flag;
@@ -1260,12 +1316,16 @@ public static class MainSceneBuilder
         background.raycastTarget = false;
 
         CreateHudIcon(hud.transform, "RoundIcon", flagSprite, 0.015f, 0.085f);
-        Text roundText = CreateText(hud.transform, "RoundText", "", _theme.BodySize, new Vector2(0.09f, 0f), new Vector2(0.2f, 1f));
+        Text roundText = CreateText(hud.transform, "RoundText", "", _theme.BodySize, new Vector2(0.09f, 0f), new Vector2(0.225f, 1f));
+        // "100/100층"도 한 줄에 들어가게 줄여서 맞춘다
+        roundText.resizeTextForBestFit = true;
+        roundText.resizeTextMinSize = 20;
+        roundText.resizeTextMaxSize = _theme.BodySize;
         roundText.alignment = TextAnchor.MiddleLeft;
-        // 보스 라운드 표시: 빨간 둥근 판 + "보스"
+        // 보스 층 표시: 빨간 둥근 판 + "보스"
         var bossTag = new GameObject("BossTag", typeof(RectTransform), typeof(Image));
         bossTag.transform.SetParent(hud.transform, false);
-        Stretch(bossTag.GetComponent<RectTransform>(), new Vector2(0.2f, 0.2f), new Vector2(0.3f, 0.8f));
+        Stretch(bossTag.GetComponent<RectTransform>(), new Vector2(0.228f, 0.2f), new Vector2(0.322f, 0.8f));
         var bossImage = bossTag.GetComponent<Image>();
         bossImage.color = _theme.ButtonDanger;
         bossImage.raycastTarget = false;
@@ -1274,9 +1334,12 @@ public static class MainSceneBuilder
         bossText.color = _theme.ButtonText;
         bossTag.SetActive(false);
 
-        // 목숨 최대치만큼 하트
-        var runConfig = AssetDatabase.LoadAssetAtPath<RunConfig>(RunConfigPath);
-        int maxLives = runConfig != null ? runConfig.MaxLives : 3;
+        // 목숨 최대치만큼 하트 (난이도 중 가장 많은 목숨)
+        int maxLives = 1;
+        foreach (DifficultyData difficulty in difficulties)
+        {
+            maxLives = Mathf.Max(maxLives, difficulty != null ? difficulty.Lives : 3);
+        }
         var hearts = new Image[maxLives];
         const float heartsStart = 0.33f;
         const float heartWidth = 0.068f;

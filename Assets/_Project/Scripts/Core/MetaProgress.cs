@@ -48,6 +48,22 @@ public class MetaProgress : MonoBehaviour
         return TryUnlock(GetCost(creature), creature.name, Data.unlockedCreatures);
     }
 
+    // 열리는 조건 난이도를 클리어했으면 열림
+    public bool IsUnlocked(DifficultyData difficulty)
+    {
+        return difficulty.RequiredClear == null || Data.clearedDifficulties.Contains(difficulty.RequiredClear.name);
+    }
+
+    public void SetCleared(DifficultyData difficulty)
+    {
+        if (Data.clearedDifficulties.Contains(difficulty.name))
+        {
+            return;
+        }
+        Data.clearedDifficulties.Add(difficulty.name);
+        SaveAndNotify();
+    }
+
     public bool TutorialCompleted => Data.tutorialCompleted;
     public bool FrontRowTipShown => Data.frontRowTipShown;
 

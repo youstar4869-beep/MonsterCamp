@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d94279bd4d36ed40b7e3ae0d9b84216, type: 3}
   m_Name: RunConfig
   m_EditorClassIdentifier: Assembly-CSharp::RunConfig
-  _maxLives: 3
   _rounds:
   - {fileID: 11400000, guid: 9db2d08f7ad99204aa0510ffc1d4d873, type: 2}
   - {fileID: 11400000, guid: c65dd32e93b69aa4b80cfe66b75d8df7, type: 2}

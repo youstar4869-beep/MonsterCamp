@@ -80,7 +80,7 @@ public static class BalanceBots
                     actions.Add(i);
                 }
             }
-            if (run.Gold >= run.Config.RefreshCost)
+            if (run.Gold >= run.RefreshCost)
             {
                 actions.Add(5);
             }
@@ -174,7 +174,7 @@ public static class BalanceBots
             }
 
             // 새로 뽑은 뒤 1골드짜리라도 살 수 있을 때만
-            if (refreshes < maxRefresh && spendable >= run.Config.RefreshCost + 1)
+            if (refreshes < maxRefresh && spendable >= run.RefreshCost + 1)
             {
                 run.Refresh();
                 refreshes++;

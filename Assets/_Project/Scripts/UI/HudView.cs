@@ -1,12 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// 상단 정보바: 라운드(깃발), 목숨(하트), 골드(동전), 이번 판에서 받은 별.
+// 상단 정보바: 층(깃발), 목숨(하트), 골드(동전), 이번 판에서 받은 별.
 // 골드가 바뀌면 숫자가 잠깐 커졌다 돌아온다 (그동안만 Update가 켜진다. 씬에는 꺼진 채로 저장)
 public class HudView : MonoBehaviour
 {
+    [Tooltip("층 (예: 12/30층)")]
     [SerializeField] private Text _roundText;
-    [Tooltip("보스 라운드일 때만 보이는 표시")]
+    [Tooltip("보스 층일 때만 보이는 표시")]
     [SerializeField] private GameObject _bossTag;
     [Tooltip("목숨 최대치만큼 (왼쪽부터 채운다)")]
     [SerializeField] private Image[] _hearts;
@@ -21,9 +22,10 @@ public class HudView : MonoBehaviour
     private int _gold = -1;
     private float _popTime;
 
-    public void SetRound(int round, int roundCount, bool isBoss)
+    // 예: "12/30층"
+    public void SetFloor(int floor, int floorCount, bool isBoss)
     {
-        _roundText.text = $"{round}/{roundCount}";
+        _roundText.text = $"{floor}/{floorCount}층";
         _bossTag.SetActive(isBoss);
     }
 

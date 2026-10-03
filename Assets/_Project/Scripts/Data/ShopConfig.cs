@@ -20,16 +20,15 @@ public class ShopConfig : ScriptableObject
     [SerializeField, Min(0)] private int _roundGold = 10;
     [Tooltip("이자: 라운드 시작 전 남은 골드 이 값마다 1골드")]
     [SerializeField, Min(1)] private int _interestStep = 5;
-    [Tooltip("이자 최대 골드")]
-    [SerializeField, Min(0)] private int _maxInterest = 3;
     [Tooltip("가질 수 있는 골드 최대치 (넘으면 이 값으로)")]
     [SerializeField, Min(1)] private int _maxGold = 50;
-    [SerializeField, Min(0)] private int _refreshCost = 1;
     [Tooltip("등급 1~5 구매 가격")]
     [SerializeField] private int[] _tierPrices = { 1, 2, 3, 4, 5 };
     [Tooltip("판매 가격 = 구매 가격 × 이 배수 (Lv1~3, 합친 마리 수)")]
     [FormerlySerializedAs("_levelSellPrices")]
     [SerializeField] private int[] _levelSellMultipliers = { 1, 3, 9 };
+    [Tooltip("층을 등급 확률표의 라운드 칸으로 바꿀 때: 라운드 = 올림(층 / 전체 층 × 이 값)")]
+    [SerializeField, Min(1)] private int _oddsRoundCount = 10;
     [Tooltip("라운드 구간별 등급 확률 (FromRound 오름차순)")]
     [SerializeField] private TierOdds[] _tierOdds =
     {
@@ -45,14 +44,18 @@ public class ShopConfig : ScriptableObject
 
     public int RoundGold => _roundGold;
     public int InterestStep => _interestStep;
-    public int MaxInterest => _maxInterest;
     public int MaxGold => _maxGold;
-    public int RefreshCost => _refreshCost;
 
-    // 남은 골드 5골드마다 1골드, 최대 3골드 (수치는 에셋)
-    public int GetInterest(int leftoverGold)
+    // 남은 골드 5골드마다 1골드, 최대 maxInterest골드 (최대치는 난이도 에셋)
+    public int GetInterest(int leftoverGold, int maxInterest)
     {
-        return Mathf.Min(_maxInterest, Mathf.Max(0, leftoverGold) / Mathf.Max(1, _interestStep));
+        return Mathf.Min(maxInterest, Mathf.Max(0, leftoverGold) / Mathf.Max(1, _interestStep));
+    }
+
+    // 층에 쓸 등급 확률표의 라운드 칸 (예: 30층 중 12층 → 올림(4) = 4라운드)
+    public int GetOddsRound(int floor, int floorCount)
+    {
+        return Mathf.Max(1, Mathf.CeilToInt((float)floor * _oddsRoundCount / floorCount));
     }
 
     public int GetPrice(CreatureData creature)
