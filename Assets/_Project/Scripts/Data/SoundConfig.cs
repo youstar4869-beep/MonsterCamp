@@ -16,7 +16,15 @@ public enum Sfx
     Lose,
 }
 
-// 효과음 목록과 음량. 메뉴 "MonsterCamp → 효과음 만들기"가 소리 파일을 만들어 채운다 (바꾼 음량·간격은 그대로 둔다)
+// 배경음 (None이면 끔)
+public enum Bgm
+{
+    None,
+    Shop,
+    Battle,
+}
+
+// 효과음·배경음 목록과 음량. 메뉴 "MonsterCamp → 효과음 만들기"·"배경음 만들기"가 소리 파일을 만들어 채운다 (바꾼 음량·간격은 그대로 둔다)
 [CreateAssetMenu(fileName = "SoundConfig", menuName = "MonsterCamp/Sound Config")]
 public class SoundConfig : ScriptableObject
 {
@@ -37,8 +45,32 @@ public class SoundConfig : ScriptableObject
     [SerializeField] private float _defaultVolume = 0.8f;
     [SerializeField] private Entry[] _entries = new Entry[0];
 
+    [Header("배경음")]
+    [Tooltip("상점·타이틀 등 전투가 아닌 화면")]
+    [SerializeField] private AudioClip _shopBgm;
+    [SerializeField] private AudioClip _battleBgm;
+    [Range(0f, 1f)]
+    [SerializeField] private float _bgmVolume = 0.5f;
+    [Tooltip("곡이 바뀔 때 페이드 시간 (초)")]
+    [SerializeField] private float _bgmFadeSeconds = 0.5f;
+
     public int SourceCount => Mathf.Max(1, _sourceCount);
     public float DefaultVolume => _defaultVolume;
+    public float BgmVolume => _bgmVolume;
+    public float BgmFadeSeconds => Mathf.Max(0.01f, _bgmFadeSeconds);
+
+    public AudioClip GetBgm(Bgm bgm)
+    {
+        switch (bgm)
+        {
+            case Bgm.Shop:
+                return _shopBgm;
+            case Bgm.Battle:
+                return _battleBgm;
+            default:
+                return null;
+        }
+    }
 
     public Entry Find(Sfx id)
     {

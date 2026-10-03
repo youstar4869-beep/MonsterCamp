@@ -9,7 +9,7 @@ public static class SfxBuilder
 {
     private const string SfxFolder = "Assets/_Project/Audio/Sfx";
     private const string ConfigPath = "Assets/_Project/Data/SoundConfig.asset";
-    private const int SampleRate = 22050;
+    public const int SampleRate = 22050;
     // 여러 소리가 겹쳐도 깨지지 않게 최대 크기를 낮춘다
     private const float Peak = 0.5f;
 
@@ -270,7 +270,7 @@ public static class SfxBuilder
     }
 
     // 16비트 모노 PCM WAV
-    private static void WriteWav(string path, float[] samples)
+    public static void WriteWav(string path, float[] samples)
     {
         using (var writer = new BinaryWriter(File.Create(path)))
         {

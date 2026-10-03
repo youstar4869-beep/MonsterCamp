@@ -232,3 +232,14 @@
   - 메뉴 "MonsterCamp → 효과음 만들기": 사인파·사각파·노이즈로 8비트 효과음 10개(버튼·구매·판매·합성·공격·피격·스킬·쓰러짐·승리·패배, 모두 0.5초 이하)를 `Audio/Sfx/`에 WAV로 만들고 SoundConfig에 연결 (다시 실행해도 바꾼 음량·간격은 그대로). Build Main Scene도 없으면 만듦
   - 재생 위치: 버튼 누를 때(`ButtonPressFeedback`), 크리처·아이템 구매, 판매, 합성, 전투 공격·피격·스킬·쓰러짐, 승리·패배
   - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨
+- 사운드 2단계: 배경음 + 소리 안 나던 문제 수정
+  - 버그 수정: 씬에 AudioListener가 없어 소리가 전혀 나지 않던 문제. `MainSceneBuilder`가 카메라에 AudioListener를 붙임 (씬에 하나뿐)
+  - 메뉴 "MonsterCamp → 배경음 만들기"(`BgmBuilder`): 사각파·사인파·노이즈로 8비트 배경음 2곡을 `Audio/Bgm/`에 WAV로 만들고 SoundConfig에 연결
+    - 상점: C장조 112 BPM 12마디(약 25.7초), 밝고 느긋하게 / 전투: A단조 160 BPM 16마디(24초), 베이스 연타·하이햇 매 박
+    - 곡 길이를 8분음표 칸 길이(샘플)의 정수배로 맞추고 모든 음이 곡 안에서 0으로 끝나 이음새 없이 반복
+    - 곡마다 WAV가 1MB 넘어 가져오기 설정은 Vorbis(품질 0.5) + Streaming
+  - `AudioManager`: 배경음용 AudioSource 2개를 번갈아 써서 곡이 바뀌면 0.5초 동안 하나는 줄이고 하나는 키움(코루틴, 페이드 시간·음량은 SoundConfig). 같은 곡이면 이어서 재생
+  - `ScreenFlow`: 전투 화면은 전투 곡, 나머지 화면(타이틀·트레이너 선택·상점·결과·도감)은 상점 곡
+  - 타이틀 오른쪽 위 효과음 버튼 옆에 "배경음 켜짐/꺼짐" 버튼 (PlayerPrefs `bgmEnabled`)
+  - Build Main Scene은 배경음 파일이 없으면 먼저 만듦
+  - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨

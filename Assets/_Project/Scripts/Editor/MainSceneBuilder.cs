@@ -70,7 +70,7 @@ public static class MainSceneBuilder
         serializedMeta.ApplyModifiedPropertiesWithoutUndo();
         var audio = new GameObject("AudioManager").AddComponent<AudioManager>();
         var serializedAudio = new SerializedObject(audio);
-        serializedAudio.FindProperty("_config").objectReferenceValue = SfxBuilder.GetOrCreateConfig();
+        serializedAudio.FindProperty("_config").objectReferenceValue = BgmBuilder.GetOrCreateConfig();
         serializedAudio.ApplyModifiedPropertiesWithoutUndo();
 
         GameObject title = CreateScreen(canvas, "TitleScreen", "몬스터 캠프");
@@ -154,6 +154,8 @@ public static class MainSceneBuilder
         cam.orthographic = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = _theme.Background;
+        // 소리를 듣는 곳. 씬에 하나만 있어야 한다 (빈 씬에서 만들므로 이 카메라 것 하나뿐)
+        go.AddComponent<AudioListener>();
     }
 
     private static void CreateEventSystem()
@@ -233,7 +235,11 @@ public static class MainSceneBuilder
         Button replayButton = CreateFreeButton(screen.transform, "튜토리얼 다시 보기",
             new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.08f), _theme.ButtonSecondary);
         replayButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
-        // 오른쪽 위 작은 효과음 켜기/끄기
+        // 오른쪽 위 작은 배경음·효과음 켜기/끄기
+        Button bgmButton = CreateFreeButton(screen.transform, "배경음 켜짐",
+            new Vector2(0.25f, 0.92f), new Vector2(0.6f, 0.985f), _theme.ButtonSecondary);
+        Text bgmLabel = bgmButton.GetComponentInChildren<Text>();
+        bgmLabel.resizeTextMaxSize = _theme.SmallSize;
         Button sfxButton = CreateFreeButton(screen.transform, "효과음 켜짐",
             new Vector2(0.62f, 0.92f), new Vector2(0.97f, 0.985f), _theme.ButtonSecondary);
         Text sfxLabel = sfxButton.GetComponentInChildren<Text>();
@@ -272,6 +278,7 @@ public static class MainSceneBuilder
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.FindProperty("_audio").objectReferenceValue = audio;
         so.FindProperty("_sfxLabel").objectReferenceValue = sfxLabel;
+        so.FindProperty("_bgmLabel").objectReferenceValue = bgmLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(continueButton.onClick, title.Continue);
@@ -280,6 +287,7 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, title.CancelNewGame);
         UnityEventTools.AddVoidPersistentListener(replayButton.onClick, title.ReplayTutorial);
         UnityEventTools.AddVoidPersistentListener(sfxButton.onClick, title.ToggleSfx);
+        UnityEventTools.AddVoidPersistentListener(bgmButton.onClick, title.ToggleBgm);
     }
 
     // 위치를 직접 정하는 버튼 (ButtonArea 밖)

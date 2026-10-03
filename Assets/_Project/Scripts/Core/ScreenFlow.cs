@@ -41,6 +41,7 @@ public class ScreenFlow : MonoBehaviour
             _screens[i].SetActive(i == (int)screen);
         }
         _hud.SetActive(screen == GameScreen.Shop || screen == GameScreen.Battle);
+        AudioManager.PlayBgm(screen == GameScreen.Battle ? Bgm.Battle : Bgm.Shop);
     }
 
     // 버튼 OnClick에서 호출 (인스펙터는 enum 인자를 지원하지 않아 int로 받는다)

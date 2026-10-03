@@ -15,12 +15,15 @@ public class TitleScreen : MonoBehaviour
     [SerializeField] private AudioManager _audio;
     [Tooltip("효과음 켜기/끄기 버튼 글자")]
     [SerializeField] private Text _sfxLabel;
+    [Tooltip("배경음 켜기/끄기 버튼 글자")]
+    [SerializeField] private Text _bgmLabel;
 
     private void OnEnable()
     {
         _confirmPanel.SetActive(false);
         _messageText.text = "";
         UpdateSfxLabel();
+        UpdateBgmLabel();
 
         // 읽을 수 있는 저장 파일이 있을 때만 이어하기 (깨진 파일은 여기서 백업된다)
         bool canContinue = SaveSystem.TryLoadRun(out _, out bool wasBroken);
@@ -86,6 +89,18 @@ public class TitleScreen : MonoBehaviour
         _audio.SetSfxEnabled(!_audio.SfxEnabled);
         AudioManager.Play(Sfx.Button);
         UpdateSfxLabel();
+    }
+
+    // "배경음 켜짐/꺼짐"
+    public void ToggleBgm()
+    {
+        _audio.SetBgmEnabled(!_audio.BgmEnabled);
+        UpdateBgmLabel();
+    }
+
+    private void UpdateBgmLabel()
+    {
+        _bgmLabel.text = _audio.BgmEnabled ? "배경음 켜짐" : "배경음 꺼짐";
     }
 
     private void UpdateSfxLabel()
