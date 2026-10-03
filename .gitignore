@@ -61,3 +61,7 @@ crashlytics-build.properties
 # OS
 .DS_Store
 Thumbs.db
+
+# Unity 씬 자동 복구본 (에디터가 비정상 종료되면 생김)
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
