@@ -262,3 +262,11 @@
     - Quality: Android는 Medium 하나만 (나머지 단계에서 Android 제외, Android 기본 = Medium)
   - `ScreenFlow.Start`에서 `Application.targetFrameRate = 60`
   - 오디오는 이미 맞게 돼 있어 그대로: 효과음 Decompress On Load(PCM), 배경음 Vorbis + Streaming
+- Android 실기기 테스트 1단계: Player Settings
+  - 메뉴 `MonsterCamp > Android 플레이어 설정 적용` 추가 (`AndroidPlayerSettingsMenu`, 여러 번 실행해도 같음)
+    - 회사 이름 DefaultCompany → youstar, 제품 이름 MonsterCamp → 몬스터 캠프
+    - 패키지 이름 com.DefaultCompany.urp_2d → com.youstar.monstercamp
+    - 화면 방향 자동 회전 → 세로 고정
+    - 버전 1.0 → 0.1.0, Bundle Version Code 1 (그대로)
+    - IL2CPP·ARM64만·최소 API 25는 이미 맞아 확인만 (Console에 결과)
+  - 주의: PC 에디터의 저장 위치·PlayerPrefs는 회사·제품 이름을 따르므로, 적용 후 에디터의 기존 저장(별, 해금, 음량)은 안 보임
