@@ -55,3 +55,7 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: cf603c610dd2af746a1b3e9f4b8a264c, type: 3}
     volume: 0.9
     minInterval: 0
+  _shopBgm: {fileID: 8300000, guid: d4691d61dfec9a74d9ef19530477e8cc, type: 3}
+  _battleBgm: {fileID: 8300000, guid: a9e98bb0bd6f02743823ac8efd6dbb98, type: 3}
+  _bgmVolume: 0.5
+  _bgmFadeSeconds: 0.5
