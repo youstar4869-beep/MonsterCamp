@@ -123,6 +123,8 @@ public class FloatingTextPool : MonoBehaviour
         {
             return;
         }
+        // 캔버스 배율은 모든 글이 같으므로 프레임마다 한 번만 구한다
+        float rise = _riseHeight * _texts[0].canvas.rootCanvas.transform.lossyScale.x;
         for (int i = 0; i < _texts.Length; i++)
         {
             Text text = _texts[i];
@@ -141,7 +143,7 @@ public class FloatingTextPool : MonoBehaviour
             }
             float pop = elapsed < PopTime ? Mathf.Lerp(PopScale, 1f, elapsed / PopTime) : 1f;
             text.transform.localScale = Vector3.one * (_scales[i] * pop);
-            text.transform.position = _startPositions[i] + Vector3.up * (t * _riseHeight * text.canvas.rootCanvas.transform.lossyScale.x);
+            text.transform.position = _startPositions[i] + Vector3.up * (t * rise);
             Color color = _colors[i];
             color.a = 1f - t * t;
             text.color = color;

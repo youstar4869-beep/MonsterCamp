@@ -251,3 +251,7 @@
   - 끝을 부드럽게: 효과음 마지막 음은 뒤 30%(최소 10ms), 배경음은 음마다 뒤 25% 동안 서서히 0으로 (노이즈 북은 5ms)
   - 타이틀 제목 아래 "효과음"·"배경음" 음량 슬라이더 (PlayerPrefs `sfxVolume`·`bgmVolume`, 기본 70%). 끄는 동안 바로 반영, 저장은 타이틀을 떠날 때·앱이 내려갈 때
   - 효과음·배경음 WAV는 메뉴를 다시 실행해야 바뀜. `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 슬라이더가 생김
+- 최적화 1단계: 코드 점검 (Scripts 전체, 에디터 코드 제외)
+  - 전투·상점 쪽은 이미 정리돼 있음: 데미지 숫자·스킬 글 풀링, 숫자 글 캐싱, Update 안 GetComponent/Find/LINQ/Camera.main 없음, 전투 중 Instantiate/Destroy 없음
+  - `FloatingTextPool.Update`: 떠 있는 글마다 구하던 캔버스 배율(rootCanvas.lossyScale)을 프레임마다 한 번만 구하게
+  - 같은 시드 200판으로 `BattleSimulation` 전후 비교: 승패·틱 수·전체 이벤트 기록 모두 같음
