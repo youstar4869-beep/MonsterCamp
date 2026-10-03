@@ -14,6 +14,8 @@ public enum GameScreen
 // 화면(패널) 전환. 한 번에 한 화면만 켠다.
 public class ScreenFlow : MonoBehaviour
 {
+    private const int TargetFrameRate = 60;
+
     // GameScreen 순서대로 넣는다.
     [SerializeField] private GameObject[] _screens;
     [Tooltip("라운드·목숨·골드 상단 표시. 상점과 전투 화면에서만 보인다")]
@@ -25,6 +27,8 @@ public class ScreenFlow : MonoBehaviour
 
     private void Start()
     {
+        // 모바일 기본은 30fps라 60으로 올린다 (PC 에디터에서는 영향 없음: vSync가 우선)
+        Application.targetFrameRate = TargetFrameRate;
         Show(GameScreen.Title);
     }
 

@@ -19,6 +19,8 @@
 - [x] 16. 사운드
   - [x] 1단계: 효과음 (AudioManager, SoundConfig, 8비트 효과음 10개)
   - [x] 2단계: 배경음 (상점·전투 2곡, 화면 전환 페이드)
-- [ ] 17. 최적화
+- [x] 17. 최적화
+  - [x] 1단계: 코드 점검 (FloatingTextPool 캔버스 배율 캐싱)
+  - [x] 2단계: 크리처 Sprite Atlas, Android 60fps·ASTC·Quality 하나
 - [ ] 18. Android 실기기 테스트
 - [ ] 19. APK 빌드

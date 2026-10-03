@@ -255,3 +255,10 @@
   - 전투·상점 쪽은 이미 정리돼 있음: 데미지 숫자·스킬 글 풀링, 숫자 글 캐싱, Update 안 GetComponent/Find/LINQ/Camera.main 없음, 전투 중 Instantiate/Destroy 없음
   - `FloatingTextPool.Update`: 떠 있는 글마다 구하던 캔버스 배율(rootCanvas.lossyScale)을 프레임마다 한 번만 구하게
   - 같은 시드 200판으로 `BattleSimulation` 전후 비교: 승패·틱 수·전체 이벤트 기록 모두 같음
+- 최적화 2단계: 에셋·설정
+  - 메뉴 `MonsterCamp > 최적화 설정 적용 (Atlas·Android)` 추가 (`OptimizationSettingsMenu`, 여러 번 실행해도 같음)
+    - `Art/CreatureAtlas.spriteatlasv2`: `Art/Creatures` 폴더 전체(105장). Point, 밉맵 없음, 압축 없음(Android RGBA32 고정), 회전·타이트 패킹 끔, 여백 2
+    - Android 텍스처 압축 ASTC (Player Settings + Build Settings)
+    - Quality: Android는 Medium 하나만 (나머지 단계에서 Android 제외, Android 기본 = Medium)
+  - `ScreenFlow.Start`에서 `Application.targetFrameRate = 60`
+  - 오디오는 이미 맞게 돼 있어 그대로: 효과음 Decompress On Load(PCM), 배경음 Vorbis + Streaming
