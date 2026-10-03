@@ -12,23 +12,11 @@ public class TitleScreen : MonoBehaviour
     [Tooltip("새 게임 확인 창 (처음엔 숨김)")]
     [SerializeField] private GameObject _confirmPanel;
     [SerializeField] private Text _messageText;
-    [SerializeField] private AudioManager _audio;
-    [Tooltip("효과음 켜기/끄기 버튼 글자")]
-    [SerializeField] private Text _sfxLabel;
-    [Tooltip("배경음 켜기/끄기 버튼 글자")]
-    [SerializeField] private Text _bgmLabel;
-    [Tooltip("효과음·배경음 음량 (0~1)")]
-    [SerializeField] private Slider _sfxSlider;
-    [SerializeField] private Slider _bgmSlider;
 
     private void OnEnable()
     {
         _confirmPanel.SetActive(false);
         _messageText.text = "";
-        UpdateSfxLabel();
-        UpdateBgmLabel();
-        _sfxSlider.SetValueWithoutNotify(_audio.SfxVolume);
-        _bgmSlider.SetValueWithoutNotify(_audio.BgmVolume);
 
         // 읽을 수 있는 저장 파일이 있을 때만 이어하기 (깨진 파일은 여기서 백업된다)
         bool canContinue = SaveSystem.TryLoadRun(out _, out bool wasBroken);
@@ -37,12 +25,6 @@ public class TitleScreen : MonoBehaviour
         {
             ShowBrokenMessage();
         }
-    }
-
-    // 음량 슬라이더로 바꾼 값을 타이틀을 떠날 때 저장
-    private void OnDisable()
-    {
-        PlayerPrefs.Save();
     }
 
     // "이어하기"
@@ -92,43 +74,6 @@ public class TitleScreen : MonoBehaviour
     {
         _tutorial.CancelReplay();
         _confirmPanel.SetActive(false);
-    }
-
-    // "효과음 켜짐/꺼짐"
-    public void ToggleSfx()
-    {
-        _audio.SetSfxEnabled(!_audio.SfxEnabled);
-        AudioManager.Play(Sfx.Button);
-        UpdateSfxLabel();
-    }
-
-    // "배경음 켜짐/꺼짐"
-    public void ToggleBgm()
-    {
-        _audio.SetBgmEnabled(!_audio.BgmEnabled);
-        UpdateBgmLabel();
-    }
-
-    // 효과음 음량 슬라이더
-    public void SetSfxVolume(float volume)
-    {
-        _audio.SetSfxVolume(volume);
-    }
-
-    // 배경음 음량 슬라이더
-    public void SetBgmVolume(float volume)
-    {
-        _audio.SetBgmVolume(volume);
-    }
-
-    private void UpdateBgmLabel()
-    {
-        _bgmLabel.text = _audio.BgmEnabled ? "배경음 켜짐" : "배경음 꺼짐";
-    }
-
-    private void UpdateSfxLabel()
-    {
-        _sfxLabel.text = _audio.SfxEnabled ? "효과음 켜짐" : "효과음 꺼짐";
     }
 
     private void ShowBrokenMessage()

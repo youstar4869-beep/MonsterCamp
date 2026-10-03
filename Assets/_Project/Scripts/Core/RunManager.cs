@@ -99,6 +99,8 @@ public class RunManager : MonoBehaviour
     // 상점의 "전투 시작" (팀이 비어 있지 않은 것은 상점에서 확인)
     public void BeginBattle(CreatureInstance[] team)
     {
+        // 전투 중에 나가거나 꺼져도 전투 직전 상점 상태로 이어하게 저장
+        SaveRun();
         _inShop = false;
 
         // 전투에 나가는 팀 칸 크리처의 행운 동전만 센다 (여러 개면 더함)
@@ -221,6 +223,17 @@ public class RunManager : MonoBehaviour
             ? $"{_config.RoundCount}라운드 보스까지 승리했어요"
             : $"{_round}라운드에서 목숨을 모두 잃었어요";
         _flow.Show(GameScreen.Result);
+    }
+
+    // 설정 창 "타이틀로 나가기": 상점이면 지금 상태를 저장 (전투 중이면 BeginBattle에서 저장한 것 그대로)
+    public void ExitToTitle()
+    {
+        SaveRun();
+        _inShop = false;
+        _tutorial.Stop();
+        _tip.Close();
+        _shop.ClosePopups();
+        _flow.Show(GameScreen.Title);
     }
 
     // Android에서 앱이 내려갈 때

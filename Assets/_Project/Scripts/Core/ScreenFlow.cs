@@ -25,6 +25,8 @@ public class ScreenFlow : MonoBehaviour
 
     private GameScreen? _current;
 
+    public GameScreen Current => _current ?? GameScreen.Title;
+
     private void Start()
     {
         // 모바일 기본은 30fps라 60으로 올린다 (PC 에디터에서는 영향 없음: vSync가 우선)

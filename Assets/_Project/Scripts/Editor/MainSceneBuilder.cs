@@ -52,6 +52,8 @@ public static class MainSceneBuilder
         _theme = UIThemeBuilder.GetOrCreate();
         // 한글 글꼴이 없으면 Unity 기본 글꼴 (기기 글꼴로 한글을 대신 그림)
         _font = _theme.Font != null ? _theme.Font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        // 톱니바퀴 그림은 씬을 만들기 전에 준비 (만드는 중에 에셋을 가져오면 연결이 끊길 수 있음)
+        Sprite gearSprite = HudIconBuilder.Gear;
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -87,7 +89,7 @@ public static class MainSceneBuilder
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
         TipPopup tipPopup = CreateTipPopup(canvas);
 
-        BuildTitleUI(title, flow, run, tutorial, audio);
+        BuildTitleUI(title, flow, run, tutorial);
         BuildCodexUI(codex, flow, meta);
 
         // 결과 화면: 클리어/게임 오버 + 설명 + 별 + 타이틀로
@@ -106,6 +108,8 @@ public static class MainSceneBuilder
 
         // 튜토리얼 화면은 모든 화면·상단 표시보다 위에 그려지도록 여기서 만든다
         BuildTutorialUI(canvas, tutorial, meta, shopScreen, (RectTransform)battleButton.transform, infoPopup);
+        // ⚙ 버튼과 설정 창은 튜토리얼 중에도 누를 수 있게 그 위에 (씬에 하나)
+        BuildSettingsUI(canvas, gearSprite, flow, run, audio);
 
         // 새 런 시작 (1라운드 상점으로 이동은 RunManager가 한다)
         BuildTrainerSelectUI(trainer, run, meta);
@@ -224,8 +228,7 @@ public static class MainSceneBuilder
     }
 
     // 타이틀 화면: 제목 / 안내 문구 / 이어하기(저장된 판이 있을 때만) / 새 게임 + 새 게임 확인 창
-    private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run, TutorialController tutorial,
-        AudioManager audio)
+    private static void BuildTitleUI(GameObject screen, ScreenFlow flow, RunManager run, TutorialController tutorial)
     {
         // 버튼 3개(이어하기, 새 게임, 도감)가 들어가도록 버튼 영역을 넓히고, 맨 아래에 작은 "튜토리얼 다시 보기"
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.15f, 0.09f), new Vector2(0.85f, 0.41f));
@@ -235,18 +238,6 @@ public static class MainSceneBuilder
         Button replayButton = CreateFreeButton(screen.transform, "튜토리얼 다시 보기",
             new Vector2(0.28f, 0.015f), new Vector2(0.72f, 0.08f), _theme.ButtonSecondary);
         replayButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
-        // 오른쪽 위 작은 배경음·효과음 켜기/끄기
-        Button bgmButton = CreateFreeButton(screen.transform, "배경음 켜짐",
-            new Vector2(0.25f, 0.92f), new Vector2(0.6f, 0.985f), _theme.ButtonSecondary);
-        Text bgmLabel = bgmButton.GetComponentInChildren<Text>();
-        bgmLabel.resizeTextMaxSize = _theme.SmallSize;
-        Button sfxButton = CreateFreeButton(screen.transform, "효과음 켜짐",
-            new Vector2(0.62f, 0.92f), new Vector2(0.97f, 0.985f), _theme.ButtonSecondary);
-        Text sfxLabel = sfxButton.GetComponentInChildren<Text>();
-        sfxLabel.resizeTextMaxSize = _theme.SmallSize;
-        // 제목 아래 음량 슬라이더 2개
-        Slider sfxSlider = CreateVolumeSlider(screen.transform, "효과음", 0.62f, 0.68f);
-        Slider bgmSlider = CreateVolumeSlider(screen.transform, "배경음", 0.53f, 0.59f);
 
         Text messageText = CreateText(screen.transform, "MessageText", "", _theme.BodySize, new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.5f));
         messageText.color = _theme.Negative;
@@ -279,11 +270,6 @@ public static class MainSceneBuilder
         so.FindProperty("_continueButton").objectReferenceValue = continueButton.gameObject;
         so.FindProperty("_confirmPanel").objectReferenceValue = panel;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
-        so.FindProperty("_audio").objectReferenceValue = audio;
-        so.FindProperty("_sfxLabel").objectReferenceValue = sfxLabel;
-        so.FindProperty("_bgmLabel").objectReferenceValue = bgmLabel;
-        so.FindProperty("_sfxSlider").objectReferenceValue = sfxSlider;
-        so.FindProperty("_bgmSlider").objectReferenceValue = bgmSlider;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(continueButton.onClick, title.Continue);
@@ -291,10 +277,78 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, title.ConfirmNewGame);
         UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, title.CancelNewGame);
         UnityEventTools.AddVoidPersistentListener(replayButton.onClick, title.ReplayTutorial);
-        UnityEventTools.AddVoidPersistentListener(sfxButton.onClick, title.ToggleSfx);
-        UnityEventTools.AddVoidPersistentListener(bgmButton.onClick, title.ToggleBgm);
-        UnityEventTools.AddPersistentListener(sfxSlider.onValueChanged, title.SetSfxVolume);
-        UnityEventTools.AddPersistentListener(bgmSlider.onValueChanged, title.SetBgmVolume);
+    }
+
+    // 모든 화면 오른쪽 위 ⚙ 버튼 (상단 표시 줄 오른쪽 끝, 안전 영역 안) + 설정 창 (창 바깥을 누르면 닫힘)
+    private static void BuildSettingsUI(Transform canvas, Sprite gearSprite, ScreenFlow flow, RunManager run, AudioManager audio)
+    {
+        Button gearButton = CreateFreeButton(canvas, "", new Vector2(0.905f, 0.948f), new Vector2(0.995f, 0.997f),
+            _theme.ButtonSecondary);
+        gearButton.name = "SettingsButton";
+        var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        iconGo.transform.SetParent(gearButton.transform, false);
+        Stretch(iconGo.GetComponent<RectTransform>(), new Vector2(0.12f, 0.12f), new Vector2(0.88f, 0.88f));
+        var icon = iconGo.GetComponent<Image>();
+        icon.sprite = gearSprite;
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+
+        RectTransform root = CreateModalRoot(canvas, "SettingsPanel", out Button backgroundButton);
+        RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
+        Round(window.GetComponent<Image>(), 36f);
+        Stretch(window, new Vector2(0.06f, 0.3f), new Vector2(0.94f, 0.72f));
+
+        Text titleText = CreateText(window, "Title", "설정", _theme.HeadingSize, new Vector2(0.05f, 0.86f), new Vector2(0.72f, 0.97f));
+        titleText.alignment = TextAnchor.MiddleLeft;
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.74f, 0.86f), new Vector2(0.96f, 0.97f),
+            _theme.ButtonSecondary);
+
+        Button sfxButton = CreateFreeButton(window, "효과음 켜짐", new Vector2(0.06f, 0.7f), new Vector2(0.94f, 0.81f),
+            _theme.ButtonSecondary);
+        Slider sfxSlider = CreateVolumeSlider(window, "효과음", 0.58f, 0.68f);
+        Button bgmButton = CreateFreeButton(window, "배경음 켜짐", new Vector2(0.06f, 0.43f), new Vector2(0.94f, 0.54f),
+            _theme.ButtonSecondary);
+        Slider bgmSlider = CreateVolumeSlider(window, "배경음", 0.31f, 0.41f);
+        Button exitButton = CreateFreeButton(window, "타이틀로 나가기", new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.19f),
+            _theme.ButtonDanger);
+
+        // 나가기 확인 창: 설정 창 전체를 어둡게 덮어 뒤의 버튼이 눌리지 않게 한다
+        RectTransform confirmPanel = CreatePanel(root, "ConfirmPanel", _theme.Dim, true);
+        RectTransform box = CreatePanel(confirmPanel, "Box", _theme.Panel, true);
+        Round(box.GetComponent<Image>(), 36f);
+        Stretch(box, new Vector2(0.08f, 0.38f), new Vector2(0.92f, 0.62f));
+        CreateText(box, "Question", "진행 상황은 저장됩니다.\n타이틀로 나갈까요?", _theme.LargeSize,
+            new Vector2(0.05f, 0.45f), new Vector2(0.95f, 0.92f));
+        Button confirmButton = CreateFreeButton(box, "나가기", new Vector2(0.06f, 0.1f), new Vector2(0.48f, 0.38f),
+            _theme.ButtonPrimary);
+        Button cancelButton = CreateFreeButton(box, "취소", new Vector2(0.52f, 0.1f), new Vector2(0.94f, 0.38f),
+            _theme.ButtonSecondary);
+        confirmPanel.gameObject.SetActive(false);
+
+        var panel = root.gameObject.AddComponent<SettingsPanel>();
+        var so = new SerializedObject(panel);
+        so.FindProperty("_flow").objectReferenceValue = flow;
+        so.FindProperty("_run").objectReferenceValue = run;
+        so.FindProperty("_audio").objectReferenceValue = audio;
+        so.FindProperty("_sfxLabel").objectReferenceValue = sfxButton.GetComponentInChildren<Text>();
+        so.FindProperty("_bgmLabel").objectReferenceValue = bgmButton.GetComponentInChildren<Text>();
+        so.FindProperty("_sfxSlider").objectReferenceValue = sfxSlider;
+        so.FindProperty("_bgmSlider").objectReferenceValue = bgmSlider;
+        so.FindProperty("_exitButton").objectReferenceValue = exitButton.gameObject;
+        so.FindProperty("_confirmPanel").objectReferenceValue = confirmPanel.gameObject;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(gearButton.onClick, panel.Open);
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, panel.Close);
+        UnityEventTools.AddVoidPersistentListener(closeButton.onClick, panel.Close);
+        UnityEventTools.AddVoidPersistentListener(sfxButton.onClick, panel.ToggleSfx);
+        UnityEventTools.AddVoidPersistentListener(bgmButton.onClick, panel.ToggleBgm);
+        UnityEventTools.AddPersistentListener(sfxSlider.onValueChanged, panel.SetSfxVolume);
+        UnityEventTools.AddPersistentListener(bgmSlider.onValueChanged, panel.SetBgmVolume);
+        UnityEventTools.AddVoidPersistentListener(exitButton.onClick, panel.AskExit);
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, panel.ConfirmExit);
+        UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, panel.CancelExit);
+        root.gameObject.SetActive(false);
     }
 
     // 음량 슬라이더 한 줄: 왼쪽 이름 + 막대(0~1, 처음 0.7). 손잡이는 크게 해서 손가락으로 잡기 쉽게
@@ -1232,15 +1286,15 @@ public static class MainSceneBuilder
                 heartsStart + heartWidth * i, heartsStart + heartWidth * (i + 1));
         }
 
-        CreateHudIcon(hud.transform, "GoldIcon", coinSprite, 0.56f, 0.63f);
-        goldText = CreateText(hud.transform, "GoldText", "", _theme.HeadingSize, new Vector2(0.635f, 0f), new Vector2(0.755f, 1f));
+        CreateHudIcon(hud.transform, "GoldIcon", coinSprite, 0.54f, 0.61f);
+        goldText = CreateText(hud.transform, "GoldText", "", _theme.HeadingSize, new Vector2(0.615f, 0f), new Vector2(0.725f, 1f));
         goldText.color = _theme.Gold;
         // 누르면 규칙 안내가 나온다는 작은 표시
-        Text goldHelp = CreateText(hud.transform, "GoldHelpMark", "?", _theme.SmallSize, new Vector2(0.755f, 0.15f), new Vector2(0.79f, 0.85f));
+        Text goldHelp = CreateText(hud.transform, "GoldHelpMark", "?", _theme.SmallSize, new Vector2(0.725f, 0.15f), new Vector2(0.76f, 0.85f));
         goldHelp.color = _theme.TextSub;
 
-        CreateHudIcon(hud.transform, "StarIcon", starSprite, 0.85f, 0.92f);
-        Text starsText = CreateText(hud.transform, "StarsText", "", _theme.BodySize, new Vector2(0.925f, 0f), new Vector2(0.995f, 1f));
+        CreateHudIcon(hud.transform, "StarIcon", starSprite, 0.77f, 0.84f);
+        Text starsText = CreateText(hud.transform, "StarsText", "", _theme.BodySize, new Vector2(0.845f, 0f), new Vector2(0.9f, 1f));
         starsText.alignment = TextAnchor.MiddleLeft;
         starsText.color = _theme.Accent;
 

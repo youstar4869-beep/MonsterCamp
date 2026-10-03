@@ -2,7 +2,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-// 상단 정보바 아이콘 (32x32 픽셀 그림, Art/Creatures와 같은 임포트 설정): 하트, 빈 하트, 동전, 별, 깃발.
+// 상단 정보바 아이콘 (32x32 픽셀 그림, Art/Creatures와 같은 임포트 설정): 하트, 빈 하트, 동전, 별, 깃발, 톱니바퀴(설정).
 // 모양은 "안쪽인지"로 정하고, 테두리 1픽셀·왼쪽 위 밝은 면·오른쪽 아래 어두운 면을 칠한다.
 // 이미 있는 그림은 다시 만들지 않는다 (직접 그린 그림으로 바꿔도 보호)
 public static class HudIconBuilder
@@ -26,6 +26,9 @@ public static class HudIconBuilder
     public static Sprite Flag => GetOrCreate("Flag", InsideFlag,
         new Color(0.92f, 0.32f, 0.3f), new Color(0.32f, 0.12f, 0.1f), new Color(1f, 0.62f, 0.55f), new Color(0.7f, 0.2f, 0.2f),
         (x, y) => FlagPole(x, y) ? new Color(0.62f, 0.45f, 0.3f) : (Color?)null);
+
+    public static Sprite Gear => GetOrCreate("Gear", InsideGear,
+        new Color(0.78f, 0.8f, 0.86f), new Color(0.2f, 0.21f, 0.27f), new Color(0.96f, 0.97f, 1f), new Color(0.52f, 0.54f, 0.62f));
 
     private static Sprite GetOrCreate(string name, System.Func<float, float, bool> inside,
         Color fill, Color outline, Color light, Color shade, System.Func<int, int, Color?> decorate = null)
@@ -158,5 +161,20 @@ public static class HudIconBuilder
         }
         float notch = 22f + Mathf.Abs(y - 22f) * 0.85f;
         return x <= notch;
+    }
+
+    // 톱니바퀴: 반지름 10.5 몸통 + 톱니 8개(반지름 14.5까지), 가운데 반지름 4.5 구멍
+    private static bool InsideGear(float x, float y)
+    {
+        float dx = x - 16f;
+        float dy = y - 16f;
+        float r = Mathf.Sqrt(dx * dx + dy * dy);
+        if (r < 4.5f || r > 14.5f)
+        {
+            return false;
+        }
+        // 톱니 하나 = 45도 중 가운데 20도쯤
+        float sector = Mathf.Repeat(Mathf.Atan2(dy, dx) * Mathf.Rad2Deg + 22.5f, 45f);
+        return r <= 10.5f || Mathf.Abs(sector - 22.5f) <= 10f;
     }
 }

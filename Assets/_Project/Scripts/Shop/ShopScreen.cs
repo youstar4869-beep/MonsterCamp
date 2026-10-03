@@ -273,7 +273,7 @@ public class ShopScreen : MonoBehaviour
         _synergyPanel.Show(_typeCounts, _synergy);
     }
 
-    private void ClosePopups()
+    public void ClosePopups()
     {
         _infoPopup.Close();
         _synergyPanel.Close();
