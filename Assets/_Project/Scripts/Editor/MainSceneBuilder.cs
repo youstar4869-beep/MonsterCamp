@@ -92,6 +92,7 @@ public static class MainSceneBuilder
         CreatureInfoPopup infoPopup = CreateCreatureInfoPopup(canvas);
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
         FusionPanel fusionPanel = CreateFusionPanel(canvas);
+        FusionBookPanel fusionBookPanel = CreateFusionBookPanel(canvas);
         // 도움말 창은 조합 창보다 위 ("새 조합식 발견!")
         TipPopup tipPopup = CreateTipPopup(canvas);
 
@@ -109,7 +110,7 @@ public static class MainSceneBuilder
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, run, meta, hud, goldText, infoPopup, synergyPanel, fusionPanel, tipPopup,
+        ShopScreen shopScreen = BuildShopUI(shop, run, meta, hud, goldText, infoPopup, synergyPanel, fusionPanel, fusionBookPanel, tipPopup,
             out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
@@ -939,12 +940,27 @@ public static class MainSceneBuilder
         Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.925f), new Vector2(1f, 0.985f));
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.25f, 0.015f), new Vector2(0.75f, 0.1f));
 
-        Text starsText = CreateText(screen.transform, "StarsText", "", _theme.LargeSize, new Vector2(0f, 0.88f), new Vector2(1f, 0.925f));
+        // 별 + "크리처 / 조합식" 탭 (조합식 탭은 조합 해금 전에는 숨김)
+        Text starsText = CreateText(screen.transform, "StarsText", "", _theme.LargeSize, new Vector2(0.02f, 0.88f), new Vector2(0.3f, 0.925f));
         starsText.color = _theme.Gold;
+        Button creatureTabButton = CreateFreeButton(screen.transform, "크리처", new Vector2(0.32f, 0.88f), new Vector2(0.64f, 0.925f), _theme.ButtonInfo);
+        Button recipeTabButton = CreateFreeButton(screen.transform, "조합식", new Vector2(0.66f, 0.88f), new Vector2(0.98f, 0.925f), _theme.ButtonInfo);
+        creatureTabButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
+        recipeTabButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
 
-        Text trainerLabel = CreateText(screen.transform, "TrainerLabel", "트레이너", _theme.SmallSize, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
+        // 탭 하나가 켜지면 다른 하나는 꺼진다. 앵커는 화면 전체 기준 그대로
+        Transform creatureTab = CreateTabRoot(screen.transform, "CreatureTab");
+        Transform recipeTab = CreateTabRoot(screen.transform, "RecipeTab");
+        FusionRecipe[] recipes = GetSortedRecipes();
+        Text recipeCountText = CreateText(recipeTab, "RecipeCount", "", _theme.SmallSize, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
+        recipeCountText.color = _theme.Gold;
+        Transform recipeContent = CreateVerticalScroll(recipeTab, "RecipeScroll", new Vector2(0.03f, 0.135f), new Vector2(0.97f, 0.85f));
+        FusionRecipeRowView[] recipeRows = CreateFusionRecipeRows(recipeContent, recipes.Length);
+        recipeTab.gameObject.SetActive(false);
+
+        Text trainerLabel = CreateText(creatureTab, "TrainerLabel", "트레이너", _theme.SmallSize, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
         trainerLabel.alignment = TextAnchor.MiddleLeft;
-        Transform trainerRow = CreateRow(screen.transform, "TrainerRow", new Vector2(0.03f, 0.7f), new Vector2(0.97f, 0.85f));
+        Transform trainerRow = CreateRow(creatureTab, "TrainerRow", new Vector2(0.03f, 0.7f), new Vector2(0.97f, 0.85f));
         TrainerData[] trainers = GetOrCreateTrainers();
         var trainerEntries = new CodexEntryView[trainers.Length];
         for (int i = 0; i < trainers.Length; i++)
@@ -952,11 +968,11 @@ public static class MainSceneBuilder
             trainerEntries[i] = CreateCodexEntry(trainerRow, "Trainer" + i, false);
         }
 
-        Text creatureLabel = CreateText(screen.transform, "CreatureLabel", "크리처", _theme.SmallSize, new Vector2(0.03f, 0.665f), new Vector2(0.97f, 0.695f));
+        Text creatureLabel = CreateText(creatureTab, "CreatureLabel", "크리처", _theme.SmallSize, new Vector2(0.03f, 0.665f), new Vector2(0.97f, 0.695f));
         creatureLabel.alignment = TextAnchor.MiddleLeft;
         // 크리처 35종은 위아래로 스크롤. 가격이 바뀌면 새 줄, 한 줄에 최대 5칸 (1·2골드 2줄, 3·4·5골드 1줄)
         CreatureData[] creatures = GetSortedCreatures();
-        Transform scrollContent = CreateVerticalScroll(screen.transform, "CreatureScroll",
+        Transform scrollContent = CreateVerticalScroll(creatureTab, "CreatureScroll",
             new Vector2(0.03f, 0.135f), new Vector2(0.97f, 0.66f));
         var creatureEntries = new CodexEntryView[creatures.Length];
         Transform row = null;
@@ -987,10 +1003,18 @@ public static class MainSceneBuilder
         SetArray(so.FindProperty("_trainerEntries"), trainerEntries);
         SetArray(so.FindProperty("_creatures"), creatures);
         SetArray(so.FindProperty("_creatureEntries"), creatureEntries);
+        so.FindProperty("_creatureTab").objectReferenceValue = creatureTab.gameObject;
+        so.FindProperty("_recipeTab").objectReferenceValue = recipeTab.gameObject;
+        so.FindProperty("_recipeTabButton").objectReferenceValue = recipeTabButton.gameObject;
+        SetArray(so.FindProperty("_recipes"), recipes);
+        SetArray(so.FindProperty("_recipeRows"), recipeRows);
+        so.FindProperty("_recipeCountText").objectReferenceValue = recipeCountText;
         so.FindProperty("_starsText").objectReferenceValue = starsText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.ApplyModifiedPropertiesWithoutUndo();
 
+        UnityEventTools.AddIntPersistentListener(creatureTabButton.onClick, codex.ShowTab, 0);
+        UnityEventTools.AddIntPersistentListener(recipeTabButton.onClick, codex.ShowTab, 1);
         for (int i = 0; i < trainerEntries.Length; i++)
         {
             UnityEventTools.AddIntPersistentListener(trainerEntries[i].GetComponentInChildren<Button>(true).onClick, codex.UnlockTrainer, i);
@@ -999,6 +1023,116 @@ public static class MainSceneBuilder
         {
             UnityEventTools.AddIntPersistentListener(creatureEntries[i].GetComponentInChildren<Button>(true).onClick, codex.UnlockCreature, i);
         }
+    }
+
+    // 화면 전체 크기의 빈 묶음 (탭 하나를 통째로 켜고 끄는 용도)
+    private static Transform CreateTabRoot(Transform parent, string name)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        return go.transform;
+    }
+
+    // 조합식 전부, 등급순(하급→중급→교차→상급), 같은 등급은 이름순
+    private static FusionRecipe[] GetSortedRecipes()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:FusionRecipe");
+        var recipes = new FusionRecipe[guids.Length];
+        for (int i = 0; i < guids.Length; i++)
+        {
+            recipes[i] = AssetDatabase.LoadAssetAtPath<FusionRecipe>(AssetDatabase.GUIDToAssetPath(guids[i]));
+        }
+        recipes = System.Array.FindAll(recipes, r => r != null);
+        System.Array.Sort(recipes, (a, b) => a.Grade != b.Grade ? a.Grade.CompareTo(b.Grade) : string.CompareOrdinal(a.name, b.name));
+        return recipes;
+    }
+
+    // 조합식 줄 count개 (도감 탭과 상점 창이 같이 씀). 줄 하나 약 1000 x 270
+    private static FusionRecipeRowView[] CreateFusionRecipeRows(Transform content, int count)
+    {
+        var rows = new FusionRecipeRowView[count];
+        for (int i = 0; i < count; i++)
+        {
+            var go = new GameObject("Recipe" + i, typeof(RectTransform), typeof(Image), typeof(FusionRecipeRowView),
+                typeof(LayoutElement), typeof(Outline));
+            go.transform.SetParent(content, false);
+            go.GetComponent<Image>().color = _theme.Slot;
+            go.GetComponent<LayoutElement>().preferredHeight = 270f;
+            var frame = go.GetComponent<Outline>();
+            frame.effectDistance = new Vector2(5f, -5f);
+            frame.enabled = false;
+
+            Text gradeText = CreateText(go.transform, "Grade", "", _theme.TinySize, new Vector2(0.01f, 0.84f), new Vector2(0.2f, 0.98f));
+            gradeText.color = _theme.Accent;
+            Image iconA = CreateRecipeIcon(go.transform, "IconA", 0.03f, 0.2f);
+            Text nameA = CreateText(go.transform, "NameA", "", _theme.TinySize, new Vector2(0.01f, 0.04f), new Vector2(0.22f, 0.24f));
+            CreateText(go.transform, "Plus", "+", _theme.HeadingSize, new Vector2(0.21f, 0.4f), new Vector2(0.26f, 0.7f));
+            Image iconB = CreateRecipeIcon(go.transform, "IconB", 0.27f, 0.44f);
+            Text nameB = CreateText(go.transform, "NameB", "", _theme.TinySize, new Vector2(0.25f, 0.04f), new Vector2(0.46f, 0.24f));
+            CreateText(go.transform, "Arrow", "→", _theme.HeadingSize, new Vector2(0.45f, 0.4f), new Vector2(0.5f, 0.7f));
+            Image iconResult = CreateRecipeIcon(go.transform, "IconResult", 0.51f, 0.68f);
+            Text nameResult = CreateText(go.transform, "NameResult", "", _theme.TinySize, new Vector2(0.49f, 0.04f), new Vector2(0.7f, 0.24f));
+            nameResult.color = _theme.Gold;
+            Text infoText = CreateLeftText(go.transform, "Info", _theme.TinySize, new Vector2(0.71f, 0.05f), new Vector2(0.99f, 0.95f));
+            infoText.color = _theme.TextSub;
+
+            rows[i] = go.GetComponent<FusionRecipeRowView>();
+            var so = new SerializedObject(rows[i]);
+            so.FindProperty("_gradeText").objectReferenceValue = gradeText;
+            so.FindProperty("_iconA").objectReferenceValue = iconA;
+            so.FindProperty("_nameA").objectReferenceValue = nameA;
+            so.FindProperty("_iconB").objectReferenceValue = iconB;
+            so.FindProperty("_nameB").objectReferenceValue = nameB;
+            so.FindProperty("_iconResult").objectReferenceValue = iconResult;
+            so.FindProperty("_nameResult").objectReferenceValue = nameResult;
+            so.FindProperty("_infoText").objectReferenceValue = infoText;
+            so.FindProperty("_frame").objectReferenceValue = frame;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+        return rows;
+    }
+
+    private static Image CreateRecipeIcon(Transform parent, string name, float xMin, float xMax)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>(), new Vector2(xMin, 0.26f), new Vector2(xMax, 0.84f));
+        var image = go.GetComponent<Image>();
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    // 상점 조합식 창: 어두운 바탕(누르면 닫힘) + 가운데 큰 창(제목, 발견 n/17, 닫기, 스크롤 목록)
+    private static FusionBookPanel CreateFusionBookPanel(Transform canvas)
+    {
+        RectTransform root = CreateModalRoot(canvas, "FusionBookPanel", out Button backgroundButton);
+        RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
+        Round(window.GetComponent<Image>(), 36f);
+        Stretch(window, new Vector2(0.03f, 0.1f), new Vector2(0.97f, 0.9f));
+        CreateText(window, "Title", "조합식", _theme.HeadingSize, new Vector2(0.04f, 0.92f), new Vector2(0.36f, 0.99f));
+        Text countText = CreateText(window, "Count", "", _theme.BodySize, new Vector2(0.36f, 0.92f), new Vector2(0.72f, 0.99f));
+        countText.color = _theme.Gold;
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.75f, 0.925f), new Vector2(0.97f, 0.985f),
+            _theme.ButtonSecondary);
+        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
+        Transform content = CreateVerticalScroll(window, "RecipeScroll", new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.91f));
+        FusionRecipe[] recipes = GetSortedRecipes();
+        FusionRecipeRowView[] rows = CreateFusionRecipeRows(content, recipes.Length);
+
+        var panel = root.gameObject.AddComponent<FusionBookPanel>();
+        var so = new SerializedObject(panel);
+        SetArray(so.FindProperty("_recipes"), recipes);
+        SetArray(so.FindProperty("_rows"), rows);
+        so.FindProperty("_countText").objectReferenceValue = countText;
+        so.FindProperty("_scroll").objectReferenceValue = content.parent.GetComponent<ScrollRect>();
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, panel.Close);
+        UnityEventTools.AddVoidPersistentListener(closeButton.onClick, panel.Close);
+        root.gameObject.SetActive(false);
+        return panel;
     }
 
     // 위아래 스크롤 목록. 돌려주는 Transform에 줄을 넣는다 (줄 높이만큼 자동으로 길어짐)
@@ -1691,7 +1825,7 @@ public static class MainSceneBuilder
     // (상단 표시: 라운드·목숨·골드) / 트레이너·새로고침 / 상점 크리처 5칸 + 아이템 1칸 / 메시지 / 시너지
     // / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 아이템 보관함 3칸 + 전투 시작
     private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, HudView hud, Text goldText,
-        CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, FusionPanel fusionPanel, TipPopup tipPopup, out Text trainerText)
+        CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, FusionPanel fusionPanel, FusionBookPanel fusionBookPanel, TipPopup tipPopup, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
         trainerText = CreateText(screen.transform, "TrainerText", "", _theme.TinySize,
@@ -1748,6 +1882,12 @@ public static class MainSceneBuilder
         fusionLabel.resizeTextMaxSize = _theme.SmallSize;
         AddHitArea(fusionButton, 0f, 0f, 0f, 38f);
         fusionButton.gameObject.SetActive(false);
+        // 조합 버튼 왼쪽: 조합식 목록 (이모지는 글꼴에 없어 글자로)
+        Button fusionBookButton = CreateFreeButton(screen.transform, "조합식",
+            new Vector2(0.53f, 0.664f), new Vector2(0.64f, 0.694f), _theme.ButtonInfo);
+        fusionBookButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
+        AddHitArea(fusionBookButton, 0f, 0f, 0f, 38f);
+        fusionBookButton.gameObject.SetActive(false);
 
         // 팀 칸: 약 300 x 290 (가장 크게). 위가 앞줄
         Color teamColor = _theme.TeamSlot;
@@ -1833,6 +1973,8 @@ public static class MainSceneBuilder
         so.FindProperty("_fusionButton").objectReferenceValue = fusionButton;
         so.FindProperty("_fusionLabel").objectReferenceValue = fusionLabel;
         so.FindProperty("_fusionPanel").objectReferenceValue = fusionPanel;
+        so.FindProperty("_fusionBookButton").objectReferenceValue = fusionBookButton;
+        so.FindProperty("_fusionBookPanel").objectReferenceValue = fusionBookPanel;
         so.FindProperty("_tip").objectReferenceValue = tipPopup;
         so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -1854,6 +1996,7 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(synergyTextButton.onClick, shop.OpenSynergyPanel);
         UnityEventTools.AddVoidPersistentListener(synergyButton.onClick, shop.OpenSynergyPanel);
         UnityEventTools.AddVoidPersistentListener(fusionButton.onClick, shop.OpenFusionPanel);
+        UnityEventTools.AddVoidPersistentListener(fusionBookButton.onClick, shop.OpenFusionBook);
         // 크리처 칸을 누르면 정보 창 (구매·판매는 창의 버튼으로)
         for (int i = 0; i < shopSlots.Length; i++)
         {

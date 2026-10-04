@@ -43,6 +43,9 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private Button _fusionButton;
     [SerializeField] private Text _fusionLabel;
     [SerializeField] private FusionPanel _fusionPanel;
+    [Tooltip("조합 버튼 왼쪽 \"조합식\" 버튼과 목록 창")]
+    [SerializeField] private Button _fusionBookButton;
+    [SerializeField] private FusionBookPanel _fusionBookPanel;
     [Tooltip("\"새 조합식 발견!\" 알림")]
     [SerializeField] private TipPopup _tip;
 
@@ -294,9 +297,30 @@ public class ShopScreen : MonoBehaviour
         _infoPopup.Close();
         _synergyPanel.Close();
         _fusionPanel.Close();
+        _fusionBookPanel.Close();
     }
 
     // ---------- 조합 ----------
+
+    // 조합식 버튼: 런 중 언제든 열고 닫는다
+    public void OpenFusionBook()
+    {
+        if (!_meta.FusionUnlocked)
+        {
+            return;
+        }
+        _fusionBookPanel.Show(_meta, GetFusionHighlight);
+    }
+
+    // 조합식 창 줄 강조: 2 지금 만들 수 있음, 1 재료 1마리 이상 있음, 0 없음
+    private int GetFusionHighlight(FusionRecipe recipe)
+    {
+        if (Fusion.TryPlan(recipe, _team, _bench, out _))
+        {
+            return 2;
+        }
+        return Fusion.Has(recipe.MaterialA, _team, _bench) || Fusion.Has(recipe.MaterialB, _team, _bench) ? 1 : 0;
+    }
 
     // "조합" 버튼: 지금 만들 수 있는 조합 목록 → 고르면 확인 창
     public void OpenFusionPanel()
@@ -363,13 +387,14 @@ public class ShopScreen : MonoBehaviour
     {
         bool unlocked = _meta.FusionUnlocked;
         _fusionButton.gameObject.SetActive(unlocked);
+        _fusionBookButton.gameObject.SetActive(unlocked);
         // 조합 버튼이 보이면 시너지 줄을 버튼 왼쪽까지 줄인다
         RectTransform synergyRect = _synergyText.rectTransform;
         if (_synergyTextRight < 0f)
         {
             _synergyTextRight = synergyRect.anchorMax.x;
         }
-        float right = unlocked ? ((RectTransform)_fusionButton.transform).anchorMin.x - 0.01f : _synergyTextRight;
+        float right = unlocked ? ((RectTransform)_fusionBookButton.transform).anchorMin.x - 0.01f : _synergyTextRight;
         synergyRect.anchorMax = new Vector2(right, synergyRect.anchorMax.y);
         if (!unlocked)
         {

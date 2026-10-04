@@ -10,12 +10,24 @@ public class CodexScreen : MonoBehaviour
     [Tooltip("가격 순, 같은 가격은 타입 순")]
     [SerializeField] private CreatureData[] _creatures;
     [SerializeField] private CodexEntryView[] _creatureEntries;
+    [Header("조합식 탭 (조합 해금 전에는 탭 버튼이 안 보임)")]
+    [SerializeField] private GameObject _creatureTab;
+    [SerializeField] private GameObject _recipeTab;
+    [SerializeField] private GameObject _recipeTabButton;
+    [Tooltip("등급순 조합식 (줄과 같은 순서)")]
+    [SerializeField] private FusionRecipe[] _recipes;
+    [SerializeField] private FusionRecipeRowView[] _recipeRows;
+    [SerializeField] private Text _recipeCountText;
+    [Space]
     [SerializeField] private Text _starsText;
     [SerializeField] private Text _messageText;
+
+    private bool _showRecipes;
 
     private void OnEnable()
     {
         _messageText.text = "";
+        _showRecipes = false;
         _meta.Changed += Refresh;
         Refresh();
     }
@@ -41,9 +53,33 @@ public class CodexScreen : MonoBehaviour
         Refresh();
     }
 
+    // 탭 버튼: 0 크리처, 1 조합식
+    public void ShowTab(int tab)
+    {
+        _showRecipes = tab == 1;
+        Refresh();
+    }
+
     private void Refresh()
     {
         _starsText.text = $"★ {_meta.Stars}";
+
+        bool fusionUnlocked = _meta.FusionUnlocked;
+        bool recipes = _showRecipes && fusionUnlocked;
+        _recipeTabButton.SetActive(fusionUnlocked);
+        _creatureTab.SetActive(!recipes);
+        _recipeTab.SetActive(recipes);
+        if (recipes)
+        {
+            int discovered = 0;
+            for (int i = 0; i < _recipes.Length; i++)
+            {
+                bool known = FusionRecipeRowView.IsKnown(_meta, _recipes[i]);
+                discovered += known ? 1 : 0;
+                _recipeRows[i].Show(_recipes[i], known, 0);
+            }
+            _recipeCountText.text = $"발견 {discovered}/{_recipes.Length}";
+        }
 
         for (int i = 0; i < _trainerEntries.Length; i++)
         {

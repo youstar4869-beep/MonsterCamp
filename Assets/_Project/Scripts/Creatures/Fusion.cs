@@ -36,6 +36,10 @@ public static class Fusion
         return true;
     }
 
+    // 대기석·팀에 이 크리처가 있으면 true (레벨 상관없이)
+    public static bool Has(CreatureData data, CreatureInstance[] team, CreatureInstance[] bench) =>
+        MaxLevel(data, team, bench) > 0;
+
     public static CreatureInstance GetA(Plan plan, CreatureInstance[] team, CreatureInstance[] bench) =>
         (plan.TeamA ? team : bench)[plan.IndexA];
 
