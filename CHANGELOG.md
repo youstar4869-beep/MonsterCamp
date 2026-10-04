@@ -400,3 +400,7 @@
   - 보관함 아이템을 누르면 `ItemInfoPopup` (그림·이름·설명 + "판매 +2G" → 확인). 상점 화면에서만 열림
   - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨
   - 상점 아이템 칸을 누르면 `ItemInfoPopup`에 그림·이름·설명 + "구매 NG" (골드 부족·보관함 꽉 참이면 흐리게 + 이유), 누르면 바로 구매. `ItemInfoPopup.ShowAction`으로 판매 창 재사용, `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨
+- 배경화면 그림 1단계 (TODO 27, 게임 연결은 2단계): `Tools/ArtGen/bg.py` → `Art/Backgrounds/` 17장
+  - Title(밤의 캠프)·Shop(낮의 장터)·Battle_Meadow/Forest/Beach/Volcano/Snow/Storm/Sky + 각 `_Boss`(하늘만 붉게, 땅 어둡게), 180x320, 외곽선 없는 3단 음영, 채도·대비 낮춤, 크리처 자리(y 120~280)는 단순하게
+  - 전투 배경은 위 1/3 하늘·아래 땅, 구름은 따로 `Battle_Clouds.png`(180x80, 투명, 좌우 이어짐, Wrap Repeat)
+  - 임포트: Sprite, Point, 압축 없음, PPU 32
