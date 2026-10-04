@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Hard
   m_EditorClassIdentifier: Assembly-CSharp::DifficultyData
   _displayName: 어려움
-  _description: 적이 층마다 더 빨리 강해져요
+  _description: 적 레벨이 더 높고, 25층부터 적도 조합 크리처를 써요
   _floorCount: 50
   _lives: 3
   _enemyStatPerFloor: 0.01
