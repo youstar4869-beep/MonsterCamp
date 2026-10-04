@@ -27,9 +27,7 @@ public class ShopConfig : ScriptableObject
     [Tooltip("판매 가격 = 구매 가격 × 이 배수 (Lv1~3, 합친 마리 수)")]
     [FormerlySerializedAs("_levelSellPrices")]
     [SerializeField] private int[] _levelSellMultipliers = { 1, 3, 9 };
-    [Tooltip("층을 등급 확률표의 라운드 칸으로 바꿀 때: 라운드 = 올림(층 / 전체 층 × 이 값)")]
-    [SerializeField, Min(1)] private int _oddsRoundCount = 10;
-    [Tooltip("라운드 구간별 등급 확률 (FromRound 오름차순)")]
+    [Tooltip("라운드(= 층) 구간별 등급 확률 (FromRound 오름차순)")]
     [SerializeField] private TierOdds[] _tierOdds =
     {
         new TierOdds { FromRound = 1, Percents = new[] { 75, 25, 0, 0, 0 } },
@@ -38,6 +36,15 @@ public class ShopConfig : ScriptableObject
         new TierOdds { FromRound = 7, Percents = new[] { 20, 30, 30, 15, 5 } },
         new TierOdds { FromRound = 9, Percents = new[] { 15, 25, 30, 20, 10 } },
     };
+    [Header("높은 층 (마지막 확률표에서 시작)")]
+    [Tooltip("이 층부터 층마다 4·5골드 확률이 늘어남")]
+    [SerializeField, Min(1)] private int _lateFromFloor = 11;
+    [Tooltip("층마다 늘어나는 4골드 / 5골드 확률(%p). 늘어난 만큼 1골드부터 줄인다")]
+    [SerializeField, Min(0f)] private float _lateTier4PerFloor = 0.5f;
+    [SerializeField, Min(0f)] private float _lateTier5PerFloor = 0.5f;
+    [Tooltip("4골드 / 5골드 확률 최대(%)")]
+    [SerializeField, Range(0, 100)] private int _lateTier4Max = 30;
+    [SerializeField, Range(0, 100)] private int _lateTier5Max = 20;
     [SerializeField] private CreatureData[] _creaturePool;
     [Tooltip("상점 아이템 칸에 나오는 아이템 목록 (가격은 각 아이템 에셋)")]
     [SerializeField] private ItemData[] _itemPool;
@@ -53,12 +60,6 @@ public class ShopConfig : ScriptableObject
         return Mathf.Min(maxInterest, Mathf.Max(0, leftoverGold) / Mathf.Max(1, _interestStep));
     }
 
-    // 층에 쓸 등급 확률표의 라운드 칸 (예: 30층 중 12층 → 올림(4) = 4라운드)
-    public int GetOddsRound(int floor, int floorCount)
-    {
-        return Mathf.Max(1, Mathf.CeilToInt((float)floor * _oddsRoundCount / floorCount));
-    }
-
     public int GetPrice(CreatureData creature)
     {
         int index = Mathf.Clamp(creature.Tier, 1, _tierPrices.Length) - 1;
@@ -72,11 +73,11 @@ public class ShopConfig : ScriptableObject
         return GetPrice(creature.Data) * _levelSellMultipliers[index];
     }
 
-    // 상점 칸 하나: 라운드 확률로 등급을 고른 뒤, 그 등급에서 canAppear(잠긴 것 제외)인 크리처 중 하나.
+    // 상점 칸 하나: 층 확률로 등급을 고른 뒤, 그 등급에서 canAppear(잠긴 것 제외)인 크리처 중 하나.
     // 그 등급에 후보가 없으면 아래 등급으로 내려간다. 끝까지 없으면 null
-    public CreatureData GetRandomCreature(int round, System.Func<CreatureData, bool> canAppear)
+    public CreatureData GetRandomCreature(int floor, System.Func<CreatureData, bool> canAppear)
     {
-        for (int tier = RollTier(round); tier >= 1; tier--)
+        for (int tier = RollTier(floor); tier >= 1; tier--)
         {
             _candidates.Clear();
             foreach (CreatureData creature in _creaturePool)
@@ -94,8 +95,9 @@ public class ShopConfig : ScriptableObject
         return null;
     }
 
-    // 라운드에 맞는 1~5골드 확률표 (적 팀 자동 생성도 쓴다). 표가 없으면 null
-    public int[] GetTierPercents(int round)
+    // 층에 맞는 1~5골드 확률표 (적 팀 자동 생성도 쓴다). 표가 없으면 null.
+    // 1~10층은 라운드 표 그대로 (층 = 라운드), _lateFromFloor층부터는 마지막 표에 4·5골드를 층마다 더한다
+    public int[] GetTierPercents(int floor)
     {
         if (_tierOdds == null || _tierOdds.Length == 0)
         {
@@ -105,18 +107,39 @@ public class ShopConfig : ScriptableObject
         int[] percents = _tierOdds[0].Percents;
         foreach (TierOdds odds in _tierOdds)
         {
-            if (round >= odds.FromRound)
+            if (floor >= odds.FromRound)
             {
                 percents = odds.Percents;
             }
         }
-        return percents;
+        if (floor < _lateFromFloor || percents.Length < CreatureData.MaxTier)
+        {
+            return percents;
+        }
+
+        // 늘어난 만큼 1골드 → 2골드 → 3골드 순으로 줄인다
+        int steps = floor - _lateFromFloor + 1;
+        System.Array.Copy(percents, _latePercents, CreatureData.MaxTier);
+        int add4 = Mathf.Max(0, Mathf.Min(_lateTier4Max, Mathf.RoundToInt(percents[3] + _lateTier4PerFloor * steps)) - percents[3]);
+        int add5 = Mathf.Max(0, Mathf.Min(_lateTier5Max, Mathf.RoundToInt(percents[4] + _lateTier5PerFloor * steps)) - percents[4]);
+        _latePercents[3] += add4;
+        _latePercents[4] += add5;
+        int remove = add4 + add5;
+        for (int i = 0; i < 3 && remove > 0; i++)
+        {
+            int take = Mathf.Min(_latePercents[i], remove);
+            _latePercents[i] -= take;
+            remove -= take;
+        }
+        return _latePercents;
     }
 
-    // 라운드에 맞는 확률표로 등급(1~5)을 하나 고른다
-    private int RollTier(int round)
+    private readonly int[] _latePercents = new int[CreatureData.MaxTier];
+
+    // 층에 맞는 확률표로 등급(1~5)을 하나 고른다
+    private int RollTier(int floor)
     {
-        int[] percents = GetTierPercents(round);
+        int[] percents = GetTierPercents(floor);
         if (percents == null)
         {
             return 1;

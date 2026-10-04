@@ -32,7 +32,7 @@ public static class EnemyTeamGenerator
         bool isBoss = difficulty.IsBossFloor(floor);
         int[] tierPercents = isBoss
             ? config.BossTierPercents
-            : shop.GetTierPercents(shop.GetOddsRound(floor, difficulty.FloorCount));
+            : shop.GetTierPercents(floor);
 
         // 주 타입 1~2개: 타입 시너지(2·4마리)가 켜지게 마릿수를 맞춘다. 남는 칸은 아무 타입
         // TODO 23·24: 조합 크리처(어려움 25층·불가능 15층부터)·조합 시너지를 노리는 팀은 여기서 타입 대신 조합식으로 고른다

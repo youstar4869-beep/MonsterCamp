@@ -713,7 +713,7 @@ public class ShopScreen : MonoBehaviour
         // 잠긴 크리처는 내 상점에 나오지 않는다
         for (int i = 0; i < _offers.Length; i++)
         {
-            _offers[i] = _config.GetRandomCreature(_config.GetOddsRound(_floor, _difficulty.FloorCount), _meta.IsUnlocked);
+            _offers[i] = _config.GetRandomCreature(_floor, _meta.IsUnlocked);
         }
         _itemOffer = _config.GetRandomItem();
     }

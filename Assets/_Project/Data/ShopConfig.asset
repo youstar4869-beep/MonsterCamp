@@ -17,6 +17,11 @@ MonoBehaviour:
   _maxGold: 50
   _tierPrices: 0100000002000000030000000400000005000000
   _levelSellMultipliers: 010000000300000009000000
+  _lateFromFloor: 11
+  _lateTier4PerFloor: 0.5
+  _lateTier5PerFloor: 0.5
+  _lateTier4Max: 30
+  _lateTier5Max: 20
   _tierOdds:
   - FromRound: 1
     Percents: 4b00000019000000000000000000000000000000

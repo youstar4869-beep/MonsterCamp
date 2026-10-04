@@ -72,7 +72,7 @@ public class BalanceRun
     {
         for (int i = 0; i < Offers.Length; i++)
         {
-            Offers[i] = _config.GetRandomCreature(_config.GetOddsRound(Round, _difficulty.FloorCount), _canAppear);
+            Offers[i] = _config.GetRandomCreature(Round, _canAppear);
             if (Offers[i] != null)
             {
                 Offered.TryGetValue(Offers[i], out int count);
