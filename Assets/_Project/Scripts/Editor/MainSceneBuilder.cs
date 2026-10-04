@@ -90,6 +90,7 @@ public static class MainSceneBuilder
         HudView hud = CreateHud(canvas, difficulties, out Text goldText);
         // 정보 창·시너지 표: 화면·상단 표시보다 위, 튜토리얼보다 아래 (다른 화면에서도 다시 쓸 수 있게 캔버스에)
         CreatureInfoPopup infoPopup = CreateCreatureInfoPopup(canvas);
+        ItemInfoPopup itemPopup = CreateItemInfoPopup(canvas);
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
         FusionPanel fusionPanel = CreateFusionPanel(canvas);
         FusionBookPanel fusionBookPanel = CreateFusionBookPanel(canvas);
@@ -110,7 +111,7 @@ public static class MainSceneBuilder
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, run, meta, hud, goldText, infoPopup, synergyPanel, fusionPanel, fusionBookPanel, tipPopup,
+        ShopScreen shopScreen = BuildShopUI(shop, run, meta, hud, goldText, infoPopup, itemPopup, synergyPanel, fusionPanel, fusionBookPanel, tipPopup,
             out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
@@ -474,8 +475,18 @@ public static class MainSceneBuilder
         infoText.color = _theme.Gold;
         Text statsText = CreateLeftText(window, "Stats", _theme.SmallSize, new Vector2(0.37f, 0.64f), new Vector2(0.97f, 0.72f));
         Text skillText = CreateLeftText(window, "Skill", _theme.SmallSize, new Vector2(0.05f, 0.46f), new Vector2(0.95f, 0.61f));
-        Text itemText = CreateLeftText(window, "Item", _theme.SmallSize, new Vector2(0.05f, 0.36f), new Vector2(0.95f, 0.45f));
+        // 장착 아이템 줄: 그림 / 이름·설명 / 해제 / 판매
+        ItemIconView itemIcon = CreateItemIcon(window, new Vector2(0.04f, 0.365f), new Vector2(0.13f, 0.445f), _theme.BodySize);
+        Text itemText = CreateLeftText(window, "Item", _theme.SmallSize, new Vector2(0.15f, 0.36f), new Vector2(0.56f, 0.45f));
         itemText.color = _theme.TextSub;
+        Button unequipButton = CreateFreeButton(window, "해제", new Vector2(0.57f, 0.37f), new Vector2(0.74f, 0.44f),
+            _theme.ButtonSecondary);
+        unequipButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
+        Button itemSellButton = CreateFreeButton(window, "판매", new Vector2(0.76f, 0.37f), new Vector2(0.95f, 0.44f),
+            _theme.ButtonPrimary);
+        itemSellButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
+        unequipButton.gameObject.SetActive(false);
+        itemSellButton.gameObject.SetActive(false);
         Text synergyText = CreateLeftText(window, "Synergy", _theme.SmallSize, new Vector2(0.05f, 0.26f), new Vector2(0.95f, 0.35f));
         synergyText.color = _theme.Positive;
         Text messageText = CreateText(window, "Message", "", _theme.BodySize, new Vector2(0.05f, 0.17f), new Vector2(0.95f, 0.25f));
@@ -500,6 +511,10 @@ public static class MainSceneBuilder
         so.FindProperty("_statsText").objectReferenceValue = statsText;
         so.FindProperty("_skillText").objectReferenceValue = skillText;
         so.FindProperty("_itemText").objectReferenceValue = itemText;
+        so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
+        so.FindProperty("_unequipButton").objectReferenceValue = unequipButton;
+        so.FindProperty("_itemSellButton").objectReferenceValue = itemSellButton;
+        so.FindProperty("_itemSellLabel").objectReferenceValue = itemSellButton.GetComponentInChildren<Text>(true);
         so.FindProperty("_synergyText").objectReferenceValue = synergyText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.FindProperty("_closeButton").objectReferenceValue = closeButton.transform;
@@ -514,6 +529,59 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, popup.Close);
         UnityEventTools.AddVoidPersistentListener(closeButton.onClick, popup.Close);
         UnityEventTools.AddVoidPersistentListener(actionButton.onClick, popup.OnActionClicked);
+        UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, popup.OnConfirmClicked);
+        UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, popup.OnCancelClicked);
+        UnityEventTools.AddVoidPersistentListener(unequipButton.onClick, popup.OnUnequipClicked);
+        UnityEventTools.AddVoidPersistentListener(itemSellButton.onClick, popup.OnItemSellClicked);
+
+        root.gameObject.SetActive(false);
+        return popup;
+    }
+
+    // 보관함 아이템 창: 어두운 바탕(누르면 닫힘) + 작은 창
+    // 창: 닫기 / 그림 / 이름 / 설명 / 안내 / 버튼(왼쪽 확인, 오른쪽 판매·취소)
+    private static ItemInfoPopup CreateItemInfoPopup(Transform canvas)
+    {
+        RectTransform root = CreateModalRoot(canvas, "ItemInfoPopup", out Button backgroundButton);
+        RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
+        Round(window.GetComponent<Image>(), 36f);
+        Stretch(window, new Vector2(0.12f, 0.36f), new Vector2(0.88f, 0.64f));
+
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.7f, 0.82f), new Vector2(0.96f, 0.97f),
+            _theme.ButtonSecondary);
+        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
+
+        ItemIconView icon = CreateItemIcon(window, new Vector2(0.05f, 0.5f), new Vector2(0.3f, 0.95f), _theme.HugeSize);
+        Text nameText = CreateLeftText(window, "Name", _theme.HeadingSize, new Vector2(0.34f, 0.66f), new Vector2(0.97f, 0.8f));
+        Text descriptionText = CreateLeftText(window, "Description", _theme.SmallSize, new Vector2(0.34f, 0.5f), new Vector2(0.97f, 0.65f));
+        descriptionText.color = _theme.TextSub;
+        Text messageText = CreateText(window, "Message", "", _theme.BodySize, new Vector2(0.05f, 0.3f), new Vector2(0.95f, 0.47f));
+        messageText.color = _theme.Negative;
+
+        Button sellButton = CreateFreeButton(window, "판매", new Vector2(0.52f, 0.05f), new Vector2(0.95f, 0.27f),
+            _theme.ButtonPrimary);
+        Button cancelButton = CreateFreeButton(window, "취소", new Vector2(0.52f, 0.05f), new Vector2(0.95f, 0.27f),
+            _theme.ButtonSecondary);
+        Button confirmButton = CreateFreeButton(window, "팔기", new Vector2(0.05f, 0.05f), new Vector2(0.48f, 0.27f),
+            _theme.ButtonDanger);
+        cancelButton.gameObject.SetActive(false);
+        confirmButton.gameObject.SetActive(false);
+
+        var popup = root.gameObject.AddComponent<ItemInfoPopup>();
+        var so = new SerializedObject(popup);
+        so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.FindProperty("_descriptionText").objectReferenceValue = descriptionText;
+        so.FindProperty("_messageText").objectReferenceValue = messageText;
+        so.FindProperty("_sellButton").objectReferenceValue = sellButton;
+        so.FindProperty("_sellLabel").objectReferenceValue = sellButton.GetComponentInChildren<Text>(true);
+        so.FindProperty("_confirmButton").objectReferenceValue = confirmButton;
+        so.FindProperty("_cancelButton").objectReferenceValue = cancelButton;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, popup.Close);
+        UnityEventTools.AddVoidPersistentListener(closeButton.onClick, popup.Close);
+        UnityEventTools.AddVoidPersistentListener(sellButton.onClick, popup.OnSellClicked);
         UnityEventTools.AddVoidPersistentListener(confirmButton.onClick, popup.OnConfirmClicked);
         UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, popup.OnCancelClicked);
 
@@ -1825,7 +1893,7 @@ public static class MainSceneBuilder
     // (상단 표시: 라운드·목숨·골드) / 트레이너·새로고침 / 상점 크리처 5칸 + 아이템 1칸 / 메시지 / 시너지
     // / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 아이템 보관함 3칸 + 전투 시작
     private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, HudView hud, Text goldText,
-        CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, FusionPanel fusionPanel, FusionBookPanel fusionBookPanel, TipPopup tipPopup, out Text trainerText)
+        CreatureInfoPopup infoPopup, ItemInfoPopup itemPopup, SynergyPanel synergyPanel, FusionPanel fusionPanel, FusionBookPanel fusionBookPanel, TipPopup tipPopup, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
         trainerText = CreateText(screen.transform, "TrainerText", "", _theme.TinySize,
@@ -1920,7 +1988,7 @@ public static class MainSceneBuilder
             itemSlots[i] = CreateItemSlot(itemRow, "ItemSlot" + i, "보관함");
         }
 
-        // 끄는 그림은 가장 위에 그려지도록 마지막에 만든다 (아이템은 색 네모 + 글자)
+        // 끄는 그림은 가장 위에 그려지도록 마지막에 만든다 (아이템 그림이 없으면 색 네모 + 글자)
         var dragIconGo = new GameObject("DragIcon", typeof(RectTransform), typeof(Image));
         dragIconGo.transform.SetParent(screen.transform, false);
         var dragRect = dragIconGo.GetComponent<RectTransform>();
@@ -1956,6 +2024,7 @@ public static class MainSceneBuilder
         so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
         so.FindProperty("_synergyText").objectReferenceValue = synergyText;
         so.FindProperty("_infoPopup").objectReferenceValue = infoPopup;
+        so.FindProperty("_itemPopup").objectReferenceValue = itemPopup;
         so.FindProperty("_synergyPanel").objectReferenceValue = synergyPanel;
         so.FindProperty("_run").objectReferenceValue = run;
         so.FindProperty("_meta").objectReferenceValue = meta;
@@ -2009,6 +2078,11 @@ public static class MainSceneBuilder
         for (int i = 0; i < teamSlots.Length; i++)
         {
             UnityEventTools.AddIntPersistentListener(teamSlots[i].GetComponent<Button>().onClick, shop.ShowTeamInfo, i);
+        }
+        // 보관함 아이템을 누르면 아이템 창 (판매)
+        for (int i = 0; i < itemSlots.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(itemSlots[i].GetComponent<Button>().onClick, shop.ShowItemInfo, i);
         }
 
         return shop;
@@ -2107,6 +2181,8 @@ public static class MainSceneBuilder
         so.FindProperty("_effect").enumValueIndex = (int)effect;
         so.FindProperty("_value").floatValue = value;
         so.FindProperty("_price").intValue = 3;
+        so.FindProperty("_sellPrice").intValue = 2;
+        so.FindProperty("_icon").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/_Project/Art/Items/{id}.png");
         so.ApplyModifiedPropertiesWithoutUndo();
         return item;
     }
@@ -2188,7 +2264,7 @@ public static class MainSceneBuilder
         return view;
     }
 
-    // 아이템 칸: 배경 버튼 + 아이콘(색 네모 + 글자) + 이름 + 가격. 비어 있으면 emptyLabel 표시
+    // 아이템 칸: 배경 버튼 + 아이콘(그림, 없으면 색 네모 + 글자) + 이름 + 가격. 비어 있으면 emptyLabel 표시
     private static ItemSlotView CreateItemSlot(Transform parent, string name, string emptyLabel)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(ItemSlotView));
@@ -2225,7 +2301,7 @@ public static class MainSceneBuilder
         return image;
     }
 
-    // 아이템 아이콘: 색 네모 + 한 글자 (처음엔 숨김)
+    // 아이템 아이콘: 그림 (없으면 색 네모 + 한 글자). 처음엔 숨김
     private static ItemIconView CreateItemIcon(Transform parent, Vector2 anchorMin, Vector2 anchorMax, int fontSize)
     {
         var go = new GameObject("ItemIcon", typeof(RectTransform), typeof(Image), typeof(ItemIconView));
@@ -2238,10 +2314,19 @@ public static class MainSceneBuilder
         Text label = CreateText(go.transform, "Label", "", fontSize, Vector2.zero, Vector2.one);
         label.color = Color.black;
 
+        var pictureGo = new GameObject("Picture", typeof(RectTransform), typeof(Image));
+        pictureGo.transform.SetParent(go.transform, false);
+        Stretch(pictureGo.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        var picture = pictureGo.GetComponent<Image>();
+        picture.raycastTarget = false;
+        picture.preserveAspect = true;
+        picture.enabled = false;
+
         var view = go.GetComponent<ItemIconView>();
         var so = new SerializedObject(view);
         so.FindProperty("_background").objectReferenceValue = background;
         so.FindProperty("_label").objectReferenceValue = label;
+        so.FindProperty("_picture").objectReferenceValue = picture;
         so.ApplyModifiedPropertiesWithoutUndo();
         go.SetActive(false);
         return view;

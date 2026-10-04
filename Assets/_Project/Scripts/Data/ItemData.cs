@@ -16,7 +16,7 @@ public enum ItemEffect
     WinGold
 }
 
-// 아이템 1종: 이름, 설명, 효과, 가격. 아이콘은 임시로 색 네모 + 글자
+// 아이템 1종: 이름, 설명, 효과, 구매·판매 가격, 아이콘 그림 (그림이 없으면 색 네모 + 글자)
 [CreateAssetMenu(fileName = "NewItem", menuName = "MonsterCamp/Item Data")]
 public class ItemData : ScriptableObject
 {
@@ -30,6 +30,10 @@ public class ItemData : ScriptableObject
     [Tooltip("비율(0.2 = 20%) 또는 골드")]
     [SerializeField] private float _value;
     [SerializeField, Min(0)] private int _price = 3;
+    [Tooltip("보관함·장착 아이템을 팔 때 받는 골드")]
+    [SerializeField, Min(0)] private int _sellPrice = 2;
+    [Tooltip("16x16 픽셀 그림 (Art/Items). 비어 있으면 색 네모 + 글자")]
+    [SerializeField] private Sprite _icon;
 
     public string DisplayName => _displayName;
     public string IconLabel => _iconLabel;
@@ -38,6 +42,8 @@ public class ItemData : ScriptableObject
     public ItemEffect Effect => _effect;
     public float Value => _value;
     public int Price => _price;
+    public int SellPrice => _sellPrice;
+    public Sprite Icon => _icon;
 
     public int WinGold => _effect == ItemEffect.WinGold ? Mathf.RoundToInt(_value) : 0;
 

@@ -1,16 +1,17 @@
 using UnityEditor;
 using UnityEngine;
 
-// Assets/_Project/Art/Creatures 의 PNG를 픽셀 그림용 Sprite로 임포트한다
+// Assets/_Project/Art/Creatures·Items 의 PNG를 픽셀 그림용 Sprite로 임포트한다
 // (Sprite, Filter Point, 압축 없음, Pixels Per Unit 32). 새 PNG를 넣으면 자동 적용
 public class CreatureSpriteImporter : AssetPostprocessor
 {
     public const string Folder = "Assets/_Project/Art/Creatures/";
+    public const string ItemFolder = "Assets/_Project/Art/Items/";
     public const int PixelsPerUnit = 32;
 
     private void OnPreprocessTexture()
     {
-        if (!assetPath.StartsWith(Folder) || !assetPath.EndsWith(".png"))
+        if (!(assetPath.StartsWith(Folder) || assetPath.StartsWith(ItemFolder)) || !assetPath.EndsWith(".png"))
         {
             return;
         }

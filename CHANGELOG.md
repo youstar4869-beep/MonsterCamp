@@ -392,3 +392,10 @@
   - 상점 "조합식" 버튼(조합 버튼 왼쪽, 해금 전 숨김) → `FusionBookPanel` 목록 창, 런 중 언제든 열고 닫음. 재료가 있는 조합식을 위로: 만들 수 있으면 밝은 테두리, 재료 1마리만 있으면 반쯤 (`Fusion.Has` 추가), 못 찾은 조합식은 ??? 그대로
   - 메뉴 `MonsterCamp > 조합 해금 + 조합식 전부 발견` (테스트용)
   - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨
+- 장비 그림 + 장착 해제·판매 (TODO 29)
+  - `Tools/ArtGen/items.py` 아이템 6종 16x16 아이콘 (크리처와 같은 3단 음영·외곽선) → `Art/Items/{에셋 이름}.png`, 미리보기 `Tools/ArtGen/out/items_preview.png`
+  - `Art/Items`를 CreatureAtlas에 추가, `CreatureSpriteImporter`가 Items 폴더도 Point·무압축 Sprite로 임포트
+  - `ItemData`에 아이콘 그림·판매가(6종 2G) 추가. `ItemIconView`·끌기 아이콘은 그림을 보여 주고, 그림이 없으면 기존 색 네모 + 글자
+  - 크리처 정보 창 장착 아이템 줄: 그림·이름·설명 + "해제"(보관함으로, 꽉 차면 꺼짐 + "보관함이 꽉 찼어요") + "판매 +2G"(확인 후, 보관함이 꽉 차도 가능)
+  - 보관함 아이템을 누르면 `ItemInfoPopup` (그림·이름·설명 + "판매 +2G" → 확인). 상점 화면에서만 열림
+  - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨

@@ -9,6 +9,7 @@ public static class OptimizationSettingsMenu
 {
     private const string AtlasPath = "Assets/_Project/Art/CreatureAtlas.spriteatlasv2";
     private const string CreatureFolder = "Assets/_Project/Art/Creatures";
+    private const string ItemFolder = "Assets/_Project/Art/Items";
     private const string AndroidPlatform = "Android";
     // 2D 픽셀 그림이라 그림자·안티앨리어싱이 필요 없다. Android는 이 단계 하나만 쓴다
     private const string AndroidQualityName = "Medium";
@@ -24,13 +25,17 @@ public static class OptimizationSettingsMenu
         Debug.Log($"[최적화] Sprite Atlas {AtlasPath}, Android 텍스처 ASTC, Android Quality: {quality}");
     }
 
-    // 크리처 폴더 전체를 한 장에. 픽셀 그림이므로 Point, 압축 없음, 회전·타이트 패킹 끔 (UI Image용)
+    // 크리처·아이템 폴더 전체를 한 장에. 픽셀 그림이므로 Point, 압축 없음, 회전·타이트 패킹 끔 (UI Image용)
     private static void CreateCreatureAtlas()
     {
         if (AssetDatabase.LoadMainAssetAtPath(AtlasPath) == null)
         {
             var atlas = new SpriteAtlasAsset();
-            atlas.Add(new Object[] { AssetDatabase.LoadAssetAtPath<DefaultAsset>(CreatureFolder) });
+            atlas.Add(new Object[]
+            {
+                AssetDatabase.LoadAssetAtPath<DefaultAsset>(CreatureFolder),
+                AssetDatabase.LoadAssetAtPath<DefaultAsset>(ItemFolder)
+            });
             SpriteAtlasAsset.Save(atlas, AtlasPath);
             AssetDatabase.ImportAsset(AtlasPath);
         }

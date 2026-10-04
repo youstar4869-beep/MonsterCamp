@@ -19,3 +19,5 @@ MonoBehaviour:
   _effect: 2
   _value: 0.2
   _price: 3
+  _sellPrice: 2
+  _icon: {fileID: 21300000, guid: c8d773333a5f45c29980b2e38fc9ded3, type: 3}

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // 상점·배치 화면: 골드, 상점 칸(크리처·아이템), 새로고침, 대기석, 판매, 팀 배치(끌어서 옮기기), 합성,
-// 아이템 보관함, 아이템 장착(보관함 → 크리처로 끌기), 조합(보통 클리어 후)
+// 아이템 보관함, 아이템 장착(보관함 → 크리처로 끌기)·해제·판매, 조합(보통 클리어 후)
 public class ShopScreen : MonoBehaviour
 {
     private const int MergeCount = 3;
@@ -15,6 +15,8 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private SynergyConfig _synergy;
     [Tooltip("칸을 누르면 뜨는 크리처 정보 창 (구매·판매 버튼)")]
     [SerializeField] private CreatureInfoPopup _infoPopup;
+    [Tooltip("보관함 아이템을 누르면 뜨는 창 (판매)")]
+    [SerializeField] private ItemInfoPopup _itemPopup;
     [Tooltip("\"시너지\" 버튼으로 여는 시너지 표")]
     [SerializeField] private SynergyPanel _synergyPanel;
     [SerializeField] private RunManager _run;
@@ -279,6 +281,65 @@ public class ShopScreen : MonoBehaviour
         _infoPopup.Show(creature.Data, creature.Level, creature.Item, BuildSynergyLine(creature.Data.Type));
         _infoPopup.SetAction($"판매 +{price}G", true, () => OnSellClicked(area, index),
             $"정말 팔까요? +{price}G", "팔기");
+        if (creature.Item != null)
+        {
+            _infoPopup.SetItemActions(creature.Item.SellPrice, System.Array.IndexOf(_items, null) >= 0,
+                () => UnequipItem(area, index), () => SellEquippedItem(area, index));
+        }
+    }
+
+    // 보관함 칸: 아이템 정보 + "판매 +NG" → 한 번 더 확인
+    public void ShowItemInfo(int index)
+    {
+        ItemData item = _items[index];
+        if (_dragSource != null || item == null)
+        {
+            return;
+        }
+        _itemPopup.Show(item, item.SellPrice, () => SellStoredItem(index));
+    }
+
+    // 정보 창 "해제": 장착 아이템을 보관함으로 (꽉 차면 버튼이 꺼져 있다)
+    private void UnequipItem(SlotArea area, int index)
+    {
+        CreatureInstance creature = GetSlots(area)[index];
+        if (creature?.Item == null || !TryStoreItem(creature.Item))
+        {
+            return;
+        }
+        creature.Item = null;
+        UpdateView();
+        ShowOwnedInfo(area, index);
+    }
+
+    // 정보 창 장착 아이템 "판매": 보관함을 거치지 않고 바로 판다
+    private void SellEquippedItem(SlotArea area, int index)
+    {
+        CreatureInstance creature = GetSlots(area)[index];
+        if (creature?.Item == null)
+        {
+            return;
+        }
+        _gold += creature.Item.SellPrice;
+        creature.Item = null;
+        AudioManager.Play(Sfx.Sell);
+        UpdateView();
+        ShowOwnedInfo(area, index);
+    }
+
+    private void SellStoredItem(int index)
+    {
+        ItemData item = _items[index];
+        if (item == null)
+        {
+            return;
+        }
+        _gold += item.SellPrice;
+        _items[index] = null;
+        AudioManager.Play(Sfx.Sell);
+        _itemPopup.Close();
+        ShowMessage("");
+        UpdateView();
     }
 
     // "시너지" 버튼·시너지 줄: 5개 타입의 시너지 표
@@ -295,6 +356,7 @@ public class ShopScreen : MonoBehaviour
     public void ClosePopups()
     {
         _infoPopup.Close();
+        _itemPopup.Close();
         _synergyPanel.Close();
         _fusionPanel.Close();
         _fusionBookPanel.Close();
@@ -628,9 +690,10 @@ public class ShopScreen : MonoBehaviour
             {
                 return false;
             }
-            _dragIcon.sprite = null;
-            _dragIcon.color = item.IconColor;
-            _dragLabel.text = item.IconLabel;
+            // 그림이 없으면 색 네모 + 글자
+            _dragIcon.sprite = item.Icon;
+            _dragIcon.color = item.Icon != null ? Color.white : item.IconColor;
+            _dragLabel.text = item.Icon != null ? "" : item.IconLabel;
         }
         else
         {
