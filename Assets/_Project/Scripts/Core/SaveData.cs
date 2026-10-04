@@ -19,6 +19,11 @@ public class MetaSaveData
     public bool frontRowTipShown;
     // 클리어한 난이도 (에셋 이름). 다음 난이도를 여는 데 쓴다
     public List<string> clearedDifficulties = new List<string>();
+    // 조합: 보통을 클리어하면 열림
+    public bool fusionUnlocked;
+    // 재료 두 마리가 ★★ 이상으로 처음 모인 조합식 / 한 번이라도 만든 조합식 (FusionRecipe 에셋 이름, 도감에서 씀)
+    public List<string> discoveredRecipes = new List<string>();
+    public List<string> madeRecipes = new List<string>();
 }
 
 // run.json: 진행 중인 판 (상점 단계 상태)

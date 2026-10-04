@@ -27,6 +27,10 @@ public class BalanceRun
     public readonly ItemData[] Items = new ItemData[ItemSlotCount];
     public int Gold;
     public int Round = 1;
+    // 조합 해금 계정 (보통 클리어 후). 조합 규칙은 ShopScreen과 같은 Fusion을 그대로 부른다
+    public bool FusionUnlocked;
+    // 통계용: 이번 판에 만든 조합 수
+    public int FusionsMade;
 
     // 통계용: 이번 판에 상점에 나온 크리처 / 산 크리처 (마리 수)
     public readonly Dictionary<CreatureData, int> Offered = new Dictionary<CreatureData, int>();
@@ -188,6 +192,19 @@ public class BalanceRun
         }
     }
 
+    // ShopScreen.MakeFusion과 같은 규칙 (재료 두 마리 → 결과, 보관함이 꽉 차면 아이템 가격만큼 골드)
+    public bool TryFuse(FusionRecipe recipe)
+    {
+        if (!FusionUnlocked || !Fusion.TryPlan(recipe, Team, Bench, out Fusion.Plan plan))
+        {
+            return false;
+        }
+        Fusion.Make(recipe, plan, Team, Bench, Items, out _, out _, out int refund);
+        Gold += refund;
+        FusionsMade++;
+        return true;
+    }
+
     public void CollectOwned(List<CreatureInstance> result)
     {
         result.Clear();
@@ -205,6 +222,17 @@ public class BalanceRun
                 result.Add(creature);
             }
         }
+    }
+
+    // 레벨 상관없이 가진 마리 수
+    public int CountOwned(CreatureData data)
+    {
+        int count = 0;
+        foreach (CreatureInstance creature in EnumerateOwned())
+        {
+            count += creature.Data == data ? 1 : 0;
+        }
+        return count;
     }
 
     public int CountSame(CreatureData data, int level)
@@ -237,7 +265,7 @@ public class BalanceRun
     {
         foreach (CreatureInstance owned in EnumerateOwned())
         {
-            if (owned.Level >= CreatureData.MaxLevel)
+            if (owned.Level >= CreatureData.MaxLevel || owned.Data.FusionOnly)
             {
                 continue;
             }

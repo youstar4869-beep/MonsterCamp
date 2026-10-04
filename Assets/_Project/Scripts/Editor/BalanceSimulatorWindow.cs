@@ -28,6 +28,7 @@ public class BalanceSimulatorWindow : EditorWindow
     [SerializeField] private BotChoice _bot = BotChoice.All;
     [SerializeField] private bool _duels = true;
     [SerializeField] private bool _locked;
+    [SerializeField] private bool _fusion;
     [SerializeField] private int _difficulty;
     [SerializeField] private string _summary = "";
     private Vector2 _scroll;
@@ -48,6 +49,8 @@ public class BalanceSimulatorWindow : EditorWindow
         _duels = EditorGUILayout.Toggle("1:1 대결표·등급 가치 포함", _duels);
         _locked = EditorGUILayout.Toggle(
             new GUIContent("처음 계정처럼 잠금", "MetaConfig에서 잠긴 트레이너·크리처(5골드)를 빼고 돌린다"), _locked);
+        _fusion = EditorGUILayout.Toggle(
+            new GUIContent("조합 해금", "봇이 조합을 쓴다 (보통 클리어 후 계정). 어려움·불가능은 원래 해금된 뒤에 열림"), _fusion);
 
         if (GUILayout.Button("실행", GUILayout.Height(32)))
         {
@@ -64,7 +67,7 @@ public class BalanceSimulatorWindow : EditorWindow
     {
         try
         {
-            _summary = Simulate(_games, _seed, ToBots(_bot), _duels, _locked, Difficulties[_difficulty], OutputFolder, (label, progress) =>
+            _summary = Simulate(_games, _seed, ToBots(_bot), _duels, _locked, _fusion, Difficulties[_difficulty], OutputFolder, (label, progress) =>
                 EditorUtility.DisplayCancelableProgressBar("밸런스 시뮬레이터", label, progress));
             Debug.Log("[밸런스] 시뮬레이션 완료\n" + _summary);
         }
@@ -87,10 +90,10 @@ public class BalanceSimulatorWindow : EditorWindow
     }
 
     // progress(글, 0~1)가 true를 돌려주면 남은 봇을 건너뛴다
-    private static string Simulate(int games, int seed, BalanceBotKind[] bots, bool duels, bool locked, string difficulty, string folder,
-        System.Func<string, float, bool> progress)
+    private static string Simulate(int games, int seed, BalanceBotKind[] bots, bool duels, bool locked, bool fusion, string difficulty,
+        string folder, System.Func<string, float, bool> progress)
     {
-        var simulator = new BalanceSimulator(locked, difficulty);
+        var simulator = new BalanceSimulator(locked, difficulty, fusion);
         var results = new List<BalanceSimulator.BotStats>();
         bool cancelled = false;
         foreach (BalanceBotKind bot in bots)
@@ -113,7 +116,7 @@ public class BalanceSimulatorWindow : EditorWindow
             tierValue = simulator.RunTierValue(seed);
         }
 
-        string summary = $"난이도 {difficulty} · 판 수 {games} · 시드 {seed} · {(locked ? "처음 계정처럼 잠금" : "모두 해금")}" +
+        string summary = $"난이도 {difficulty} · 판 수 {games} · 시드 {seed} · {(locked ? "처음 계정처럼 잠금" : "모두 해금")} · 조합 {(fusion ? "해금" : "잠금")}" +
                          $"{(cancelled ? " · 중간에 멈춤" : "")}\n" +
                          simulator.BuildSummary(results, duelResults, tierValue);
         simulator.WriteCsv(folder, results, duelResults, tierValue, summary);
@@ -122,7 +125,7 @@ public class BalanceSimulatorWindow : EditorWindow
 
     // 배치 모드용 (Unity를 화면 없이 실행):
     // Unity.exe -batchmode -projectPath <프로젝트> -executeMethod BalanceSimulatorWindow.RunBatch
-    //   [-simGames 1000] [-simSeed 12345] [-simOut Balance] [-simBots Basic,Saver] [-simNoDuels] [-simLocked] [-simDifficulty Hard]
+    //   [-simGames 1000] [-simSeed 12345] [-simOut Balance] [-simBots Basic,Saver] [-simNoDuels] [-simLocked] [-simDifficulty Hard] [-simFusion]
     public static void RunBatch()
     {
         int games = 1000;
@@ -130,6 +133,7 @@ public class BalanceSimulatorWindow : EditorWindow
         string folder = OutputFolder;
         bool duels = true;
         bool locked = false;
+        bool fusion = false;
         string difficulty = Difficulties[0];
         BalanceBotKind[] bots = ToBots(BotChoice.All);
 
@@ -144,6 +148,7 @@ public class BalanceSimulatorWindow : EditorWindow
                 case "-simOut": folder = next; break;
                 case "-simNoDuels": duels = false; break;
                 case "-simLocked": locked = true; break;
+                case "-simFusion": fusion = true; break;
                 case "-simDifficulty": difficulty = next; break;
                 case "-simBots":
                     bots = System.Array.ConvertAll(next.Split(','),
@@ -156,7 +161,7 @@ public class BalanceSimulatorWindow : EditorWindow
         try
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            string summary = Simulate(games, seed, bots, duels, locked, difficulty, folder, (label, rate) => false);
+            string summary = Simulate(games, seed, bots, duels, locked, fusion, difficulty, folder, (label, rate) => false);
             Debug.Log($"[밸런스] 완료 ({watch.Elapsed.TotalSeconds:0}초) → {Path.GetFullPath(folder)}\n{summary}");
         }
         catch (System.Exception exception)

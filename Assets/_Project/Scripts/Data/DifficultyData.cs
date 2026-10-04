@@ -37,6 +37,16 @@ public class DifficultyData : ScriptableObject
     [Tooltip("시작 층 뒤로 층마다 더하는 확률")]
     [SerializeField, Min(0f)] private float _levelChancePerFloor = 0.03f;
 
+    [Header("적 조합 크리처 (11층부터 자동 생성 팀)")]
+    [Tooltip("이 층부터 적 팀에 조합 크리처가 섞임. 0이면 없음")]
+    [SerializeField, Min(0)] private int _fusionFromFloor;
+    [Tooltip("시작 층에서 한 마리가 같은 타입 조합 크리처로 바뀔 확률")]
+    [SerializeField, Range(0f, 1f)] private float _fusionChanceAtStart = 0.1f;
+    [Tooltip("시작 층 뒤로 층마다 더하는 확률")]
+    [SerializeField, Min(0f)] private float _fusionChancePerFloor = 0.02f;
+    [Tooltip("확률 최대")]
+    [SerializeField, Range(0f, 1f)] private float _fusionChanceMax = 0.6f;
+
     public string DisplayName => _displayName;
     public string Description => _description;
     public int FloorCount => _floorCount;
@@ -59,6 +69,16 @@ public class DifficultyData : ScriptableObject
     // 자동 생성 팀 한 마리가 ★★ / ★★★일 확률 (시작 층 전이면 0)
     public float GetStar2Chance(int floor) => GetLevelChance(_star2FromFloor, floor);
     public float GetStar3Chance(int floor) => GetLevelChance(_star3FromFloor, floor);
+
+    // 자동 생성 팀 한 마리가 조합 크리처로 바뀔 확률 (시작 층 전이면 0)
+    public float GetEnemyFusionChance(int floor)
+    {
+        if (_fusionFromFloor <= 0 || floor < _fusionFromFloor)
+        {
+            return 0f;
+        }
+        return Mathf.Min(_fusionChanceMax, _fusionChanceAtStart + _fusionChancePerFloor * (floor - _fusionFromFloor));
+    }
 
     private float GetLevelChance(int fromFloor, int floor)
     {

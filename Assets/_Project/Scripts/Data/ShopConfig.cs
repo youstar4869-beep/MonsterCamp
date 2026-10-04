@@ -48,11 +48,14 @@ public class ShopConfig : ScriptableObject
     [SerializeField] private CreatureData[] _creaturePool;
     [Tooltip("상점 아이템 칸에 나오는 아이템 목록 (가격은 각 아이템 에셋)")]
     [SerializeField] private ItemData[] _itemPool;
+    [Tooltip("조합식 (상점 조합 버튼, 적 조합 크리처). 결과 크리처는 저장 파일에서도 여기서 찾는다")]
+    [SerializeField] private FusionRecipe[] _fusionRecipes;
 
     public int RoundGold => _roundGold;
     public int InterestStep => _interestStep;
     public int MaxGold => _maxGold;
     public System.Collections.Generic.IReadOnlyList<CreatureData> CreaturePool => _creaturePool;
+    public System.Collections.Generic.IReadOnlyList<FusionRecipe> FusionRecipes => _fusionRecipes;
 
     // 남은 골드 5골드마다 1골드, 최대 maxInterest골드 (최대치는 난이도 에셋)
     public int GetInterest(int leftoverGold, int maxInterest)
@@ -66,11 +69,28 @@ public class ShopConfig : ScriptableObject
         return _tierPrices[index];
     }
 
-    // 구매 가격 × 합친 마리 수 (Lv1 ×1, Lv2 ×3, Lv3 ×9)
+    // 구매 가격 × 합친 마리 수 (Lv1 ×1, Lv2 ×3, Lv3 ×9). 조합 크리처는 두 재료 판매가 합 (같은 레벨)
     public int GetSellPrice(CreatureInstance creature)
     {
         int index = Mathf.Clamp(creature.Level, 1, _levelSellMultipliers.Length) - 1;
-        return GetPrice(creature.Data) * _levelSellMultipliers[index];
+        FusionRecipe recipe = creature.Data.FusionOnly ? FindRecipe(creature.Data) : null;
+        int price = recipe != null
+            ? GetPrice(recipe.MaterialA) + GetPrice(recipe.MaterialB)
+            : GetPrice(creature.Data);
+        return price * _levelSellMultipliers[index];
+    }
+
+    // 결과가 이 크리처인 조합식. 없으면 null
+    public FusionRecipe FindRecipe(CreatureData result)
+    {
+        foreach (FusionRecipe recipe in _fusionRecipes)
+        {
+            if (recipe != null && recipe.Result == result)
+            {
+                return recipe;
+            }
+        }
+        return null;
     }
 
     // 상점 칸 하나: 층 확률로 등급을 고른 뒤, 그 등급에서 canAppear(잠긴 것 제외)인 크리처 중 하나.
@@ -175,10 +195,22 @@ public class ShopConfig : ScriptableObject
         return _itemPool.Length > 0 ? _itemPool[Random.Range(0, _itemPool.Length)] : null;
     }
 
-    // 저장 파일의 에셋 이름으로 찾기. 없으면 null
+    // 저장 파일의 에셋 이름으로 찾기 (상점 크리처, 없으면 조합 크리처). 없으면 null
     public CreatureData FindCreature(string id)
     {
-        return FindByName(_creaturePool, id);
+        CreatureData creature = FindByName(_creaturePool, id);
+        if (creature != null || string.IsNullOrEmpty(id))
+        {
+            return creature;
+        }
+        foreach (FusionRecipe recipe in _fusionRecipes)
+        {
+            if (recipe != null && recipe.Result != null && recipe.Result.name == id)
+            {
+                return recipe.Result;
+            }
+        }
+        return null;
     }
 
     public ItemData FindItem(string id)

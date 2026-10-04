@@ -118,6 +118,7 @@ public static class BalanceBots
             }
         }
 
+        FuseAll(run);
         // 아무 크리처나 아무 칸에
         run.CollectOwned(Owned);
         Shuffle(Owned, random);
@@ -157,6 +158,7 @@ public static class BalanceBots
         System.Array.Clear(Skipped, 0, Skipped.Length);
         for (int guard = 0; guard < 200; guard++)
         {
+            FuseAll(run);
             Arrange(run, focus);
             int spendable = run.Gold - reserve;
 
@@ -241,7 +243,8 @@ public static class BalanceBots
         for (int i = 0; i < run.Bench.Length; i++)
         {
             CreatureInstance creature = run.Bench[i];
-            if (creature == null || creature.Data == offer || run.CountSame(creature.Data, creature.Level) > 1)
+            if (creature == null || creature.Data == offer || run.CountSame(creature.Data, creature.Level) > 1
+                || IsFusionMaterial(run, creature))
             {
                 continue;
             }
@@ -259,6 +262,48 @@ public static class BalanceBots
             return false;
         }
         return run.TrySell(false, weakest);
+    }
+
+    // 조합 해금이면 만들 수 있는 조합은 바로 만든다 (조합 크리처가 재료 둘보다 강함)
+    private static void FuseAll(BalanceRun run)
+    {
+        if (!run.FusionUnlocked)
+        {
+            return;
+        }
+        bool made = true;
+        while (made)
+        {
+            made = false;
+            foreach (FusionRecipe recipe in run.Config.FusionRecipes)
+            {
+                if (recipe != null && run.TryFuse(recipe))
+                {
+                    made = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 조합 해금이면 ★★ 이상 재료는 짝 재료를 가지고 있는 동안 팔지 않는다
+    private static bool IsFusionMaterial(BalanceRun run, CreatureInstance creature)
+    {
+        if (!run.FusionUnlocked || creature.Level < Fusion.MinLevel)
+        {
+            return false;
+        }
+        foreach (FusionRecipe recipe in run.Config.FusionRecipes)
+        {
+            CreatureData partner = recipe.MaterialA == creature.Data ? recipe.MaterialB
+                : recipe.MaterialB == creature.Data ? recipe.MaterialA
+                : null;
+            if (partner != null && run.CountOwned(partner) > 0)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static float Score(CreatureData data, int level, CreatureType? focus)

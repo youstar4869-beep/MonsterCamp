@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-// 판이 끝나도 남는 진행: 별, 해금 (meta.json)
+// 판이 끝나도 남는 진행: 별, 해금, 조합식 발견 (meta.json)
 public class MetaProgress : MonoBehaviour
 {
     [SerializeField] private MetaConfig _config;
@@ -64,6 +64,19 @@ public class MetaProgress : MonoBehaviour
         SaveAndNotify();
     }
 
+    public bool FusionUnlocked => Data.fusionUnlocked;
+
+    public void SetFusionUnlocked(bool unlocked)
+    {
+        Data.fusionUnlocked = unlocked;
+        SaveAndNotify();
+    }
+
+    public bool IsDiscovered(FusionRecipe recipe) => Data.discoveredRecipes.Contains(recipe.name);
+    public bool IsMade(FusionRecipe recipe) => Data.madeRecipes.Contains(recipe.name);
+    public void SetDiscovered(FusionRecipe recipe) => AddRecord(Data.discoveredRecipes, recipe.name);
+    public void SetMade(FusionRecipe recipe) => AddRecord(Data.madeRecipes, recipe.name);
+
     public bool TutorialCompleted => Data.tutorialCompleted;
     public bool FrontRowTipShown => Data.frontRowTipShown;
 
@@ -104,6 +117,16 @@ public class MetaProgress : MonoBehaviour
         unlocked.Add(id);
         SaveAndNotify();
         return true;
+    }
+
+    private void AddRecord(System.Collections.Generic.List<string> records, string id)
+    {
+        if (records.Contains(id))
+        {
+            return;
+        }
+        records.Add(id);
+        SaveAndNotify();
     }
 
     private void SaveAndNotify()

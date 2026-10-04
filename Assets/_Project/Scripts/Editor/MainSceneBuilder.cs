@@ -91,6 +91,8 @@ public static class MainSceneBuilder
         // 정보 창·시너지 표: 화면·상단 표시보다 위, 튜토리얼보다 아래 (다른 화면에서도 다시 쓸 수 있게 캔버스에)
         CreatureInfoPopup infoPopup = CreateCreatureInfoPopup(canvas);
         SynergyPanel synergyPanel = CreateSynergyPanel(canvas);
+        FusionPanel fusionPanel = CreateFusionPanel(canvas);
+        // 도움말 창은 조합 창보다 위 ("새 조합식 발견!")
         TipPopup tipPopup = CreateTipPopup(canvas);
 
         BuildTitleUI(title, flow, run, tutorial);
@@ -107,7 +109,8 @@ public static class MainSceneBuilder
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
-        ShopScreen shopScreen = BuildShopUI(shop, run, meta, hud, goldText, infoPopup, synergyPanel, out Text trainerText);
+        ShopScreen shopScreen = BuildShopUI(shop, run, meta, hud, goldText, infoPopup, synergyPanel, fusionPanel, tipPopup,
+            out Text trainerText);
         UnityEventTools.AddVoidPersistentListener(battleButton.onClick, shopScreen.StartBattle);
 
         // 튜토리얼 화면은 모든 화면·상단 표시보다 위에 그려지도록 여기서 만든다
@@ -586,6 +589,64 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, panel.Close);
         UnityEventTools.AddVoidPersistentListener(closeButton.onClick, panel.Close);
 
+        root.gameObject.SetActive(false);
+        return panel;
+    }
+
+    // 조합 창: 어두운 바탕(누르면 닫힘) + 가운데 창.
+    // 목록(제목, 닫기, 조합 줄 6개) / 확인(제목, "재료 A ★★ + 재료 B ★★ → 결과 ★★", 조합·취소) 중 하나만 보인다
+    private static FusionPanel CreateFusionPanel(Transform canvas)
+    {
+        const int optionCount = 6;
+        RectTransform root = CreateModalRoot(canvas, "FusionPanel", out Button backgroundButton);
+
+        RectTransform list = CreatePanel(root, "ListWindow", _theme.Panel, true);
+        Round(list.GetComponent<Image>(), 36f);
+        Stretch(list, new Vector2(0.06f, 0.25f), new Vector2(0.94f, 0.75f));
+        CreateText(list, "Title", "조합", _theme.HeadingSize, new Vector2(0.05f, 0.87f), new Vector2(0.72f, 0.98f));
+        Button closeButton = CreateFreeButton(list, "닫기", new Vector2(0.75f, 0.88f), new Vector2(0.97f, 0.98f),
+            _theme.ButtonSecondary);
+        closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
+        var optionButtons = new Button[optionCount];
+        var optionTexts = new Text[optionCount];
+        const float top = 0.85f;
+        const float rowHeight = 0.135f;
+        for (int i = 0; i < optionCount; i++)
+        {
+            float rowTop = top - rowHeight * i;
+            optionButtons[i] = CreateFreeButton(list, "Option" + i, new Vector2(0.04f, rowTop - rowHeight + 0.015f),
+                new Vector2(0.96f, rowTop), _theme.ButtonInfo);
+            optionTexts[i] = optionButtons[i].GetComponentInChildren<Text>();
+            optionTexts[i].resizeTextMaxSize = _theme.BodySize;
+        }
+
+        RectTransform confirm = CreatePanel(root, "ConfirmWindow", _theme.Panel, true);
+        Round(confirm.GetComponent<Image>(), 36f);
+        Stretch(confirm, new Vector2(0.06f, 0.36f), new Vector2(0.94f, 0.64f));
+        Text confirmTitle = CreateText(confirm, "Title", "조합할까요?", _theme.HeadingSize, new Vector2(0.05f, 0.76f), new Vector2(0.95f, 0.95f));
+        confirmTitle.color = _theme.Accent;
+        Text confirmText = CreateText(confirm, "Message", "", _theme.LargeSize, new Vector2(0.04f, 0.3f), new Vector2(0.96f, 0.76f));
+        Button okButton = CreateFreeButton(confirm, "조합", new Vector2(0.53f, 0.06f), new Vector2(0.9f, 0.26f), _theme.ButtonPrimary);
+        Button cancelButton = CreateFreeButton(confirm, "취소", new Vector2(0.1f, 0.06f), new Vector2(0.47f, 0.26f),
+            _theme.ButtonSecondary);
+
+        var panel = root.gameObject.AddComponent<FusionPanel>();
+        var so = new SerializedObject(panel);
+        so.FindProperty("_listView").objectReferenceValue = list.gameObject;
+        SetArray(so.FindProperty("_optionButtons"), optionButtons);
+        SetArray(so.FindProperty("_optionTexts"), optionTexts);
+        so.FindProperty("_confirmView").objectReferenceValue = confirm.gameObject;
+        so.FindProperty("_confirmText").objectReferenceValue = confirmText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, panel.Close);
+        UnityEventTools.AddVoidPersistentListener(closeButton.onClick, panel.Close);
+        UnityEventTools.AddVoidPersistentListener(cancelButton.onClick, panel.Close);
+        UnityEventTools.AddVoidPersistentListener(okButton.onClick, panel.Confirm);
+        for (int i = 0; i < optionCount; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(optionButtons[i].onClick, panel.Pick, i);
+        }
         root.gameObject.SetActive(false);
         return panel;
     }
@@ -1630,7 +1691,7 @@ public static class MainSceneBuilder
     // (상단 표시: 라운드·목숨·골드) / 트레이너·새로고침 / 상점 크리처 5칸 + 아이템 1칸 / 메시지 / 시너지
     // / 팀 앞줄 2칸 / 팀 뒷줄 3칸 / 대기석 6칸 / 아이템 보관함 3칸 + 전투 시작
     private static ShopScreen BuildShopUI(GameObject screen, RunManager run, MetaProgress meta, HudView hud, Text goldText,
-        CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, out Text trainerText)
+        CreatureInfoPopup infoPopup, SynergyPanel synergyPanel, FusionPanel fusionPanel, TipPopup tipPopup, out Text trainerText)
     {
         // 새로고침 버튼 왼쪽: 지금 트레이너 이름 (작게)
         trainerText = CreateText(screen.transform, "TrainerText", "", _theme.TinySize,
@@ -1680,6 +1741,13 @@ public static class MainSceneBuilder
         synergyButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
         // 시너지 버튼 아래·위는 비어 있어(팀 앞줄은 0.2~0.8) 눌리는 범위를 약 140px로
         AddHitArea(synergyButton, 0f, 46f, 0f, 38f);
+        // 시너지 버튼 왼쪽: "조합 N" (보통 클리어 전에는 꺼 둠, 켜지면 시너지 줄이 버튼 왼쪽까지 줄어듦)
+        Button fusionButton = CreateFreeButton(screen.transform, "조합",
+            new Vector2(0.65f, 0.664f), new Vector2(0.8f, 0.694f), _theme.ButtonPrimary);
+        Text fusionLabel = fusionButton.GetComponentInChildren<Text>();
+        fusionLabel.resizeTextMaxSize = _theme.SmallSize;
+        AddHitArea(fusionButton, 0f, 0f, 0f, 38f);
+        fusionButton.gameObject.SetActive(false);
 
         // 팀 칸: 약 300 x 290 (가장 크게). 위가 앞줄
         Color teamColor = _theme.TeamSlot;
@@ -1762,6 +1830,10 @@ public static class MainSceneBuilder
         SetArray(so.FindProperty("_itemSlots"), itemSlots);
         so.FindProperty("_dragIcon").objectReferenceValue = dragIcon;
         so.FindProperty("_dragLabel").objectReferenceValue = dragLabel;
+        so.FindProperty("_fusionButton").objectReferenceValue = fusionButton;
+        so.FindProperty("_fusionLabel").objectReferenceValue = fusionLabel;
+        so.FindProperty("_fusionPanel").objectReferenceValue = fusionPanel;
+        so.FindProperty("_tip").objectReferenceValue = tipPopup;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         for (int i = 0; i < benchSlots.Length; i++)
@@ -1781,6 +1853,7 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(shopItemSlot.GetComponent<Button>().onClick, shop.BuyItem);
         UnityEventTools.AddVoidPersistentListener(synergyTextButton.onClick, shop.OpenSynergyPanel);
         UnityEventTools.AddVoidPersistentListener(synergyButton.onClick, shop.OpenSynergyPanel);
+        UnityEventTools.AddVoidPersistentListener(fusionButton.onClick, shop.OpenFusionPanel);
         // 크리처 칸을 누르면 정보 창 (구매·판매는 창의 버튼으로)
         for (int i = 0; i < shopSlots.Length; i++)
         {

@@ -46,7 +46,6 @@ public static class EnemyTeamGenerator
         string name = TypeSynergy.GetTypeName(first) + (twoTypes ? "·" + TypeSynergy.GetTypeName(second) : "") + " 무리";
 
         // 조합 시너지를 노리는 팀 (어려움·불가능): 그 조합 타입을 1마리씩, 남는 칸은 첫 타입 1마리 더(타입 시너지 1단계) 뒤 아무 타입
-        // TODO 24: 조합 크리처(어려움 25층·불가능 15층부터)는 여기서 조합식으로 고른다
         int mixedIndex = -1;
         if (difficulty.EnemyMixedSynergy && mixed != null && mixed.Count > 0 && random.NextDouble() < config.MixedTeamChance)
         {
@@ -85,6 +84,23 @@ public static class EnemyTeamGenerator
             int level = RollLevel(difficulty, floor, random) + (isBoss ? difficulty.BossLevelBonus : 0);
             members[i] = new EnemyTeamData.Member
                 { Creature = Picked[i], Level = Mathf.Clamp(level, 1, CreatureData.MaxLevel) };
+        }
+
+        // 조합 크리처 (어려움 25층·불가능 15층부터, 층이 오를수록 많이): 한 마리씩 확률로 같은 타입 조합 크리처로 바꾼다.
+        // 시작 층 전에는 난수를 쓰지 않으므로 그 전 층·보통의 적 팀은 조합이 없던 때와 같다
+        float fusionChance = difficulty.GetEnemyFusionChance(floor);
+        for (int i = 0; fusionChance > 0f && i < members.Length; i++)
+        {
+            if (random.NextDouble() >= fusionChance)
+            {
+                continue;
+            }
+            CreatureData fused = PickFusion(shop.FusionRecipes, members[i].Creature, random);
+            if (fused != null)
+            {
+                members[i].Creature = fused;
+                Picked.Add(fused);
+            }
         }
         // 앞줄(0~1)부터 체력 높은 순
         System.Array.Sort(members, (a, b) => b.Creature.GetMaxHealth(b.Level).CompareTo(a.Creature.GetMaxHealth(a.Level)));
@@ -137,6 +153,35 @@ public static class EnemyTeamGenerator
                 if (creature != null && creature.Type == type && creature.Tier == t && !Picked.Contains(creature))
                 {
                     Candidates.Add(creature);
+                }
+            }
+            if (Candidates.Count > 0)
+            {
+                return Candidates[random.Next(Candidates.Count)];
+            }
+        }
+        return null;
+    }
+
+    // 바꿀 크리처와 같은 타입(교차는 두 타입 중 하나)인 조합 크리처. 등급은 바꿀 크리처 가격에 맞춰
+    // (1골드 하급, 2골드 중급, 3골드 교차, 4·5골드 상급), 그 등급에 없으면 아래 등급. 없으면 null
+    private static CreatureData PickFusion(IReadOnlyList<FusionRecipe> recipes, CreatureData original, System.Random random)
+    {
+        if (recipes == null)
+        {
+            return null;
+        }
+        int grade = Mathf.Min(original.Tier, (int)FusionGrade.Upper + 1) - 1;
+        for (; grade >= 0; grade--)
+        {
+            Candidates.Clear();
+            foreach (FusionRecipe recipe in recipes)
+            {
+                CreatureData result = recipe != null ? recipe.Result : null;
+                if (result != null && (int)recipe.Grade == grade && !Picked.Contains(result)
+                    && (result.Type == original.Type || (result.HasSecondType && result.SecondType == original.Type)))
+                {
+                    Candidates.Add(result);
                 }
             }
             if (Candidates.Count > 0)

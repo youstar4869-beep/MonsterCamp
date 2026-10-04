@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // 상점·배치 화면: 골드, 상점 칸(크리처·아이템), 새로고침, 대기석, 판매, 팀 배치(끌어서 옮기기), 합성,
-// 아이템 보관함, 아이템 장착(보관함 → 크리처로 끌기)
+// 아이템 보관함, 아이템 장착(보관함 → 크리처로 끌기), 조합(보통 클리어 후)
 public class ShopScreen : MonoBehaviour
 {
     private const int MergeCount = 3;
@@ -38,6 +38,14 @@ public class ShopScreen : MonoBehaviour
     [Tooltip("아이템을 끌 때 그림 위에 보이는 글자")]
     [SerializeField] private Text _dragLabel;
 
+    [Header("조합 (보통 클리어 후 해금, 그 전에는 안 보임)")]
+    [Tooltip("시너지 줄 옆 \"조합 N\" 버튼 (만들 수 있는 조합이 없으면 흐리게)")]
+    [SerializeField] private Button _fusionButton;
+    [SerializeField] private Text _fusionLabel;
+    [SerializeField] private FusionPanel _fusionPanel;
+    [Tooltip("\"새 조합식 발견!\" 알림")]
+    [SerializeField] private TipPopup _tip;
+
     private CreatureData[] _offers;
     private ItemData _itemOffer;
     // 칸 위치를 유지하기 위해 빈 칸은 null
@@ -59,6 +67,11 @@ public class ShopScreen : MonoBehaviour
     private readonly List<CreatureData> _teamCreatures = new List<CreatureData>();
     private readonly int[] _typeCounts = new int[TypeSynergy.TypeCount];
     private readonly System.Text.StringBuilder _synergyBuilder = new System.Text.StringBuilder();
+    // 지금 만들 수 있는 조합식과 목록 글
+    private readonly List<FusionRecipe> _fusionOptions = new List<FusionRecipe>();
+    private readonly List<string> _fusionLabels = new List<string>();
+    // 조합 버튼이 안 보일 때 시너지 줄 오른쪽 끝 (씬에 놓인 값)
+    private float _synergyTextRight = -1f;
 
     // 새 런 시작: 대기석·팀·아이템 보관함 비우기
     public void ResetRun(DifficultyData difficulty)
@@ -280,6 +293,109 @@ public class ShopScreen : MonoBehaviour
     {
         _infoPopup.Close();
         _synergyPanel.Close();
+        _fusionPanel.Close();
+    }
+
+    // ---------- 조합 ----------
+
+    // "조합" 버튼: 지금 만들 수 있는 조합 목록 → 고르면 확인 창
+    public void OpenFusionPanel()
+    {
+        if (_dragSource != null || !_meta.FusionUnlocked)
+        {
+            return;
+        }
+        Fusion.CollectAvailable(_config.FusionRecipes, _team, _bench, _fusionOptions);
+        if (_fusionOptions.Count == 0)
+        {
+            return;
+        }
+
+        _fusionLabels.Clear();
+        foreach (FusionRecipe recipe in _fusionOptions)
+        {
+            Fusion.TryPlan(recipe, _team, _bench, out Fusion.Plan plan);
+            _fusionLabels.Add($"{recipe.Result.DisplayName} {CreatureInstance.ToStars(plan.Level)}  " +
+                              $"({recipe.MaterialA.DisplayName} + {recipe.MaterialB.DisplayName})");
+        }
+        _fusionPanel.ShowList(_fusionLabels, OnFusionPicked);
+    }
+
+    private void OnFusionPicked(int index)
+    {
+        if (index < 0 || index >= _fusionOptions.Count
+            || !Fusion.TryPlan(_fusionOptions[index], _team, _bench, out Fusion.Plan plan))
+        {
+            _fusionPanel.Close();
+            return;
+        }
+
+        FusionRecipe recipe = _fusionOptions[index];
+        CreatureInstance a = Fusion.GetA(plan, _team, _bench);
+        CreatureInstance b = Fusion.GetB(plan, _team, _bench);
+        string message = $"{a.Data.DisplayName} {CreatureInstance.ToStars(a.Level)} + {b.Data.DisplayName} {CreatureInstance.ToStars(b.Level)}" +
+                         $"\n→ {recipe.Result.DisplayName} {CreatureInstance.ToStars(plan.Level)}";
+        if (a.Level != b.Level)
+        {
+            message += "\n(결과 레벨은 두 재료 중 낮은 레벨)";
+        }
+        _fusionPanel.ShowConfirm(message, () => MakeFusion(recipe));
+    }
+
+    private void MakeFusion(FusionRecipe recipe)
+    {
+        if (!Fusion.TryPlan(recipe, _team, _bench, out Fusion.Plan plan))
+        {
+            return;
+        }
+
+        Fusion.Make(recipe, plan, _team, _bench, _items, out bool inTeam, out int index, out int refund);
+        _gold += refund;
+        _meta.SetMade(recipe);
+        ShowMessage(refund > 0 ? $"아이템 보관함이 꽉 차서 아이템을 {refund}골드로 바꿨어요" : "");
+        UpdateView();
+        GetSlotViews(inTeam ? SlotArea.Team : SlotArea.Bench)[index].Flash();
+        AudioManager.Play(Sfx.Merge);
+    }
+
+    // 조합 버튼 표시 + 새로 만들 수 있게 된 조합식 발견 기록·알림 (UpdateView에서)
+    private void UpdateFusion()
+    {
+        bool unlocked = _meta.FusionUnlocked;
+        _fusionButton.gameObject.SetActive(unlocked);
+        // 조합 버튼이 보이면 시너지 줄을 버튼 왼쪽까지 줄인다
+        RectTransform synergyRect = _synergyText.rectTransform;
+        if (_synergyTextRight < 0f)
+        {
+            _synergyTextRight = synergyRect.anchorMax.x;
+        }
+        float right = unlocked ? ((RectTransform)_fusionButton.transform).anchorMin.x - 0.01f : _synergyTextRight;
+        synergyRect.anchorMax = new Vector2(right, synergyRect.anchorMax.y);
+        if (!unlocked)
+        {
+            return;
+        }
+
+        Fusion.CollectAvailable(_config.FusionRecipes, _team, _bench, _fusionOptions);
+        _fusionButton.interactable = _fusionOptions.Count > 0;
+        _fusionLabel.text = _fusionOptions.Count > 0 ? $"조합 {_fusionOptions.Count}" : "조합";
+
+        _synergyBuilder.Clear();
+        foreach (FusionRecipe recipe in _fusionOptions)
+        {
+            if (_meta.IsDiscovered(recipe))
+            {
+                continue;
+            }
+            _meta.SetDiscovered(recipe);
+            _synergyBuilder.Append(_synergyBuilder.Length > 0 ? "\n" : "")
+                .Append(recipe.MaterialA.DisplayName).Append(" + ").Append(recipe.MaterialB.DisplayName)
+                .Append(" → ").Append(recipe.Result.DisplayName);
+        }
+        if (_synergyBuilder.Length > 0)
+        {
+            _tip.Show("새 조합식 발견!", _synergyBuilder + "\n\"조합\" 버튼으로 만들 수 있어요");
+        }
     }
 
     private void OnBuyClicked(int index)
@@ -591,7 +707,8 @@ public class ShopScreen : MonoBehaviour
     {
         foreach (CreatureInstance owned in EnumerateOwned())
         {
-            if (owned.Level >= CreatureData.MaxLevel)
+            // 조합 크리처는 같은 것 3마리 합성에서 빠진다
+            if (owned.Level >= CreatureData.MaxLevel || owned.Data.FusionOnly)
             {
                 continue;
             }
@@ -788,6 +905,7 @@ public class ShopScreen : MonoBehaviour
         }
 
         UpdateSynergyText();
+        UpdateFusion();
     }
 
     // 팀 칸 크리처만 세서 _typeCounts에 (전투와 같은 TypeSynergy.CountUnique)

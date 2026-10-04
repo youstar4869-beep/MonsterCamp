@@ -29,3 +29,7 @@ MonoBehaviour:
   _star3FromFloor: 25
   _levelChanceAtStart: 0.2
   _levelChancePerFloor: 0.03
+  _fusionFromFloor: 15
+  _fusionChanceAtStart: 0.1
+  _fusionChancePerFloor: 0.02
+  _fusionChanceMax: 0.6

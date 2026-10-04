@@ -43,7 +43,11 @@ public class CreatureInfoPopup : MonoBehaviour
         level = Mathf.Clamp(level, 1, CreatureData.MaxLevel);
         _icon.sprite = creature.GetSprite(level);
         _nameText.text = creature.DisplayName;
-        _infoText.text = $"{TypeSynergy.GetTypeName(creature.Type)} · {creature.Tier}골드 · Lv{level} {CreatureInstance.ToStars(level)}";
+        // 조합 크리처는 가격 대신 "조합", 교차 조합은 두 타입
+        string type = TypeSynergy.GetTypeName(creature.Type) +
+                      (creature.HasSecondType ? "·" + TypeSynergy.GetTypeName(creature.SecondType) : "");
+        string grade = creature.FusionOnly ? "조합" : $"{creature.Tier}골드";
+        _infoText.text = $"{type} · {grade} · Lv{level} {CreatureInstance.ToStars(level)}";
         _infoText.color = _theme.TypeColor(creature.Type);
         _statsText.text = $"체력 {creature.GetMaxHealth(level)}   공격력 {creature.GetAttack(level)}   공격 속도 {creature.AttackSpeed:0.##}/초";
         _skillText.text = $"능력: {creature.SkillDescription}";

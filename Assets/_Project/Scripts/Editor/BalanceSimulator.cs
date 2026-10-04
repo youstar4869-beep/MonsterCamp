@@ -41,6 +41,9 @@ public class BalanceSimulator
         public int SynergyTier2Games;
         // 마지막 팀에서 조합 시너지가 하나라도 켜진 판 수
         public int MixedActiveGames;
+        // 조합을 한 번이라도 한 판 수 / 만든 조합 수 (조합 해금일 때)
+        public int FusionGames;
+        public int FusionsMade;
         // [조합 시너지] = {판 수, 클리어}. 시너지 봇이 조합 시너지를 노린 판
         public int[,] MixedGoals = new int[0, 2];
         // 앞쪽 몇 판의 라운드별 기록 (봇이 무엇을 사서 어떻게 졌는지 사람이 읽어 보는 용도)
@@ -80,6 +83,8 @@ public class BalanceSimulator
     private readonly DifficultyData _difficulty;
     private readonly TrainerData[] _trainers;
     private readonly System.Func<CreatureData, bool> _canAppear;
+    // 조합 해금 계정 (보통 클리어 후)
+    private readonly bool _fusionUnlocked;
     private readonly CreatureData[] _creatures;
     private readonly float[,] _typeMultipliers;
     private readonly float[,] _neutralMultipliers;
@@ -94,8 +99,10 @@ public class BalanceSimulator
 
     // lockedLikeNewAccount: true면 MetaConfig에서 잠긴 트레이너·크리처를 빼고 돌린다 (처음 시작한 계정)
     // difficulty: Data/Difficulty 안 에셋 이름 (Normal, Hard, Impossible)
-    public BalanceSimulator(bool lockedLikeNewAccount = false, string difficulty = "Normal")
+    // fusionUnlocked: 봇이 조합을 쓴다 (보통 클리어 후 계정)
+    public BalanceSimulator(bool lockedLikeNewAccount = false, string difficulty = "Normal", bool fusionUnlocked = false)
     {
+        _fusionUnlocked = fusionUnlocked;
         _shop = Load<ShopConfig>("ShopConfig");
         _synergy = Load<SynergyConfig>("SynergyConfig");
         _runConfig = Load<RunConfig>("RunConfig");
@@ -211,7 +218,7 @@ public class BalanceSimulator
         // 상점 확률은 ShopConfig가 UnityEngine.Random을 쓰므로 판마다 시드를 정한다
         Random.InitState(gameSeed);
         var random = new System.Random(gameSeed);
-        var run = new BalanceRun(_shop, _difficulty, _canAppear);
+        var run = new BalanceRun(_shop, _difficulty, _canAppear) { FusionUnlocked = _fusionUnlocked };
         CreatureType[] mixedTypes = mixedGoal >= 0 ? _synergy.Mixed.Get(mixedGoal).Types : null;
 
         int round = 1;
@@ -306,6 +313,8 @@ public class BalanceSimulator
         stats.Games++;
         stats.Clears += cleared ? 1 : 0;
         stats.ReachedSum += round;
+        stats.FusionGames += run.FusionsMade > 0 ? 1 : 0;
+        stats.FusionsMade += run.FusionsMade;
         stats.Trainers[trainer][0]++;
         stats.Trainers[trainer][1] += cleared ? 1 : 0;
 
@@ -587,7 +596,8 @@ public class BalanceSimulator
             text.AppendLine($"[{BotName(stats.Bot)} 봇] {stats.Games}판  클리어 {Pct(stats.ClearRate)}  " +
                             $"평균 도달 층 {stats.AverageReached:0.00}" +
                             $"  마지막 팀 시너지 1단계+ {Pct(Rate(stats.SynergyTier1Games, stats.Games))} · 2단계 {Pct(Rate(stats.SynergyTier2Games, stats.Games))}" +
-                            (stats.Timeouts > 0 ? $"  시간 초과 전투 {stats.Timeouts}" : ""));
+                            (stats.Timeouts > 0 ? $"  시간 초과 전투 {stats.Timeouts}" : "") +
+                            (_fusionUnlocked ? $"  조합한 판 {Pct(Rate(stats.FusionGames, stats.Games))} (판당 {(float)stats.FusionsMade / Mathf.Max(1, stats.Games):0.0}번)" : ""));
             text.Append("  층 승률:");
             for (int round = 1; round < stats.RoundBattles.Length; round++)
             {

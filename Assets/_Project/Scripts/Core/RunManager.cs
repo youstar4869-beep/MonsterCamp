@@ -49,6 +49,8 @@ public class RunManager : MonoBehaviour
     private const string BossTipMessage = "다음 전투는 보스예요.\n앞줄에는 체력 높은 크리처를 두세요.";
     private const string RetryTipTitle = "다시 도전!";
     private const string RetryTipMessage = "같은 팀으로는 같은 결과가 나오기 쉬워요.\n팀 구성을 바꿔 다시 도전해 보세요.";
+    private const string FusionUnlockTitle = "조합 해금!";
+    private const string FusionUnlockMessage = "정해진 두 크리처를 ★★ 이상으로 모으면\n상점에서 더 강한 크리처로 조합할 수 있어요.";
 
     private bool IsBossFloor => _difficulty.IsBossFloor(_floor);
     private bool IsLastFloor => _floor >= _difficulty.FloorCount;
@@ -176,7 +178,17 @@ public class RunManager : MonoBehaviour
             if (lastFloor)
             {
                 _meta.SetCleared(_difficulty);
+                // 보통을 클리어하면 조합 해금
+                bool unlockFusion = _difficulty == _difficulties[0] && !_meta.FusionUnlocked;
+                if (unlockFusion)
+                {
+                    _meta.SetFusionUnlocked(true);
+                }
                 ShowResult(true);
+                if (unlockFusion)
+                {
+                    _tip.Show(FusionUnlockTitle, FusionUnlockMessage);
+                }
                 return;
             }
             _floor++;
