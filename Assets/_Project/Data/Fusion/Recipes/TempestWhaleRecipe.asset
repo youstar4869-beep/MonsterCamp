@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5785a52f1643413ea784240d22a6a93d, type: 3}
+  m_Name: TempestWhaleRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::FusionRecipe
+  _materialA: {fileID: 11400000, guid: 0645507553a0629479dd0ff054f84a9c, type: 2}
+  _materialB: {fileID: 11400000, guid: 9c0e3d2bbca384645b94224c973317d6, type: 2}
+  _result: {fileID: 11400000, guid: dfbfee604d58ab04397a17a2b033ab43, type: 2}
+  _grade: 2

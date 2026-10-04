@@ -12,7 +12,7 @@ public enum SkillType
     EveryNthAttackHitAll,
     // Every번째 공격마다 체력 비율이 가장 낮은 아군 회복 (그 아군 최대 체력 ×Value1)
     EveryNthAttackHealLowest,
-    // Every번째 공격마다 뒷줄 적 1마리에게 공격력 ×Value1 피해 (뒷줄이 없으면 앞줄)
+    // Every번째 공격마다 뒷줄 적 Value2마리(0이면 1마리)에게 공격력 ×Value1 피해 (뒷줄이 없으면 앞줄 1마리)
     EveryNthAttackHitBackRow,
     // Every번째 공격마다 적 전체에 공격력 ×Value1 피해 + 아군 전체 회복 (각자 최대 체력 ×Value2)
     EveryNthAttackHitAllHealTeam,
@@ -38,7 +38,7 @@ public enum SkillType
     // ---- 받을 때 ----
     // 받는 피해 Value1 감소
     DamageReduction,
-    // 처음 받는 공격 피해 무시
+    // 처음 받는 공격 Value1번(0이면 1번) 피해 무시
     IgnoreFirstHit,
     // 받은 공격 피해의 Value1만큼 공격자에게 반사
     Thorns,
@@ -60,9 +60,9 @@ public enum SkillType
     TeamHealthAndRegen,
     // 전투 시작 후 Value2초 동안 공격 속도 ×Value1
     BattleStartHaste,
-    // 앞줄 적 1마리 Value1초 기절 (앞줄이 없으면 맨 앞 적)
+    // 앞줄부터 적 Value2마리(0이면 1마리) Value1초 기절
     BattleStartStunFront,
-    // 뒷줄 적 1마리 Value1초 묶기 (뒷줄이 없으면 맨 앞 적)
+    // 뒷줄부터 적 Value2마리(0이면 1마리) Value1초 묶기 (뒷줄이 없으면 맨 앞 적 1마리)
     BattleStartRootBack,
     // 아군 전체에 최대 체력 ×Value1 보호막
     BattleStartTeamShield,
@@ -84,4 +84,8 @@ public enum SkillType
     // ---- 적을 쓰러뜨렸을 때 ----
     // 공격 속도 +Value1 (누적)
     OnKillAttackSpeed,
+
+    // ---- 조합 크리처용 (에셋 번호가 바뀌지 않게 맨 뒤에 추가) ----
+    // 전투 시작 시 자신에게 최대 체력 ×Value1 보호막
+    BattleStartSelfShield,
 }

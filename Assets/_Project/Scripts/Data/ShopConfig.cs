@@ -82,7 +82,7 @@ public class ShopConfig : ScriptableObject
             _candidates.Clear();
             foreach (CreatureData creature in _creaturePool)
             {
-                if (creature != null && creature.Tier == tier && canAppear(creature))
+                if (creature != null && !creature.FusionOnly && creature.Tier == tier && canAppear(creature))
                 {
                     _candidates.Add(creature);
                 }

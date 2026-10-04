@@ -339,3 +339,20 @@
   - 시뮬레이션 (봇마다 100판, 시드 12345): 보통 시너지 / 기본 / 저축 봇 클리어 62% / 64% / 46% (전에는 38 / 55 / 44%). 어려움·불가능 모두 0% (조정 안 함, TODO 28)
     - 보통 시너지 봇이 목표(30~50%)보다 높지만 조합 시너지 수치는 기획값 그대로 둠: 수치를 모두 0으로 해도 50%, 절반으로 줄이면 56% → 시너지 봇 목표가 바뀐 영향(조합 판은 여러 타입을 사서 기본 봇과 비슷하게 강함)이 커서 수치만으로는 맞추기 어려움
   - `MainSceneBuilder` 변경 (시너지 표) — Main 씬을 다시 만들어야 적용됨
+- 조합 시스템 1단계: 데이터 (TODO 24, 조합 버튼·발견·해금은 2단계, 그림은 TODO 25)
+  - `CreatureData` 추가: 두 번째 타입(`_hasSecondType`·`_secondType`), 시너지 마릿수(`_synergyCount` 1~2, 5골드 5종은 에셋에 2), 조합 전용(`_fusionOnly`), 두 번째 스킬 칸(`_skill2Type`·Every·Chance·Value1·Value2)
+    - 두 번째 타입은 `TypeSynergy.CountUnique` 한 곳에서 같은 마릿수로 셈 → 타입·조합 시너지 모두 반영. 타입 시너지 보너스는 두 타입 것을 모두 받음 (`SynergyConfig.AddBonus`). 상성은 첫 타입 기준
+    - `TypeSynergy.GetSynergyCount`는 등급 대신 에셋의 시너지 마릿수
+    - 조합 전용은 상점(`ShopConfig.GetRandomCreature`)과 도감 일반 목록(`MainSceneBuilder`)에서 뺌
+  - 전투: 스킬을 칸 단위(`SkillSlot`)로 돌려 두 스킬이 동시에 동작. 두 번째 칸이 비면 계산·순서·RNG 사용이 전과 같음
+  - `FusionRecipe` (재료 A·B, 결과, 등급 하급/중급/교차/상급) + 메뉴 `MonsterCamp > 조합 데이터 만들기` (`FusionDataBuilder`, 있는 에셋은 덮어쓰지 않음)
+    - `Data/Fusion/Creatures` 17종, `Data/Fusion/Recipes` 17개. 수치는 GAME_DESIGN v0.2 표 그대로 (★ 기준, 레벨 배율 1/1.8/3)
+    - 등급(가격 칸)은 재료 중 높은 등급 (하급 1, 중급 2, 교차 3, 상급 5), 상급은 시너지 2마리. 교차: 화산코뿔소 바위+불, 폭풍고래 번개+물
+    - 그림은 재료 A의 Lv1~3 그림을 임시 연결
+  - 스킬은 기존 SkillType 재사용, 새로 만든 것:
+    - 새 종류 `BattleStartSelfShield` (시작 시 자신 보호막, 수정갑주) — enum 맨 뒤에 추가
+    - 마릿수 칸 추가 (0이면 전과 같이 1): `IgnoreFirstHit` Value1 = 무시할 공격 수, `BattleStartStunFront`·`BattleStartRootBack`·`EveryNthAttackHitBackRow` Value2 = 대상 수
+    - 꽃덩굴여우의 묶기·공격력 감소는 두 칸이라 확률을 따로 굴림 (각 25%)
+  - 메뉴 `MonsterCamp > 조합 크리처 전투 테스트` (`FusionBattleTest`, 배치 `-executeMethod FusionBattleTest.RunBatch`): 조합 ★★ 1마리 vs 재료 두 마리 ★★, 조합식마다 40판
+    - 17종 모두 오류 0. 조합 쪽 승률 꽃덩굴여우 83%, 뇌전족제비 98%, 나머지 100% (평균 전투 2.6~49초)
+  - 확인: 같은 시드로 세 난이도 × 봇 4종 × 100판 + 1:1 대결표 + 등급 가치를 전후 비교 → 결과 파일 전부 바이트 단위로 같음 (기존 크리처만 있는 팀은 전투 그대로)

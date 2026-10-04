@@ -18,16 +18,20 @@ public static class TypeSynergy
         {
             if (creature != null && Counted.Add(creature))
             {
-                // TODO 24: 조합 크리처는 두 번째 타입도 여기서 더한다 (타입 세는 곳은 여기 한 군데)
+                // 교차 조합 크리처는 두 번째 타입도 같은 마릿수로 센다 (타입 세는 곳은 여기 한 군데)
                 counts[(int)creature.Type] += GetSynergyCount(creature);
+                if (creature.HasSecondType && creature.SecondType != creature.Type)
+                {
+                    counts[(int)creature.SecondType] += GetSynergyCount(creature);
+                }
             }
         }
     }
 
-    // 시너지에서 몇 마리로 세는지 (5골드 = 2마리)
+    // 시너지에서 몇 마리로 세는지 (5골드·상급 조합 = 2마리, CreatureData 에셋 값)
     public static int GetSynergyCount(CreatureData creature)
     {
-        return creature.Tier >= CreatureData.MaxTier ? 2 : 1;
+        return creature.SynergyCount;
     }
 
     public static string GetTypeName(CreatureType type)

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: TempestWhale
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uD3ED\uD48D\uACE0\uB798"
+  _type: 3
+  _tier: 3
+  _hasSecondType: 1
+  _secondType: 1
+  _synergyCount: 1
+  _fusionOnly: 1
+  _maxHealth: 385
+  _attack: 41
+  _attackSpeed: 1.3
+  _skillDescription: "\uC804\uD22C \uC2DC\uC791 \uC2DC \uC544\uAD70 \uC804\uCCB4
+    \uCD5C\uB300 \uCCB4\uB825 +15%, 3\uBC88\uC9F8 \uACF5\uACA9\uB9C8\uB2E4 \uB4B7\uC904
+    \uC801 2\uB9C8\uB9AC\uC5D0\uAC8C \uACF5\uACA9\uB825 150% \uD53C\uD574"
+  _skillType: 20
+  _skillEvery: 0
+  _skillChance: 0
+  _skillValue1: 0.15
+  _skillValue2: 0
+  _skill2Type: 4
+  _skill2Every: 3
+  _skill2Chance: 0
+  _skill2Value1: 1.5
+  _skill2Value2: 2
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 2a323e6ed2fc2924ca2a73db7ab3ad57, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 2a323e6ed2fc2924ca2a73db7ab3ad57, type: 3}
+  - {fileID: 21300000, guid: 9e3234d2785df9946af48b6e049cbeff, type: 3}
+  - {fileID: 21300000, guid: 796ea67093bc3084f9ef7401a07586c7, type: 3}

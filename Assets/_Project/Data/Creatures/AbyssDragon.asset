@@ -15,6 +15,7 @@ MonoBehaviour:
   _displayName: "\uC2EC\uD574\uB8E1"
   _type: 1
   _tier: 5
+  _synergyCount: 2
   _maxHealth: 345
   _attack: 31
   _attackSpeed: 1

@@ -1113,7 +1113,7 @@ public static class MainSceneBuilder
         return AssetDatabase.LoadAssetAtPath<Sprite>(LockSpritePath);
     }
 
-    // 도감 순서: 가격(등급) 순, 같은 가격은 타입 순
+    // 도감 순서: 가격(등급) 순, 같은 가격은 타입 순. 조합 전용 크리처는 일반 목록에서 뺀다
     private static CreatureData[] GetSortedCreatures()
     {
         string[] guids = AssetDatabase.FindAssets("t:CreatureData", new[] { CreatureFolder });
@@ -1122,6 +1122,7 @@ public static class MainSceneBuilder
         {
             creatures[i] = AssetDatabase.LoadAssetAtPath<CreatureData>(AssetDatabase.GUIDToAssetPath(guids[i]));
         }
+        creatures = System.Array.FindAll(creatures, c => c != null && !c.FusionOnly);
         System.Array.Sort(creatures, (a, b) => a.Tier != b.Tier ? a.Tier.CompareTo(b.Tier) : a.Type.CompareTo(b.Type));
         return creatures;
     }

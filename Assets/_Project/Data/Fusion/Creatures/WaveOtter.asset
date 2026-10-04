@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: WaveOtter
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uD30C\uB3C4\uC218\uB2EC"
+  _type: 1
+  _tier: 2
+  _hasSecondType: 0
+  _secondType: 1
+  _synergyCount: 1
+  _fusionOnly: 1
+  _maxHealth: 350
+  _attack: 35
+  _attackSpeed: 1
+  _skillDescription: "\uACF5\uACA9\uD55C \uC801\uC758 \uACF5\uACA9 \uC18D\uB3C4 20%
+    \uAC10\uC18C, 3\uBC88\uC9F8 \uACF5\uACA9\uB9C8\uB2E4 \uCCB4\uB825 \uAC00\uC7A5
+    \uB0AE\uC740 \uC544\uAD70 15% \uD68C\uBCF5"
+  _skillType: 7
+  _skillEvery: 0
+  _skillChance: 0
+  _skillValue1: 0.2
+  _skillValue2: 0
+  _skill2Type: 3
+  _skill2Every: 3
+  _skill2Chance: 0
+  _skill2Value1: 0.15
+  _skill2Value2: 0
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 34d3577d4896ae34ba417f63fc0fecac, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 34d3577d4896ae34ba417f63fc0fecac, type: 3}
+  - {fileID: 21300000, guid: aca2b58c86fb0a14c8ba29c378f11a71, type: 3}
+  - {fileID: 21300000, guid: 7e5cdf3b666f99d40a302fc3875e1b84, type: 3}

@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: BoulderMoleKing
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uBC14\uC704\uB450\uB354\uC9C0\uC655"
+  _type: 4
+  _tier: 1
+  _hasSecondType: 0
+  _secondType: 4
+  _synergyCount: 1
+  _fusionOnly: 1
+  _maxHealth: 350
+  _attack: 20
+  _attackSpeed: 0.75
+  _skillDescription: "\uCC98\uC74C \uBC1B\uB294 \uACF5\uACA9 2\uBC88 \uBB34\uC2DC,
+    \uBC1B\uB294 \uD53C\uD574 10% \uAC10\uC18C"
+  _skillType: 15
+  _skillEvery: 0
+  _skillChance: 0
+  _skillValue1: 2
+  _skillValue2: 0
+  _skill2Type: 14
+  _skill2Every: 0
+  _skill2Chance: 0
+  _skill2Value1: 0.1
+  _skill2Value2: 0
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 539595a3924ecdc44a2b72ad09a71fb3, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 539595a3924ecdc44a2b72ad09a71fb3, type: 3}
+  - {fileID: 21300000, guid: b270f62d5978ece42aa3087ba3213d78, type: 3}
+  - {fileID: 21300000, guid: a36f10e52774d244da9e0a45f2bc375b, type: 3}

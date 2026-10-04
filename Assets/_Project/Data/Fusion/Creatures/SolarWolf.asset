@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: SolarWolf
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC77C\uB95C\uB291\uB300"
+  _type: 0
+  _tier: 5
+  _hasSecondType: 0
+  _secondType: 0
+  _synergyCount: 2
+  _fusionOnly: 1
+  _maxHealth: 540
+  _attack: 72
+  _attackSpeed: 1
+  _skillDescription: "\uCC98\uC74C \uC4F0\uB7EC\uC9C0\uBA74 \uCCB4\uB825 50%\uB85C
+    \uBD80\uD65C, \uC801\uC744 \uC4F0\uB7EC\uB728\uB9B4 \uB54C\uB9C8\uB2E4 \uACF5\uACA9
+    \uC18D\uB3C4 +30% (\uB204\uC801)"
+  _skillType: 29
+  _skillEvery: 0
+  _skillChance: 0
+  _skillValue1: 0.5
+  _skillValue2: 0
+  _skill2Type: 31
+  _skill2Every: 0
+  _skill2Chance: 0
+  _skill2Value1: 0.3
+  _skill2Value2: 0
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: b98325d85a49a614fbe800fe57da2547, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: b98325d85a49a614fbe800fe57da2547, type: 3}
+  - {fileID: 21300000, guid: 025457eebfcddc7449d6b498aa44f78b, type: 3}
+  - {fileID: 21300000, guid: a8123acdbd2067148b2a48c70adadad4, type: 3}

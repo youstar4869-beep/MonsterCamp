@@ -33,6 +33,11 @@ public static class BattleSetupFactory
             SkillChance = creature.SkillChance,
             SkillValue1 = creature.SkillValue1,
             SkillValue2 = creature.SkillValue2,
+            Skill2 = creature.Skill2Type,
+            Skill2Every = creature.Skill2Every,
+            Skill2Chance = creature.Skill2Chance,
+            Skill2Value1 = creature.Skill2Value1,
+            Skill2Value2 = creature.Skill2Value2,
         };
     }
 
@@ -54,6 +59,11 @@ public static class BattleSetupFactory
         {
             CreatureType type = member.Creature.Type;
             BattleBonus bonus = synergy.GetBonus(type, synergy.GetTier(TypeCounts[(int)type]));
+            if (member.Creature.HasSecondType && member.Creature.SecondType != type)
+            {
+                CreatureType second = member.Creature.SecondType;
+                synergy.AddBonus(second, synergy.GetTier(TypeCounts[(int)second]), ref bonus);
+            }
             if (mixed != null)
             {
                 mixed.AddBonus(TypeCounts, ref bonus);

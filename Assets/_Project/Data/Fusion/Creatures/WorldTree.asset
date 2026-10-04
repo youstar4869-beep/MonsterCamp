@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: WorldTree
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uC138\uACC4\uC218"
+  _type: 2
+  _tier: 5
+  _hasSecondType: 0
+  _secondType: 2
+  _synergyCount: 2
+  _fusionOnly: 1
+  _maxHealth: 720
+  _attack: 54
+  _attackSpeed: 1
+  _skillDescription: "\uC544\uAD70 \uC804\uCCB4 \uCD5C\uB300 \uCCB4\uB825 +30%, 1\uCD08\uB9C8\uB2E4
+    \uC544\uAD70 \uC804\uCCB4 1.5% \uD68C\uBCF5, \uC804\uD22C \uC2DC\uC791 \uC2DC
+    \uB4B7\uC904 \uC801 2\uB9C8\uB9AC 3\uCD08 \uBB36\uAE30"
+  _skillType: 21
+  _skillEvery: 1
+  _skillChance: 0
+  _skillValue1: 0.3
+  _skillValue2: 0.015
+  _skill2Type: 24
+  _skill2Every: 0
+  _skill2Chance: 0
+  _skill2Value1: 3
+  _skill2Value2: 2
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: 00cd86e37b7bb0043aa45395300b2573, type: 3}
+  _levelSprites:
+  - {fileID: 21300000, guid: 00cd86e37b7bb0043aa45395300b2573, type: 3}
+  - {fileID: 21300000, guid: f71cbca8a821d2c4b8c8d2c103cc5e36, type: 3}
+  - {fileID: 21300000, guid: 0a10526dc25cc634f8739e5e5d50121c, type: 3}

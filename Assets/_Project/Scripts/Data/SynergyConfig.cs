@@ -77,6 +77,25 @@ public class SynergyConfig : ScriptableObject
         return _thresholds[_thresholds.Length - 1];
     }
 
+    // 교차 조합 크리처의 두 번째 타입 시너지를 더한다 (tier 0이면 그대로)
+    public void AddBonus(CreatureType type, int tier, ref BattleBonus bonus)
+    {
+        if (tier <= 0)
+        {
+            return;
+        }
+        BattleBonus extra = GetBonus(type, tier);
+        bonus.AttackBonus += extra.AttackBonus;
+        bonus.HealthBonus += extra.HealthBonus;
+        bonus.SpeedBonus += extra.SpeedBonus;
+        bonus.DamageReduction += extra.DamageReduction;
+        if (extra.RegenPercent > 0f)
+        {
+            bonus.RegenPercent += extra.RegenPercent;
+            bonus.RegenInterval = extra.RegenInterval;
+        }
+    }
+
     // 해당 타입 크리처가 받는 보너스. tier 0이면 보너스 없음
     public BattleBonus GetBonus(CreatureType type, int tier)
     {

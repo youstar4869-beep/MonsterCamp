@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5785a52f1643413ea784240d22a6a93d, type: 3}
+  m_Name: SolarWolfRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::FusionRecipe
+  _materialA: {fileID: 11400000, guid: 01ef049a8981a3e4381246974dd5f554, type: 2}
+  _materialB: {fileID: 11400000, guid: 2dfb1b06587d14d44b9a8628d83b1191, type: 2}
+  _result: {fileID: 11400000, guid: ab734025ce6bfc64191e873f281c3e16, type: 2}
+  _grade: 3
