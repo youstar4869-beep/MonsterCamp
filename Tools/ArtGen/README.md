@@ -6,6 +6,7 @@
 - `lib.py` 타입별 팔레트, 눈·입 모양
 - `c_fire.py` 등 타입별 크리처 그림 함수(처음 15종), 맨 아래 `CREATURES`에 등록
 - `n_fire.py` 등 1~5골드 등급으로 추가한 20종
+- `f_low.py`·`f_mid.py`·`f_cross.py`·`f_top.py` 조합 크리처 17종 (`python build.py f_low f_mid f_cross f_top`)
 
 실행: `pip install pillow` 후 이 폴더에서 `mkdir out && python build.py` (새 20종까지: `python build.py c_fire c_water c_grass c_elec c_rock n_fire n_water n_grass n_elec n_rock`)
 → `out/{영문키}_Lv1~3.png`를 `Assets/_Project/Art/Creatures/`로 복사
