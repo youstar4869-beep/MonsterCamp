@@ -22,6 +22,9 @@ public class BattleScreen : MonoBehaviour
     [SerializeField] private SynergyConfig _synergy;
     [Tooltip("데미지 숫자·스킬 글 색")]
     [SerializeField] private UITheme _theme;
+    [Tooltip("층 구간별 전투 배경")]
+    [SerializeField] private BackgroundSet _backgrounds;
+    [SerializeField] private Image _background;
     [Tooltip("0~1 앞줄, 2~4 뒷줄")]
     [SerializeField] private CreatureUnitView[] _playerViews;
     [SerializeField] private CreatureUnitView[] _enemyViews;
@@ -54,11 +57,12 @@ public class BattleScreen : MonoBehaviour
     // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
     // 매 전투 새로 계산하므로 체력은 항상 가득 찬 상태로 시작한다.
     // trainer는 내 팀에만 적용 (적 팀은 시너지만). enemyStatMultiplier: 층마다 적 체력·공격력 증가,
-    // enemyMixedSynergy: 적 팀에도 조합 시너지 (어려움·불가능)
+    // enemyMixedSynergy: 적 팀에도 조합 시너지 (어려움·불가능). floor·isBoss로 배경 그림을 고른다
     public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer,
-        bool isBoss, float enemyStatMultiplier, bool enemyMixedSynergy)
+        int floor, bool isBoss, float enemyStatMultiplier, bool enemyMixedSynergy)
     {
         StopAllCoroutines();
+        ShowBackground(floor, isBoss);
         _floatingTexts.HideAll();
         _typeMultipliers ??= BattleSetupFactory.CreateTypeMultipliers(_typeChart);
 
@@ -104,6 +108,16 @@ public class BattleScreen : MonoBehaviour
         }
         UpdateSpeedLabel();
         _running = true;
+    }
+
+    // 층 구간 배경 (보스 층이면 붉은 하늘). 테스트 메뉴에서도 부른다
+    public void ShowBackground(int floor, bool isBoss)
+    {
+        Sprite sprite = _backgrounds != null ? _backgrounds.GetBattle(floor, isBoss) : null;
+        if (sprite != null)
+        {
+            _background.sprite = sprite;
+        }
     }
 
     public void ToggleSpeed()

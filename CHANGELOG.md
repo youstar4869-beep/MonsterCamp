@@ -404,3 +404,11 @@
   - Title(밤의 캠프)·Shop(낮의 장터)·Battle_Meadow/Forest/Beach/Volcano/Snow/Storm/Sky + 각 `_Boss`(하늘만 붉게, 땅 어둡게), 180x320, 외곽선 없는 3단 음영, 채도·대비 낮춤, 크리처 자리(y 120~280)는 단순하게
   - 전투 배경은 위 1/3 하늘·아래 땅, 구름은 따로 `Battle_Clouds.png`(180x80, 투명, 좌우 이어짐, Wrap Repeat)
   - 임포트: Sprite, Point, 압축 없음, PPU 32
+- 배경화면 2단계 (TODO 27 완료): 그림을 게임에 연결
+  - `BackgroundSet` 에셋(Data/BackgroundSet): 시작·상점·구름 그림 + 층 구간(1~10 Meadow, 11~20 Forest, 21~30 Beach, 31~50 Volcano, 51~70 Snow, 71~90 Storm, 91~100 Sky)별 일반·보스 그림. 메뉴 `MonsterCamp > 배경 세트 만들기` (Build Main Scene도 자동 생성, 있으면 빈 칸만 채움)
+  - 모든 화면 맨 뒤에 배경 그림: 타이틀·트레이너·난이도·도감·결과 = Title, 상점 = Shop, 전투 = 지금 층 구간(보스 층은 `_Boss`). `AspectRatioFitter` Envelope로 비율 유지·꽉 채움(넘치는 쪽 잘림), 점 필터 그대로
+  - 배경 위·UI 아래 어두운 판 (`UITheme.BackgroundShade`, 기본 알파 0.35)
+  - 전투 하늘 위 1/4에 `Battle_Clouds`를 RawImage UV로 좌우 반복 스크롤 (`CloudScroller` 하나만 Update, 기본 100초에 한 바퀴)
+  - `BattleScreen.StartBattle`에 층 인자 추가, `ShowBackground(floor, isBoss)`
+  - 테스트 메뉴 `MonsterCamp > 배경 확인 (실행 중)` 1·11·21·31·51·71·91층, 보스 10·50·100층
+  - `MainSceneBuilder` 변경 — Main 씬을 다시 만들어야 적용됨

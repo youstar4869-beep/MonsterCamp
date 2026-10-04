@@ -36,6 +36,8 @@ public static class MainSceneBuilder
     private static Font _font;
     // 색·글자 크기·둥근 모서리 (Data/UITheme)
     private static UITheme _theme;
+    // 화면 배경 그림 (Data/BackgroundSet)
+    private static BackgroundSet _backgrounds;
 
     [MenuItem("MonsterCamp/Build Main Scene")]
     public static void Build()
@@ -56,6 +58,7 @@ public static class MainSceneBuilder
         _font = _theme.Font != null ? _theme.Font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         // 톱니바퀴 그림은 씬을 만들기 전에 준비 (만드는 중에 에셋을 가져오면 연결이 끊길 수 있음)
         Sprite gearSprite = HudIconBuilder.Gear;
+        _backgrounds = BackgroundSetBuilder.GetOrCreate();
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -77,13 +80,15 @@ public static class MainSceneBuilder
         serializedAudio.FindProperty("_config").objectReferenceValue = BgmBuilder.GetOrCreateConfig();
         serializedAudio.ApplyModifiedPropertiesWithoutUndo();
 
-        GameObject title = CreateScreen(canvas, "TitleScreen", "몬스터 캠프");
-        GameObject trainer = CreateScreen(canvas, "TrainerSelectScreen", "트레이너 선택");
-        GameObject shop = CreateScreen(canvas, "ShopScreen", "상점 · 배치");
-        GameObject battle = CreateScreen(canvas, "BattleScreen", "전투");
-        GameObject result = CreateScreen(canvas, "ResultScreen", "결과");
-        GameObject codex = CreateScreen(canvas, "CodexScreen", "도감");
-        GameObject difficulty = CreateScreen(canvas, "DifficultySelectScreen", "난이도 선택");
+        // 배경: 시작화면 쪽은 Title, 상점은 Shop, 전투는 층마다 BattleScreen이 바꾼다 (처음엔 1층)
+        Sprite titleBg = _backgrounds.Title;
+        GameObject title = CreateScreen(canvas, "TitleScreen", "몬스터 캠프", titleBg);
+        GameObject trainer = CreateScreen(canvas, "TrainerSelectScreen", "트레이너 선택", titleBg);
+        GameObject shop = CreateScreen(canvas, "ShopScreen", "상점 · 배치", _backgrounds.Shop);
+        GameObject battle = CreateScreen(canvas, "BattleScreen", "전투", _backgrounds.GetBattle(1, false));
+        GameObject result = CreateScreen(canvas, "ResultScreen", "결과", titleBg);
+        GameObject codex = CreateScreen(canvas, "CodexScreen", "도감", titleBg);
+        GameObject difficulty = CreateScreen(canvas, "DifficultySelectScreen", "난이도 선택", titleBg);
         DifficultyData[] difficulties = LoadDifficulties();
 
         // 화면들보다 나중에 만들어 가장 위에 그려지게 한다
@@ -211,13 +216,37 @@ public static class MainSceneBuilder
         UIThemeBuilder.Round(image, _theme, radius);
     }
 
-    // 전체 화면 패널 + 상단 제목 + 하단 버튼 영역(ButtonArea)
-    private static GameObject CreateScreen(Transform canvas, string name, string titleText)
+    // 전체 화면 패널 + 배경 그림(Background, 안에 어두운 판 Shade) + 상단 제목 + 하단 버튼 영역(ButtonArea)
+    private static GameObject CreateScreen(Transform canvas, string name, string titleText, Sprite background)
     {
         var screen = new GameObject(name, typeof(RectTransform), typeof(Image));
         screen.transform.SetParent(canvas, false);
         Stretch(screen.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
         screen.GetComponent<Image>().color = _theme.Background;
+
+        // 배경은 맨 먼저 만들어 크리처·숫자·버튼보다 뒤에 그린다. 비율을 지킨 채 화면을 꽉 채우고(넘치는 쪽은 잘림),
+        // 안전 영역 밖(노치 쪽)까지 넘쳐도 그대로 그린다. 그림이 점 필터라 6배로 커져도 픽셀이 또렷하다
+        var bg = new GameObject("Background", typeof(RectTransform), typeof(Image), typeof(AspectRatioFitter));
+        bg.transform.SetParent(screen.transform, false);
+        Stretch(bg.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        var bgImage = bg.GetComponent<Image>();
+        bgImage.sprite = background;
+        bgImage.raycastTarget = false;
+        if (background == null)
+        {
+            bgImage.color = _theme.Background;
+        }
+        var fitter = bg.GetComponent<AspectRatioFitter>();
+        fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+        fitter.aspectRatio = ReferenceResolution.x / ReferenceResolution.y;
+
+        // 어두운 판은 배경 그림과 같은 크기로 (안전 영역 밖까지 똑같이 어둡게)
+        var shade = new GameObject("Shade", typeof(RectTransform), typeof(Image));
+        shade.transform.SetParent(bg.transform, false);
+        Stretch(shade.GetComponent<RectTransform>(), Vector2.zero, Vector2.one);
+        var shadeImage = shade.GetComponent<Image>();
+        shadeImage.color = _theme.BackgroundShade;
+        shadeImage.raycastTarget = false;
 
         var title = new GameObject("Title", typeof(RectTransform), typeof(Text));
         title.transform.SetParent(screen.transform, false);
@@ -1716,6 +1745,17 @@ public static class MainSceneBuilder
         screen.transform.Find("Title").gameObject.SetActive(false);
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.25f, 0.015f), new Vector2(0.75f, 0.105f));
 
+        // 하늘 구름: 배경 그림 위쪽 1/4(180x320 중 위 80줄)에 겹쳐서 옆으로 흐른다. 어두운 판보다 아래
+        var background = (RectTransform)screen.transform.Find("Background");
+        var clouds = new GameObject("Clouds", typeof(RectTransform), typeof(RawImage), typeof(CloudScroller));
+        clouds.transform.SetParent(background, false);
+        clouds.transform.SetSiblingIndex(0);
+        Stretch(clouds.GetComponent<RectTransform>(), new Vector2(0f, 0.75f), Vector2.one);
+        var cloudImage = clouds.GetComponent<RawImage>();
+        cloudImage.texture = _backgrounds.Clouds != null ? _backgrounds.Clouds.texture : null;
+        cloudImage.raycastTarget = false;
+        clouds.SetActive(cloudImage.texture != null);
+
         Color playerColor = _theme.PlayerUnit;
         Color enemyColor = _theme.EnemyUnit;
 
@@ -1763,6 +1803,8 @@ public static class MainSceneBuilder
         so.FindProperty("_typeChart").objectReferenceValue = typeChart;
         so.FindProperty("_synergy").objectReferenceValue = GetOrCreateSynergyConfig();
         so.FindProperty("_theme").objectReferenceValue = _theme;
+        so.FindProperty("_backgrounds").objectReferenceValue = _backgrounds;
+        so.FindProperty("_background").objectReferenceValue = background.GetComponent<Image>();
         SetArray(so.FindProperty("_playerViews"), playerViews);
         SetArray(so.FindProperty("_enemyViews"), enemyViews);
         so.FindProperty("_enemyLabel").objectReferenceValue = enemyLabel;

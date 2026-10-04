@@ -24,6 +24,8 @@ public class UITheme : ScriptableObject
     [SerializeField] private Color _itemSlot = new Color(0.33f, 0.26f, 0.42f);
     [Tooltip("창 뒤를 어둡게 덮는 판")]
     [SerializeField] private Color _dim = new Color(0f, 0f, 0f, 0.68f);
+    [Tooltip("배경 그림 위·UI 아래에 까는 판 (글씨·버튼이 잘 보이게)")]
+    [SerializeField] private Color _backgroundShade = new Color(0f, 0f, 0f, 0.35f);
 
     [Header("버튼")]
     [Tooltip("주요 버튼 (전투 시작, 구매, 확인)")]
@@ -113,6 +115,7 @@ public class UITheme : ScriptableObject
     public Color EnemyUnit => _enemyUnit;
     public Color ItemSlot => _itemSlot;
     public Color Dim => _dim;
+    public Color BackgroundShade => _backgroundShade;
     public Color ButtonPrimary => _buttonPrimary;
     public Color ButtonSecondary => _buttonSecondary;
     public Color ButtonDanger => _buttonDanger;
