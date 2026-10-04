@@ -813,7 +813,7 @@ public class ShopScreen : MonoBehaviour
             : $"{head} · {_synergy.GetThreshold(1)}마리부터: {_synergy.GetEffectText(type, 1)}";
     }
 
-    // 팀 칸 크리처만 세서 켜진 시너지를 "불 2/4 · 물 3/4" 형태로 표시
+    // 팀 칸 크리처만 세서 켜진 시너지를 "불 2/4 · 물 3/4 · 온천" 형태로 표시
     private void UpdateSynergyText()
     {
         CountTeamTypes();
@@ -832,6 +832,19 @@ public class ShopScreen : MonoBehaviour
             }
             _synergyBuilder.Append(TypeSynergy.GetTypeName((CreatureType)type))
                 .Append(' ').Append(count).Append('/').Append(_synergy.GetNextThreshold(count));
+        }
+        // 켜진 조합 시너지는 이름만
+        MixedSynergyConfig mixed = _synergy.Mixed;
+        for (int i = 0; mixed != null && i < mixed.Count; i++)
+        {
+            if (mixed.IsActive(i, _typeCounts))
+            {
+                if (_synergyBuilder.Length > 0)
+                {
+                    _synergyBuilder.Append(" · ");
+                }
+                _synergyBuilder.Append(mixed.Get(i).Name);
+            }
         }
 
         _synergyText.text = _synergyBuilder.Length > 0 ? "시너지  " + _synergyBuilder : "";

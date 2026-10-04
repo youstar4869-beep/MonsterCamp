@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 
 // 팀의 타입별 마릿수 세기. 같은 크리처가 여러 마리면 1번만 센다.
-// 5골드 크리처는 2마리로 센다. 상점 시너지 표시와 전투가 모두 이 함수를 쓴다
+// 5골드 크리처는 2마리로 센다. 상점 시너지 표시·전투·봇이 모두 이 함수를 쓰고,
+// 타입 시너지(마릿수)와 조합 시너지(타입이 1마리 이상 있는지)가 모두 이 결과를 본다
 public static class TypeSynergy
 {
     public static readonly int TypeCount = System.Enum.GetValues(typeof(CreatureType)).Length;
@@ -17,6 +18,7 @@ public static class TypeSynergy
         {
             if (creature != null && Counted.Add(creature))
             {
+                // TODO 24: 조합 크리처는 두 번째 타입도 여기서 더한다 (타입 세는 곳은 여기 한 군데)
                 counts[(int)creature.Type] += GetSynergyCount(creature);
             }
         }

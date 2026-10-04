@@ -84,6 +84,11 @@ public class BattleSimulation
         ApplyStartSkills(_enemies, _players, maxHealthPhase: true);
         ApplyStartSkills(_players, _enemies, maxHealthPhase: false);
         ApplyStartSkills(_enemies, _players, maxHealthPhase: false);
+        // 조합 시너지: 보호막·가속을 양쪽 다 준 뒤 시작 피해
+        ApplyStartSynergy(_players);
+        ApplyStartSynergy(_enemies);
+        ApplyStartEnemyDamage(_players, _enemies);
+        ApplyStartEnemyDamage(_enemies, _players);
         CheckOver();
     }
 
@@ -139,6 +144,17 @@ public class BattleSimulation
                 }
             }
 
+            // 온천 (조합 시너지): 풀 시너지 회복과 따로
+            if (unit.TeamRegenPercent > 0f)
+            {
+                unit.TeamRegenTimer -= deltaTime;
+                while (unit.TeamRegenTimer <= 0f)
+                {
+                    unit.TeamRegenTimer += unit.TeamRegenInterval;
+                    Heal(unit, BattleSimUnit.Round(unit.MaxHealth * unit.TeamRegenPercent));
+                }
+            }
+
             TickStatus(unit, deltaTime);
             if (!unit.IsAlive)
             {
@@ -153,6 +169,7 @@ public class BattleSimulation
         unit.StunTimer = Math.Max(0f, unit.StunTimer - deltaTime);
         unit.RootTimer = Math.Max(0f, unit.RootTimer - deltaTime);
         unit.HasteTimer = Math.Max(0f, unit.HasteTimer - deltaTime);
+        unit.SynergyHasteTimer = Math.Max(0f, unit.SynergyHasteTimer - deltaTime);
 
         if (unit.SlowAmount > 0f)
         {
@@ -293,6 +310,12 @@ public class BattleSimulation
             multiplier = setup.SkillValue1;
             RaiseSkill(attacker, attacker, "강타");
         }
+        // 용광로 (조합 시너지): 확률로 피해 배율. 조합 시너지 글은 Source 없이 (스킬 발동 수에 안 들어가게)
+        if (attacker.CritChance > 0f && Roll(attacker.CritChance))
+        {
+            multiplier *= attacker.CritMultiplier;
+            RaiseSkill(attacker, null, "치명");
+        }
 
         // 대상: 보통 1마리, 동시 공격이면 앞줄부터 여러 마리
         _targets.Clear();
@@ -319,6 +342,12 @@ public class BattleSimulation
         }
 
         ApplyOnHitSkill(attacker, primary, defenders);
+        // 뇌우 (조합 시너지): 확률로 대상 기절
+        if (attacker.StunChance > 0f && primary.IsAlive && Roll(attacker.StunChance))
+        {
+            primary.StunTimer = Math.Max(primary.StunTimer, attacker.StunSeconds);
+            RaiseSkill(primary, null, "기절");
+        }
         if (nthAttack)
         {
             ApplyNthAttackSkill(attacker, allies, defenders);
@@ -745,6 +774,61 @@ public class BattleSimulation
                     }
                     break;
             }
+        }
+    }
+
+    // 조합 시너지 시작 효과: 수정숲 보호막, 무지개 가속
+    private void ApplyStartSynergy(List<BattleSimUnit> allies)
+    {
+        foreach (BattleSimUnit unit in allies)
+        {
+            if (!unit.IsAlive)
+            {
+                continue;
+            }
+            BattleBonus bonus = unit.Setup.Bonus;
+            if (bonus.StartShieldPercent > 0f)
+            {
+                AddShield(unit, BattleSimUnit.Round(unit.MaxHealth * bonus.StartShieldPercent));
+                RaiseSkill(unit, null, "보호막");
+            }
+            if (bonus.StartHasteBonus > 0f && bonus.StartHasteSeconds > 0f)
+            {
+                unit.SynergyHasteTimer = bonus.StartHasteSeconds;
+                // 첫 공격까지의 대기 시간에도 가속 적용
+                unit.Cooldown = unit.CurrentInterval;
+            }
+        }
+    }
+
+    // 증기화산 (조합 시너지): 팀에서 가장 큰 비율로 적 전체에 한 번 (최대 체력 비율, 피해 감소·보호막 적용)
+    private void ApplyStartEnemyDamage(List<BattleSimUnit> allies, List<BattleSimUnit> opponents)
+    {
+        float percent = 0f;
+        foreach (BattleSimUnit unit in allies)
+        {
+            if (unit.IsAlive)
+            {
+                percent = Math.Max(percent, unit.Setup.Bonus.StartEnemyDamagePercent);
+            }
+        }
+        if (percent <= 0f)
+        {
+            return;
+        }
+
+        _targets.Clear();
+        foreach (BattleSimUnit opponent in opponents)
+        {
+            if (opponent.IsAlive)
+            {
+                _targets.Add(opponent);
+            }
+        }
+        for (int i = 0; i < _targets.Count; i++)
+        {
+            BattleSimUnit target = _targets[i];
+            TakeDamage(target, Math.Max(1, BattleSimUnit.Round(target.MaxHealth * percent)), null, DamageKind.Skill);
         }
     }
 

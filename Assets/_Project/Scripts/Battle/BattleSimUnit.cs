@@ -57,6 +57,15 @@ public class BattleSimUnit
     internal float EmergencyHealThreshold;
     internal float EmergencyHealPercent;
     internal bool EmergencyHealUsed;
+    // 조합 시너지 (온천 회복, 뇌우 기절, 용광로 피해 배율, 무지개 시작 가속)
+    internal float TeamRegenPercent;
+    internal float TeamRegenInterval;
+    internal float TeamRegenTimer;
+    internal float StunChance;
+    internal float StunSeconds;
+    internal float CritChance;
+    internal float CritMultiplier;
+    internal float SynergyHasteTimer;
 
     // ---- 스킬 상태 ----
     internal int AttackCount;
@@ -107,6 +116,13 @@ public class BattleSimUnit
         RegenTimer = RegenInterval;
         EmergencyHealThreshold = bonus.EmergencyHealThreshold;
         EmergencyHealPercent = bonus.EmergencyHealPercent;
+        TeamRegenPercent = bonus.TeamRegenPercent;
+        TeamRegenInterval = bonus.TeamRegenInterval;
+        TeamRegenTimer = TeamRegenInterval;
+        StunChance = bonus.StunChance;
+        StunSeconds = bonus.StunSeconds;
+        CritChance = bonus.CritChance;
+        CritMultiplier = bonus.CritMultiplier;
 
         SkillTimer = setup.SkillEvery;
     }
@@ -129,7 +145,7 @@ public class BattleSimUnit
         }
     }
 
-    // 지금 공격 간격: 처치 누적 가속, 시작 가속, 둔화(공격 속도 감소) 반영
+    // 지금 공격 간격: 처치 누적 가속, 시작 가속(스킬·무지개), 둔화(공격 속도 감소) 반영
     public float CurrentInterval
     {
         get
@@ -142,6 +158,10 @@ public class BattleSimUnit
             if (HasteTimer > 0f)
             {
                 speed *= Setup.SkillValue1;
+            }
+            if (SynergyHasteTimer > 0f)
+            {
+                speed *= 1f + Setup.Bonus.StartHasteBonus;
             }
             if (SlowAmount > 0f)
             {

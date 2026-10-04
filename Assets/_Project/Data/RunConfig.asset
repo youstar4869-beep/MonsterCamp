@@ -29,3 +29,4 @@ MonoBehaviour:
   _firstTypeCount: 3
   _secondTypeCount: 2
   _bossTierPercents: 0000000000000000140000002d00000023000000
+  _mixedTeamChance: 0.5

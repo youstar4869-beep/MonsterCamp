@@ -10,7 +10,9 @@ public static class EnemyTeamGenerator
     private static readonly List<CreatureData> Picked = new List<CreatureData>();
     private static readonly List<CreatureData> Candidates = new List<CreatureData>();
 
-    public static EnemyTeamData GetTeam(RunConfig config, ShopConfig shop, DifficultyData difficulty, int floor, int runSeed)
+    // mixed: 조합 시너지 설정 (어려움·불가능 팀이 노림, null이면 안 노림)
+    public static EnemyTeamData GetTeam(RunConfig config, ShopConfig shop, MixedSynergyConfig mixed, DifficultyData difficulty,
+        int floor, int runSeed)
     {
         if (floor <= config.FixedTeamCount)
         {
@@ -21,12 +23,12 @@ public static class EnemyTeamGenerator
             _generated = ScriptableObject.CreateInstance<EnemyTeamData>();
             _generated.hideFlags = HideFlags.DontSave;
         }
-        Generate(_generated, config, shop, difficulty, floor, runSeed);
+        Generate(_generated, config, shop, mixed, difficulty, floor, runSeed);
         return _generated;
     }
 
-    private static void Generate(EnemyTeamData team, RunConfig config, ShopConfig shop, DifficultyData difficulty,
-        int floor, int runSeed)
+    private static void Generate(EnemyTeamData team, RunConfig config, ShopConfig shop, MixedSynergyConfig mixed,
+        DifficultyData difficulty, int floor, int runSeed)
     {
         var random = new System.Random(unchecked(runSeed * 486187739 + floor));
         bool isBoss = difficulty.IsBossFloor(floor);
@@ -35,21 +37,41 @@ public static class EnemyTeamGenerator
             : shop.GetTierPercents(floor);
 
         // 주 타입 1~2개: 타입 시너지(2·4마리)가 켜지게 마릿수를 맞춘다. 남는 칸은 아무 타입
-        // TODO 23·24: 조합 크리처(어려움 25층·불가능 15층부터)·조합 시너지를 노리는 팀은 여기서 타입 대신 조합식으로 고른다
         int typeCount = TypeSynergy.TypeCount;
         var first = (CreatureType)random.Next(typeCount);
         bool twoTypes = random.NextDouble() < config.TwoTypeChance;
         var second = (CreatureType)(((int)first + 1 + random.Next(typeCount - 1)) % typeCount);
         int firstCount = twoTypes ? config.FirstTypeCount : config.SingleTypeCount;
         int secondCount = twoTypes ? config.SecondTypeCount : 0;
+        string name = TypeSynergy.GetTypeName(first) + (twoTypes ? "·" + TypeSynergy.GetTypeName(second) : "") + " 무리";
+
+        // 조합 시너지를 노리는 팀 (어려움·불가능): 그 조합 타입을 1마리씩, 남는 칸은 첫 타입 1마리 더(타입 시너지 1단계) 뒤 아무 타입
+        // TODO 24: 조합 크리처(어려움 25층·불가능 15층부터)는 여기서 조합식으로 고른다
+        int mixedIndex = -1;
+        if (difficulty.EnemyMixedSynergy && mixed != null && mixed.Count > 0 && random.NextDouble() < config.MixedTeamChance)
+        {
+            mixedIndex = random.Next(mixed.Count);
+            name = mixed.Get(mixedIndex).Name + " 무리";
+        }
 
         // 시너지는 서로 다른 크리처만 세므로 같은 크리처는 다시 고르지 않는다
         Picked.Clear();
         for (int i = 0; i < config.TeamSize; i++)
         {
-            CreatureType type = i < firstCount ? first
-                : i < firstCount + secondCount ? second
-                : (CreatureType)random.Next(typeCount);
+            CreatureType type;
+            if (mixedIndex >= 0)
+            {
+                CreatureType[] types = mixed.Get(mixedIndex).Types;
+                type = i < types.Length ? types[i]
+                    : i == types.Length ? types[0]
+                    : (CreatureType)random.Next(typeCount);
+            }
+            else
+            {
+                type = i < firstCount ? first
+                    : i < firstCount + secondCount ? second
+                    : (CreatureType)random.Next(typeCount);
+            }
             CreatureData creature = PickCreature(shop.CreaturePool, type, RollTier(tierPercents, random), random);
             if (creature != null)
             {
@@ -67,7 +89,6 @@ public static class EnemyTeamGenerator
         // 앞줄(0~1)부터 체력 높은 순
         System.Array.Sort(members, (a, b) => b.Creature.GetMaxHealth(b.Level).CompareTo(a.Creature.GetMaxHealth(a.Level)));
 
-        string name = TypeSynergy.GetTypeName(first) + (twoTypes ? "·" + TypeSynergy.GetTypeName(second) : "") + " 무리";
         team.SetGenerated(name, isBoss, members);
     }
 

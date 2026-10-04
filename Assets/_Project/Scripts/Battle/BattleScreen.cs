@@ -49,11 +49,14 @@ public class BattleScreen : MonoBehaviour
     private float _speed = 1f;
     private bool _running;
 
+    public SynergyConfig Synergy => _synergy;
+
     // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
     // 매 전투 새로 계산하므로 체력은 항상 가득 찬 상태로 시작한다.
-    // trainer는 내 팀에만 적용 (적 팀은 시너지만). enemyStatMultiplier: 층마다 적 체력·공격력 증가
+    // trainer는 내 팀에만 적용 (적 팀은 시너지만). enemyStatMultiplier: 층마다 적 체력·공격력 증가,
+    // enemyMixedSynergy: 적 팀에도 조합 시너지 (어려움·불가능)
     public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer,
-        bool isBoss, float enemyStatMultiplier)
+        bool isBoss, float enemyStatMultiplier, bool enemyMixedSynergy)
     {
         StopAllCoroutines();
         _floatingTexts.HideAll();
@@ -74,8 +77,8 @@ public class BattleScreen : MonoBehaviour
         }
 
         // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력·아이템은 내 팀만 (시너지와 겹쳐서 적용)
-        List<BattleUnitSetup> players = BattleSetupFactory.CreateTeam(_playerMembers, _synergy, trainer);
-        List<BattleUnitSetup> enemies = BattleSetupFactory.CreateTeam(_enemyMembers, _synergy, null);
+        List<BattleUnitSetup> players = BattleSetupFactory.CreateTeam(_playerMembers, _synergy, trainer, true);
+        List<BattleUnitSetup> enemies = BattleSetupFactory.CreateTeam(_enemyMembers, _synergy, null, enemyMixedSynergy);
         BattleSetupFactory.ScaleStats(enemies, enemyStatMultiplier);
 
         int seed = System.Environment.TickCount;

@@ -17,6 +17,8 @@ public class DifficultyData : ScriptableObject
     [SerializeField, Min(0.1f)] private float _bossStatMultiplier = 1f;
     [Tooltip("보스 층 자동 생성 팀 레벨 + 이 값 (최대 Lv3, 1~10층 정해 둔 팀은 그대로)")]
     [SerializeField, Min(0)] private int _bossLevelBonus = 1;
+    [Tooltip("적 팀에도 조합 시너지를 적용하고, 자동 생성 팀이 조합 시너지를 노림")]
+    [SerializeField] private bool _enemyMixedSynergy;
     [Tooltip("이자 최대 골드")]
     [SerializeField, Min(0)] private int _maxInterest = 3;
     [SerializeField, Min(0)] private int _refreshCost = 1;
@@ -48,6 +50,7 @@ public class DifficultyData : ScriptableObject
     public bool IsBossFloor(int floor) => floor % _bossEvery == 0;
 
     public int BossLevelBonus => _bossLevelBonus;
+    public bool EnemyMixedSynergy => _enemyMixedSynergy;
 
     // 층마다 증가 × 보스 층 배율
     public float GetEnemyStatMultiplier(int floor) =>

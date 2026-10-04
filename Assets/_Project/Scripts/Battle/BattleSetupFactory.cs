@@ -36,10 +36,12 @@ public static class BattleSetupFactory
         };
     }
 
-    // 팀 전체: 타입 시너지(팀 안 마릿수) + 트레이너 능력 + 아이템을 더한 보너스를 붙인다.
-    // members는 칸 순서여야 한다 (공격 대상 순서)
-    public static List<BattleUnitSetup> CreateTeam(IReadOnlyList<Member> members, SynergyConfig synergy, TrainerData trainer)
+    // 팀 전체: 타입 시너지(팀 안 마릿수) + 조합 시너지 + 트레이너 능력 + 아이템을 더한 보너스를 붙인다.
+    // members는 칸 순서여야 한다 (공격 대상 순서). mixedSynergy가 false면 조합 시너지 없음 (보통 난이도 적 팀)
+    public static List<BattleUnitSetup> CreateTeam(IReadOnlyList<Member> members, SynergyConfig synergy, TrainerData trainer,
+        bool mixedSynergy)
     {
+        MixedSynergyConfig mixed = mixedSynergy ? synergy.Mixed : null;
         TeamCreatures.Clear();
         foreach (Member member in members)
         {
@@ -52,6 +54,10 @@ public static class BattleSetupFactory
         {
             CreatureType type = member.Creature.Type;
             BattleBonus bonus = synergy.GetBonus(type, synergy.GetTier(TypeCounts[(int)type]));
+            if (mixed != null)
+            {
+                mixed.AddBonus(TypeCounts, ref bonus);
+            }
             if (trainer != null)
             {
                 trainer.AddBattleBonus(type, ref bonus);

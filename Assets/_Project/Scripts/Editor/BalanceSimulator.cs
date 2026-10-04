@@ -39,6 +39,10 @@ public class BalanceSimulator
         // 마지막 팀에서 시너지 1단계 이상 / 2단계가 켜진 판 수
         public int SynergyTier1Games;
         public int SynergyTier2Games;
+        // 마지막 팀에서 조합 시너지가 하나라도 켜진 판 수
+        public int MixedActiveGames;
+        // [조합 시너지] = {판 수, 클리어}. 시너지 봇이 조합 시너지를 노린 판
+        public int[,] MixedGoals = new int[0, 2];
         // 앞쪽 몇 판의 라운드별 기록 (봇이 무엇을 사서 어떻게 졌는지 사람이 읽어 보는 용도)
         public readonly StringBuilder SampleLog = new StringBuilder();
         public int[] RoundBattles;
@@ -146,7 +150,8 @@ public class BalanceSimulator
 
     // ---------- 한 판 ----------
 
-    // games판을 돌린다. 판 i: 시드 seed+i, 트레이너 i % 트레이너 수, 시너지 봇 타입 (i / 트레이너 수) % 5
+    // games판을 돌린다. 판 i: 시드 seed+i, 트레이너 i % 트레이너 수,
+    // 시너지 봇 목표 (i / 트레이너 수) % (5 + 조합 시너지 수): 0~4는 그 타입, 그 뒤는 조합 시너지
     // progress가 true를 돌려주면 멈춘다. 앞쪽 logGames판은 라운드별 기록을 SampleLog에 남긴다
     public BotStats RunGames(BalanceBotKind bot, int games, int seed, System.Func<float, bool> progress = null,
         int logGames = 0)
@@ -157,6 +162,9 @@ public class BalanceSimulator
             RoundBattles = new int[_difficulty.FloorCount + 1],
             RoundWins = new int[_difficulty.FloorCount + 1],
         };
+        MixedSynergyConfig mixed = _synergy.Mixed;
+        int mixedCount = mixed != null ? mixed.Count : 0;
+        stats.MixedGoals = new int[mixedCount, 2];
         foreach (CreatureData creature in _creatures)
         {
             stats.Creatures[creature] = new CreatureStat();
@@ -176,11 +184,15 @@ public class BalanceSimulator
                     break;
                 }
                 TrainerData trainer = _trainers[i % _trainers.Length];
-                var focus = (CreatureType)(i / _trainers.Length % TypeSynergy.TypeCount);
+                int goal = i / _trainers.Length % (TypeSynergy.TypeCount + mixedCount);
+                var focus = (CreatureType)(goal % TypeSynergy.TypeCount);
+                int mixedGoal = goal >= TypeSynergy.TypeCount ? goal - TypeSynergy.TypeCount : -1;
                 _gameLog = i < logGames ? stats.SampleLog : null;
                 _gameLog?.AppendLine($"== {BotName(bot)} 봇 {i + 1}번째 판 (시드 {seed + i}, 트레이너 {trainer.DisplayName}" +
-                                     (bot == BalanceBotKind.Synergy ? $", 고른 타입 {TypeSynergy.GetTypeName(focus)})" : ")"));
-                PlayGame(bot, seed + i, trainer, focus, stats);
+                                     (bot != BalanceBotKind.Synergy ? ")"
+                                         : mixedGoal >= 0 ? $", 노린 조합 {mixed.Get(mixedGoal).Name})"
+                                         : $", 고른 타입 {TypeSynergy.GetTypeName(focus)})"));
+                PlayGame(bot, seed + i, trainer, focus, mixedGoal, stats);
             }
         }
         finally
@@ -193,12 +205,14 @@ public class BalanceSimulator
 
     // RunManager.StartRun / OnBattleEnd / StartRound와 같은 흐름
     // [게임과 따로 구현] RunManager는 화면 전환·저장과 묶인 MonoBehaviour라서 층·목숨 규칙을 여기로 옮겨 왔다
-    private void PlayGame(BalanceBotKind bot, int gameSeed, TrainerData trainer, CreatureType focus, BotStats stats)
+    private void PlayGame(BalanceBotKind bot, int gameSeed, TrainerData trainer, CreatureType focus, int mixedGoal,
+        BotStats stats)
     {
         // 상점 확률은 ShopConfig가 UnityEngine.Random을 쓰므로 판마다 시드를 정한다
         Random.InitState(gameSeed);
         var random = new System.Random(gameSeed);
         var run = new BalanceRun(_shop, _difficulty, _canAppear);
+        CreatureType[] mixedTypes = mixedGoal >= 0 ? _synergy.Mixed.Get(mixedGoal).Types : null;
 
         int round = 1;
         int lives = _difficulty.Lives;
@@ -209,7 +223,7 @@ public class BalanceSimulator
         while (true)
         {
             int startGold = run.Gold;
-            BalanceBots.PlayShop(bot, run, focus, random);
+            BalanceBots.PlayShop(bot, run, focus, mixedTypes, random);
             EnsureTeam(run);
 
             // 팀 칸 크리처의 행운 동전만 센다
@@ -233,7 +247,7 @@ public class BalanceSimulator
                 }
             }
             bool isBoss = _difficulty.IsBossFloor(round);
-            EnemyTeamData enemy = EnemyTeamGenerator.GetTeam(_runConfig, _shop, _difficulty, round, gameSeed);
+            EnemyTeamData enemy = EnemyTeamGenerator.GetTeam(_runConfig, _shop, _synergy.Mixed, _difficulty, round, gameSeed);
             SetEnemyTeam(enemy);
 
             // 시간 초과(0.5)는 패배로 센다
@@ -241,7 +255,7 @@ public class BalanceSimulator
             float margin = 0f;
             bool won = _players.Count > 0
                        && Fight(_players, _enemies, trainer, random.Next(), _typeMultipliers, out timeout, out margin,
-                           _difficulty.GetEnemyStatMultiplier(round)) > 0.75f;
+                           _difficulty.GetEnemyStatMultiplier(round), true, _difficulty.EnemyMixedSynergy) > 0.75f;
             if (_gameLog != null)
             {
                 _gameLog.AppendLine($"  {round}층 골드 {startGold}→{run.Gold} | 팀 {DescribeTeam(run.Team)} | " +
@@ -300,8 +314,25 @@ public class BalanceSimulator
         int bestTier = _synergy.GetTier(_typeCounts.Max());
         stats.SynergyTier1Games += bestTier >= 1 ? 1 : 0;
         stats.SynergyTier2Games += bestTier >= 2 ? 1 : 0;
-        stats.Types[type, 0]++;
-        stats.Types[type, 1] += cleared ? 1 : 0;
+        if (bot == BalanceBotKind.Synergy && mixedGoal >= 0)
+        {
+            stats.MixedGoals[mixedGoal, 0]++;
+            stats.MixedGoals[mixedGoal, 1] += cleared ? 1 : 0;
+        }
+        else
+        {
+            stats.Types[type, 0]++;
+            stats.Types[type, 1] += cleared ? 1 : 0;
+        }
+        MixedSynergyConfig mixed = _synergy.Mixed;
+        for (int i = 0; mixed != null && i < mixed.Count; i++)
+        {
+            if (mixed.IsActive(i, _typeCounts))
+            {
+                stats.MixedActiveGames++;
+                break;
+            }
+        }
 
         foreach (KeyValuePair<CreatureData, int> pair in run.Bought)
         {
@@ -381,12 +412,14 @@ public class BalanceSimulator
         return Fight(players, enemies, trainer, seed, multipliers, out timeout, out _);
     }
 
-    // margin: 이긴 쪽 남은 체력 비율 (0~1, 시간 초과면 0). enemyMultiplier: 층마다 적 능력치 증가
+    // margin: 이긴 쪽 남은 체력 비율 (0~1, 시간 초과면 0). enemyMultiplier: 층마다 적 능력치 증가.
+    // playerMixed/enemyMixed: 조합 시너지 적용 (1:1 대결·등급 가치는 둘 다 없음)
     private float Fight(List<BattleSetupFactory.Member> players, List<BattleSetupFactory.Member> enemies,
-        TrainerData trainer, int seed, float[,] multipliers, out bool timeout, out float margin, float enemyMultiplier = 1f)
+        TrainerData trainer, int seed, float[,] multipliers, out bool timeout, out float margin, float enemyMultiplier = 1f,
+        bool playerMixed = false, bool enemyMixed = false)
     {
-        List<BattleUnitSetup> playerSetups = BattleSetupFactory.CreateTeam(players, _synergy, trainer);
-        List<BattleUnitSetup> enemySetups = BattleSetupFactory.CreateTeam(enemies, _synergy, null);
+        List<BattleUnitSetup> playerSetups = BattleSetupFactory.CreateTeam(players, _synergy, trainer, playerMixed);
+        List<BattleUnitSetup> enemySetups = BattleSetupFactory.CreateTeam(enemies, _synergy, null, enemyMixed);
         BattleSetupFactory.ScaleStats(enemySetups, enemyMultiplier);
         var simulation = new BattleSimulation(playerSetups, enemySetups, multipliers, seed);
         simulation.Start();
@@ -574,6 +607,20 @@ public class BalanceSimulator
                             $"({stats.Types[type, 0]})");
             }
             text.AppendLine();
+            MixedSynergyConfig mixed = _synergy.Mixed;
+            if (mixed != null)
+            {
+                text.Append($"  마지막 팀 조합 시너지 {Pct(Rate(stats.MixedActiveGames, stats.Games))}");
+                if (stats.Bot == BalanceBotKind.Synergy)
+                {
+                    text.Append("  노린 조합 클리어:");
+                    for (int i = 0; i < stats.MixedGoals.GetLength(0); i++)
+                    {
+                        text.Append($" {mixed.Get(i).Name} {Pct(Rate(stats.MixedGoals[i, 1], stats.MixedGoals[i, 0]))}({stats.MixedGoals[i, 0]})");
+                    }
+                }
+                text.AppendLine();
+            }
         }
 
         if (duels != null && duels.Count > 0)

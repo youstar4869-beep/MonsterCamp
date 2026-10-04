@@ -19,6 +19,10 @@ public class SynergyConfig : ScriptableObject
     [Header("바위: 받는 피해 -비율")]
     [SerializeField] private float[] _rockDamageReduction = { 0.10f, 0.25f };
 
+    [Header("조합 시너지 (서로 다른 타입). 비우면 없음")]
+    [SerializeField] private MixedSynergyConfig _mixed;
+
+    public MixedSynergyConfig Mixed => _mixed;
     public float GrassRegenInterval => _grassRegenInterval;
     public int TierCount => _thresholds.Length;
 

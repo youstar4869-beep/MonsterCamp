@@ -19,6 +19,8 @@ public class RunConfig : ScriptableObject
     [SerializeField, Min(0)] private int _secondTypeCount = 2;
     [Tooltip("보스 층 1~5골드 확률(%). 상점 확률 대신 쓴다")]
     [SerializeField] private int[] _bossTierPercents = { 0, 0, 20, 45, 35 };
+    [Tooltip("조합 시너지를 노린 팀 확률 (적 조합 시너지를 쓰는 난이도만)")]
+    [SerializeField, Range(0f, 1f)] private float _mixedTeamChance = 0.5f;
 
     public int FixedTeamCount => _rounds.Length;
     public int TeamSize => _teamSize;
@@ -27,6 +29,7 @@ public class RunConfig : ScriptableObject
     public int FirstTypeCount => _firstTypeCount;
     public int SecondTypeCount => _secondTypeCount;
     public int[] BossTierPercents => _bossTierPercents;
+    public float MixedTeamChance => _mixedTeamChance;
 
     // floor는 1부터 FixedTeamCount까지
     public EnemyTeamData GetFixedTeam(int floor) => _rounds[floor - 1];

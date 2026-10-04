@@ -6,7 +6,7 @@ public enum BalanceBotKind
     Random,
     // 합성 우선, 살 수 있는 가장 비싼 크리처, 강한 순으로 배치
     Basic,
-    // 한 타입을 정해서 모은다
+    // 한 타입을 정해서 모으거나, 조합 시너지 하나를 정해서 그 타입을 1마리씩 모은다
     Synergy,
     // 6라운드까지 골드를 모아 이자를 받고 7라운드부터 크게 쓴다
     Saver
@@ -37,14 +37,18 @@ public static class BalanceBots
     // 시너지 단계별 마릿수 (BalanceSimulator가 SynergyConfig 값으로 채운다)
     public static int[] SynergyThresholds = { 2, 4 };
     private static readonly Dictionary<CreatureInstance, float> AdjustedScore = new Dictionary<CreatureInstance, float>();
+    // 시너지 봇이 노리는 조합 시너지의 타입 (타입을 모으는 판이면 null). PlayShop에서 정한다
+    private static CreatureType[] _mixedTypes;
 
     public static float Power(CreatureData data, int level)
     {
         return data.GetLevelMultiplier(level) * (float)System.Math.Sqrt(data.MaxHealth * data.Attack * data.AttackSpeed);
     }
 
-    public static void PlayShop(BalanceBotKind kind, BalanceRun run, CreatureType focus, System.Random random)
+    public static void PlayShop(BalanceBotKind kind, BalanceRun run, CreatureType focus, CreatureType[] mixedTypes,
+        System.Random random)
     {
+        _mixedTypes = kind == BalanceBotKind.Synergy ? mixedTypes : null;
         switch (kind)
         {
             case BalanceBotKind.Random:
@@ -54,7 +58,7 @@ public static class BalanceBots
                 PlaySmart(run, null, 0, BasicMaxRefresh);
                 break;
             case BalanceBotKind.Synergy:
-                PlaySmart(run, focus, 0, SynergyMaxRefresh);
+                PlaySmart(run, mixedTypes == null ? focus : (CreatureType?)null, 0, SynergyMaxRefresh);
                 break;
             case BalanceBotKind.Saver:
                 bool spend = run.Round >= SaverSpendRound;
@@ -210,6 +214,11 @@ public static class BalanceBots
                 // 고른 타입은 3골드 더 비싼 크리처만큼 먼저 산다
                 score += FocusBuyBonus;
             }
+            else if (IsMixedType(offer.Type) && !Owned.Exists(c => c.Data.Type == offer.Type))
+            {
+                // 조합 시너지: 아직 없는 타입만 먼저 산다
+                score += FocusBuyBonus;
+            }
             if (score > bestScore)
             {
                 bestScore = score;
@@ -255,7 +264,12 @@ public static class BalanceBots
     private static float Score(CreatureData data, int level, CreatureType? focus)
     {
         float power = Power(data, level);
-        return focus.HasValue && data.Type == focus.Value ? power * FocusWeight : power;
+        return (focus.HasValue && data.Type == focus.Value) || IsMixedType(data.Type) ? power * FocusWeight : power;
+    }
+
+    private static bool IsMixedType(CreatureType type)
+    {
+        return _mixedTypes != null && System.Array.IndexOf(_mixedTypes, type) >= 0;
     }
 
     // 강한 순으로 5마리를 팀에: 그중 체력이 높은 2마리가 앞줄, 나머지는 뒷줄. 아이템은 팀에 끼운다
@@ -276,6 +290,10 @@ public static class BalanceBots
             }
             Owned.Sort((a, b) => AdjustedScore[b].CompareTo(AdjustedScore[a]));
             PutSynergyFirst(focus.Value);
+        }
+        else if (_mixedTypes != null)
+        {
+            PutMixedFirst();
         }
 
         TeamPick.Clear();
@@ -340,6 +358,30 @@ public static class BalanceBots
                 TeamPick.Add(creature);
                 count += TypeSynergy.GetSynergyCount(creature.Data);
             }
+        }
+        foreach (CreatureInstance creature in TeamPick)
+        {
+            Owned.Remove(creature);
+        }
+        Owned.InsertRange(0, TeamPick);
+    }
+
+    // 노리는 조합 시너지 타입을 모두 가졌으면 타입마다 가장 강한 1마리를 Owned 맨 앞으로 (Owned는 강한 순)
+    private static void PutMixedFirst()
+    {
+        TeamPick.Clear();
+        foreach (CreatureType type in _mixedTypes)
+        {
+            CreatureInstance best = Owned.Find(c => c.Data.Type == type);
+            if (best == null)
+            {
+                return;
+            }
+            TeamPick.Add(best);
+        }
+        if (TeamPick.Count > BalanceRun.TeamSlotCount)
+        {
+            return;
         }
         foreach (CreatureInstance creature in TeamPick)
         {

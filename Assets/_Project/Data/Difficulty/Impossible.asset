@@ -20,6 +20,7 @@ MonoBehaviour:
   _bossEvery: 10
   _bossStatMultiplier: 1
   _bossLevelBonus: 1
+  _enemyMixedSynergy: 1
   _maxInterest: 2
   _refreshCost: 2
   _clearStars: 40

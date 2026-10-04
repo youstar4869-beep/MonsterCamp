@@ -29,3 +29,4 @@ MonoBehaviour:
   _rockDamageReduction:
   - 0.1
   - 0.4
+  _mixed: {fileID: 11400000, guid: e777c8fdabe24a64a40b2ddaa5466097, type: 2}

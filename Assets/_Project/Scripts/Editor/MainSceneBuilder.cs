@@ -517,16 +517,17 @@ public static class MainSceneBuilder
         return popup;
     }
 
-    // 시너지 표: 어두운 바탕(누르면 닫힘) + 가운데 창. 타입마다 한 줄: "불 3/4" / 1단계 / 2단계
+    // 시너지 표: 어두운 바탕(누르면 닫힘) + 가운데 창. 타입마다 한 줄: "불 3/4" / 1단계 / 2단계,
+    // 아래에 조합 시너지 한 줄씩: 이름 / 필요한 타입·효과
     private static SynergyPanel CreateSynergyPanel(Transform canvas)
     {
         RectTransform root = CreateModalRoot(canvas, "SynergyPanel", out Button backgroundButton);
         RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
         Round(window.GetComponent<Image>(), 36f);
-        Stretch(window, new Vector2(0.04f, 0.2f), new Vector2(0.96f, 0.82f));
+        Stretch(window, new Vector2(0.04f, 0.07f), new Vector2(0.96f, 0.93f));
 
-        CreateText(window, "Title", "타입 시너지", _theme.HeadingSize, new Vector2(0.05f, 0.88f), new Vector2(0.72f, 0.98f));
-        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.75f, 0.88f), new Vector2(0.97f, 0.985f),
+        CreateText(window, "Title", "타입 시너지", _theme.HeadingSize, new Vector2(0.05f, 0.93f), new Vector2(0.72f, 0.99f));
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.75f, 0.93f), new Vector2(0.97f, 0.993f),
             _theme.ButtonSecondary);
         closeButton.GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
 
@@ -534,12 +535,12 @@ public static class MainSceneBuilder
         var typeTexts = new Text[typeCount];
         var tier1Texts = new Text[typeCount];
         var tier2Texts = new Text[typeCount];
-        const float top = 0.86f;
-        const float rowHeight = 0.15f;
+        const float top = 0.92f;
+        const float rowHeight = 0.085f;
         for (int i = 0; i < typeCount; i++)
         {
             float rowTop = top - rowHeight * i;
-            float rowBottom = rowTop - rowHeight + 0.01f;
+            float rowBottom = rowTop - rowHeight + 0.006f;
             RectTransform row = CreatePanel(window, "Row" + i, new Color(1f, 1f, 1f, 0.05f), false);
             Round(row.GetComponent<Image>(), 16f);
             Stretch(row, new Vector2(0.03f, rowBottom), new Vector2(0.97f, rowTop));
@@ -548,8 +549,28 @@ public static class MainSceneBuilder
             tier2Texts[i] = CreateLeftText(row, "Tier2", _theme.TinySize, new Vector2(0.29f, 0.05f), new Vector2(0.98f, 0.48f));
         }
 
-        Text note = CreateText(window, "Note", "같은 크리처는 1마리로, 5골드 크리처는 2마리로 세요", _theme.SmallSize,
-            new Vector2(0.04f, 0.03f), new Vector2(0.96f, 0.1f));
+        // 조합 시너지 (MixedSynergyConfig 6개)
+        const int mixedCount = 6;
+        const float mixedTitleTop = top - rowHeight * 5 - 0.005f;
+        CreateText(window, "MixedTitle", "조합 시너지 (서로 다른 타입 각 1마리)", _theme.BodySize,
+            new Vector2(0.05f, mixedTitleTop - 0.05f), new Vector2(0.95f, mixedTitleTop));
+        var mixedNameTexts = new Text[mixedCount];
+        var mixedEffectTexts = new Text[mixedCount];
+        const float mixedTop = mixedTitleTop - 0.05f;
+        const float mixedRowHeight = 0.055f;
+        for (int i = 0; i < mixedCount; i++)
+        {
+            float rowTop = mixedTop - mixedRowHeight * i;
+            float rowBottom = rowTop - mixedRowHeight + 0.005f;
+            RectTransform row = CreatePanel(window, "MixedRow" + i, new Color(1f, 1f, 1f, 0.05f), false);
+            Round(row.GetComponent<Image>(), 16f);
+            Stretch(row, new Vector2(0.03f, rowBottom), new Vector2(0.97f, rowTop));
+            mixedNameTexts[i] = CreateLeftText(row, "Name", _theme.SmallSize, new Vector2(0.03f, 0.05f), new Vector2(0.22f, 0.95f));
+            mixedEffectTexts[i] = CreateLeftText(row, "Effect", _theme.TinySize, new Vector2(0.23f, 0.05f), new Vector2(0.99f, 0.95f));
+        }
+
+        Text note = CreateText(window, "Note", "같은 크리처는 1마리로, 5골드 크리처는 2마리로 세요. 5타입이 모두 있으면 무지개만 켜져요",
+            _theme.TinySize, new Vector2(0.03f, 0.005f), new Vector2(0.97f, 0.045f));
         note.color = _theme.TextSub;
 
         var panel = root.gameObject.AddComponent<SynergyPanel>();
@@ -557,6 +578,8 @@ public static class MainSceneBuilder
         SetArray(so.FindProperty("_typeTexts"), typeTexts);
         SetArray(so.FindProperty("_tier1Texts"), tier1Texts);
         SetArray(so.FindProperty("_tier2Texts"), tier2Texts);
+        SetArray(so.FindProperty("_mixedNameTexts"), mixedNameTexts);
+        SetArray(so.FindProperty("_mixedEffectTexts"), mixedEffectTexts);
         so.FindProperty("_theme").objectReferenceValue = _theme;
         so.ApplyModifiedPropertiesWithoutUndo();
 
