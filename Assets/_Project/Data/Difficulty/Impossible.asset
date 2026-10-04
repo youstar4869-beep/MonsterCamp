@@ -17,6 +17,7 @@ MonoBehaviour:
   _floorCount: 100
   _lives: 3
   _enemyStatPerFloor: 0.08
+  _enemyStatFromFloor: 1
   _bossEvery: 10
   _bossStatMultiplier: 1
   _bossLevelBonus: 1

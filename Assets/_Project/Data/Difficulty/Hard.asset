@@ -16,9 +16,10 @@ MonoBehaviour:
   _description: 적이 층마다 더 빨리 강해져요
   _floorCount: 50
   _lives: 3
-  _enemyStatPerFloor: 0.05
+  _enemyStatPerFloor: 0.01
+  _enemyStatFromFloor: 11
   _bossEvery: 10
-  _bossStatMultiplier: 1
+  _bossStatMultiplier: 0.6
   _bossLevelBonus: 1
   _enemyMixedSynergy: 1
   _maxInterest: 3
@@ -26,10 +27,10 @@ MonoBehaviour:
   _clearStars: 20
   _requiredClear: {fileID: 11400000, guid: 6b4bcc4a6b074842992e86e9eba9bdcd, type: 2}
   _star2FromFloor: 15
-  _star3FromFloor: 35
+  _star3FromFloor: 40
   _levelChanceAtStart: 0.2
-  _levelChancePerFloor: 0.03
+  _levelChancePerFloor: 0.015
   _fusionFromFloor: 25
   _fusionChanceAtStart: 0.1
-  _fusionChancePerFloor: 0.02
-  _fusionChanceMax: 0.6
+  _fusionChancePerFloor: 0.01
+  _fusionChanceMax: 0.3

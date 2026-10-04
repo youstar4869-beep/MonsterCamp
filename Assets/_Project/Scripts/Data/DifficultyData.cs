@@ -10,8 +10,10 @@ public class DifficultyData : ScriptableObject
     [SerializeField] private string _description;
     [SerializeField, Min(1)] private int _floorCount = 30;
     [SerializeField, Min(1)] private int _lives = 3;
-    [Tooltip("층마다 적 체력·공격력 증가 (0.03 = 3%). 1층은 그대로, n층은 1 + 값 × (n - 1)배")]
+    [Tooltip("층마다 적 체력·공격력 증가 (0.03 = 3%). 시작 층까지는 그대로, n층은 1 + 값 × (n - 시작 층)배")]
     [SerializeField, Min(0f)] private float _enemyStatPerFloor = 0.03f;
+    [Tooltip("층마다 증가의 시작 층 (1이면 1층부터)")]
+    [SerializeField, Min(1)] private int _enemyStatFromFloor = 1;
     [Tooltip("이 층마다 보스 (10이면 10, 20, 30...)")]
     [SerializeField, Min(1)] private int _bossEvery = 10;
     [Tooltip("보스 층에만 적 체력·공격력에 더 곱하는 배율 (1이면 그대로)")]
@@ -89,7 +91,7 @@ public class DifficultyData : ScriptableObject
 
     // 층마다 증가 × 보스 층 배율
     public float GetEnemyStatMultiplier(int floor) =>
-        (1f + _enemyStatPerFloor * (floor - 1)) * (IsBossFloor(floor) ? _bossStatMultiplier : 1f);
+        (1f + _enemyStatPerFloor * Mathf.Max(0, floor - _enemyStatFromFloor)) * (IsBossFloor(floor) ? _bossStatMultiplier : 1f);
 
     // 자동 생성 팀 한 마리가 ★★ / ★★★일 확률 (시작 층 전이면 0)
     public float GetStar2Chance(int floor) => GetLevelChance(_star2FromFloor, floor);
