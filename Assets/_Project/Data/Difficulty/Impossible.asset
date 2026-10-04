@@ -18,6 +18,8 @@ MonoBehaviour:
   _lives: 3
   _enemyStatPerFloor: 0.08
   _bossEvery: 10
+  _bossStatMultiplier: 1
+  _bossLevelBonus: 1
   _maxInterest: 2
   _refreshCost: 2
   _clearStars: 40

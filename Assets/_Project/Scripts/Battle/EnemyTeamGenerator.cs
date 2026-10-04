@@ -60,7 +60,7 @@ public static class EnemyTeamGenerator
         var members = new EnemyTeamData.Member[Picked.Count];
         for (int i = 0; i < members.Length; i++)
         {
-            int level = RollLevel(difficulty, floor, random) + (isBoss ? config.BossLevelBonus : 0);
+            int level = RollLevel(difficulty, floor, random) + (isBoss ? difficulty.BossLevelBonus : 0);
             members[i] = new EnemyTeamData.Member
                 { Creature = Picked[i], Level = Mathf.Clamp(level, 1, CreatureData.MaxLevel) };
         }

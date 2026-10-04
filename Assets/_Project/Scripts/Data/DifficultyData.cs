@@ -13,6 +13,10 @@ public class DifficultyData : ScriptableObject
     [SerializeField, Min(0f)] private float _enemyStatPerFloor = 0.03f;
     [Tooltip("이 층마다 보스 (10이면 10, 20, 30...)")]
     [SerializeField, Min(1)] private int _bossEvery = 10;
+    [Tooltip("보스 층에만 적 체력·공격력에 더 곱하는 배율 (1이면 그대로)")]
+    [SerializeField, Min(0.1f)] private float _bossStatMultiplier = 1f;
+    [Tooltip("보스 층 자동 생성 팀 레벨 + 이 값 (최대 Lv3, 1~10층 정해 둔 팀은 그대로)")]
+    [SerializeField, Min(0)] private int _bossLevelBonus = 1;
     [Tooltip("이자 최대 골드")]
     [SerializeField, Min(0)] private int _maxInterest = 3;
     [SerializeField, Min(0)] private int _refreshCost = 1;
@@ -43,7 +47,11 @@ public class DifficultyData : ScriptableObject
     // floor는 1부터
     public bool IsBossFloor(int floor) => floor % _bossEvery == 0;
 
-    public float GetEnemyStatMultiplier(int floor) => 1f + _enemyStatPerFloor * (floor - 1);
+    public int BossLevelBonus => _bossLevelBonus;
+
+    // 층마다 증가 × 보스 층 배율
+    public float GetEnemyStatMultiplier(int floor) =>
+        (1f + _enemyStatPerFloor * (floor - 1)) * (IsBossFloor(floor) ? _bossStatMultiplier : 1f);
 
     // 자동 생성 팀 한 마리가 ★★ / ★★★일 확률 (시작 층 전이면 0)
     public float GetStar2Chance(int floor) => GetLevelChance(_star2FromFloor, floor);
