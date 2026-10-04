@@ -32,6 +32,8 @@ public class RunSaveData
     // 난이도 에셋 이름과 지금 층 (1부터)
     public string difficulty;
     public int floor;
+    // 런 시드: 11층부터 적 팀 자동 생성에 쓴다 (예전 저장은 0)
+    public int seed;
     // 예전 저장(층 구조 전)의 라운드. floor가 0이면 보통 난이도 같은 층으로 이어한다
     public int round;
     public int lives;

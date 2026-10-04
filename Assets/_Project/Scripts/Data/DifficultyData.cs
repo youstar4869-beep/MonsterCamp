@@ -21,6 +21,16 @@ public class DifficultyData : ScriptableObject
     [Tooltip("이 난이도를 클리어해야 열림 (비우면 처음부터 열림)")]
     [SerializeField] private DifficultyData _requiredClear;
 
+    [Header("적 레벨 (11층부터 자동 생성 팀)")]
+    [Tooltip("이 층부터 ★★(Lv2) 적이 섞임. 0이면 없음")]
+    [SerializeField, Min(0)] private int _star2FromFloor = 20;
+    [Tooltip("이 층부터 ★★★(Lv3) 적이 섞임. 0이면 없음")]
+    [SerializeField, Min(0)] private int _star3FromFloor;
+    [Tooltip("시작 층에서 한 마리가 그 레벨일 확률")]
+    [SerializeField, Range(0f, 1f)] private float _levelChanceAtStart = 0.2f;
+    [Tooltip("시작 층 뒤로 층마다 더하는 확률")]
+    [SerializeField, Min(0f)] private float _levelChancePerFloor = 0.03f;
+
     public string DisplayName => _displayName;
     public string Description => _description;
     public int FloorCount => _floorCount;
@@ -34,4 +44,17 @@ public class DifficultyData : ScriptableObject
     public bool IsBossFloor(int floor) => floor % _bossEvery == 0;
 
     public float GetEnemyStatMultiplier(int floor) => 1f + _enemyStatPerFloor * (floor - 1);
+
+    // 자동 생성 팀 한 마리가 ★★ / ★★★일 확률 (시작 층 전이면 0)
+    public float GetStar2Chance(int floor) => GetLevelChance(_star2FromFloor, floor);
+    public float GetStar3Chance(int floor) => GetLevelChance(_star3FromFloor, floor);
+
+    private float GetLevelChance(int fromFloor, int floor)
+    {
+        if (fromFloor <= 0 || floor < fromFloor)
+        {
+            return 0f;
+        }
+        return Mathf.Min(1f, _levelChanceAtStart + _levelChancePerFloor * (floor - fromFloor));
+    }
 }

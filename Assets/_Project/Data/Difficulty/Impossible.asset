@@ -22,3 +22,7 @@ MonoBehaviour:
   _refreshCost: 2
   _clearStars: 40
   _requiredClear: {fileID: 11400000, guid: ec320aa392484a128287d13577724336, type: 2}
+  _star2FromFloor: 10
+  _star3FromFloor: 25
+  _levelChanceAtStart: 0.2
+  _levelChancePerFloor: 0.03

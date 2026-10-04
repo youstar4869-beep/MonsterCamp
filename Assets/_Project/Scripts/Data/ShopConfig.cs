@@ -45,6 +45,7 @@ public class ShopConfig : ScriptableObject
     public int RoundGold => _roundGold;
     public int InterestStep => _interestStep;
     public int MaxGold => _maxGold;
+    public System.Collections.Generic.IReadOnlyList<CreatureData> CreaturePool => _creaturePool;
 
     // 남은 골드 5골드마다 1골드, 최대 maxInterest골드 (최대치는 난이도 에셋)
     public int GetInterest(int leftoverGold, int maxInterest)
@@ -93,12 +94,12 @@ public class ShopConfig : ScriptableObject
         return null;
     }
 
-    // 라운드에 맞는 확률표로 등급(1~5)을 하나 고른다
-    private int RollTier(int round)
+    // 라운드에 맞는 1~5골드 확률표 (적 팀 자동 생성도 쓴다). 표가 없으면 null
+    public int[] GetTierPercents(int round)
     {
         if (_tierOdds == null || _tierOdds.Length == 0)
         {
-            return 1;
+            return null;
         }
 
         int[] percents = _tierOdds[0].Percents;
@@ -108,6 +109,17 @@ public class ShopConfig : ScriptableObject
             {
                 percents = odds.Percents;
             }
+        }
+        return percents;
+    }
+
+    // 라운드에 맞는 확률표로 등급(1~5)을 하나 고른다
+    private int RollTier(int round)
+    {
+        int[] percents = GetTierPercents(round);
+        if (percents == null)
+        {
+            return 1;
         }
 
         int total = 0;

@@ -233,7 +233,7 @@ public class BalanceSimulator
                 }
             }
             bool isBoss = _difficulty.IsBossFloor(round);
-            EnemyTeamData enemy = _runConfig.GetEnemyTeam(round, isBoss);
+            EnemyTeamData enemy = EnemyTeamGenerator.GetTeam(_runConfig, _shop, _difficulty, round, gameSeed);
             SetEnemyTeam(enemy);
 
             // 시간 초과(0.5)는 패배로 센다

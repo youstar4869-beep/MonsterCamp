@@ -1,16 +1,36 @@
 using UnityEngine;
 
-// 한 판(런) 설정: 층별 적 팀 (층 수·목숨은 DifficultyData)
+// 한 판(런) 설정: 1~10층 적 팀, 11층부터 자동 생성 규칙 (층 수·목숨·적 레벨은 DifficultyData)
 [CreateAssetMenu(fileName = "RunConfig", menuName = "MonsterCamp/Run Config")]
 public class RunConfig : ScriptableObject
 {
-    [Tooltip("1~10층 적 팀 순서대로. 마지막 팀은 보스 층에 쓴다")]
+    [Tooltip("1~10층 적 팀 순서대로. 이 뒤의 층은 EnemyTeamGenerator가 만든다")]
     [SerializeField] private EnemyTeamData[] _rounds;
 
-    // floor는 1부터. 임시 규칙 (TODO 22에서 자동 생성으로 바꿈):
-    // 보스 층은 마지막 팀, 나머지는 (층 - 1) % 팀 수 + 1번째 팀
-    public EnemyTeamData GetEnemyTeam(int floor, bool isBoss)
-    {
-        return isBoss ? _rounds[_rounds.Length - 1] : _rounds[(floor - 1) % _rounds.Length];
-    }
+    [Header("자동 생성 팀 (11층부터)")]
+    [Tooltip("적 마릿수 (앞줄 2 + 뒷줄 3까지)")]
+    [SerializeField, Range(1, 5)] private int _teamSize = 5;
+    [Tooltip("주 타입을 2개 고를 확률 (아니면 1개)")]
+    [SerializeField, Range(0f, 1f)] private float _twoTypeChance = 0.5f;
+    [Tooltip("주 타입 1개일 때 그 타입 마릿수 (나머지는 아무 타입)")]
+    [SerializeField, Min(0)] private int _singleTypeCount = 4;
+    [Tooltip("주 타입 2개일 때 첫 번째 / 두 번째 타입 마릿수")]
+    [SerializeField, Min(0)] private int _firstTypeCount = 3;
+    [SerializeField, Min(0)] private int _secondTypeCount = 2;
+    [Tooltip("보스 층 1~5골드 확률(%). 상점 확률 대신 쓴다")]
+    [SerializeField] private int[] _bossTierPercents = { 0, 0, 20, 45, 35 };
+    [Tooltip("보스 층 적 레벨 + 이 값 (최대 Lv3)")]
+    [SerializeField, Min(0)] private int _bossLevelBonus = 1;
+
+    public int FixedTeamCount => _rounds.Length;
+    public int TeamSize => _teamSize;
+    public float TwoTypeChance => _twoTypeChance;
+    public int SingleTypeCount => _singleTypeCount;
+    public int FirstTypeCount => _firstTypeCount;
+    public int SecondTypeCount => _secondTypeCount;
+    public int[] BossTierPercents => _bossTierPercents;
+    public int BossLevelBonus => _bossLevelBonus;
+
+    // floor는 1부터 FixedTeamCount까지
+    public EnemyTeamData GetFixedTeam(int floor) => _rounds[floor - 1];
 }

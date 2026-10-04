@@ -106,6 +106,7 @@ public class ShopScreen : MonoBehaviour
 
     // ---------- 튜토리얼용 (비출 위치, 진행 확인) ----------
 
+    public ShopConfig Config => _config;
     public RectTransform ShopSlotRect(int index) => (RectTransform)_shopSlots[index].transform;
     public RectTransform BenchSlotRect(int index) => (RectTransform)_benchSlots[index].transform;
     public RectTransform TeamSlotRect(int index) => (RectTransform)_teamSlots[index].transform;

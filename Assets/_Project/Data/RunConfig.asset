@@ -23,3 +23,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 86662d84d30ffba48a4ec506f27aad6b, type: 2}
   - {fileID: 11400000, guid: 4569cf118646aa5458efd5937b57712c, type: 2}
   - {fileID: 11400000, guid: 7fe6ed43e88a7174d97c1e8844300a3a, type: 2}
+  _teamSize: 5
+  _twoTypeChance: 0.5
+  _singleTypeCount: 4
+  _firstTypeCount: 3
+  _secondTypeCount: 2
+  _bossTierPercents: 0000000000000000140000002d00000023000000
+  _bossLevelBonus: 1

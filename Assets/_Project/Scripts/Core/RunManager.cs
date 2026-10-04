@@ -31,6 +31,8 @@ public class RunManager : MonoBehaviour
 
     private DifficultyData _difficulty;
     private int _floor;
+    // 11층부터 적 팀 자동 생성 시드 (run.json에 저장)
+    private int _runSeed;
     // 이번 판에서 받은 별 (판이 끝날 때 한꺼번에 meta.json에 더함)
     private int _runStars;
     private int _lives;
@@ -57,6 +59,7 @@ public class RunManager : MonoBehaviour
         _trainer = trainer;
         _difficulty = difficulty;
         _floor = 1;
+        _runSeed = new System.Random().Next();
         _lives = difficulty.Lives;
         _runStars = 0;
         _pendingGold = 0;
@@ -105,6 +108,7 @@ public class RunManager : MonoBehaviour
         _trainer = trainer;
         _difficulty = difficulty;
         _floor = data.floor;
+        _runSeed = data.seed;
         _lives = data.lives;
         _runStars = Mathf.Max(0, data.starsEarned);
         _pendingGold = 0;
@@ -140,7 +144,7 @@ public class RunManager : MonoBehaviour
         EnemyTeamData enemy = _tutorial.GetEnemyTeam(_floor);
         if (enemy == null)
         {
-            enemy = _config.GetEnemyTeam(_floor, IsBossFloor);
+            enemy = EnemyTeamGenerator.GetTeam(_config, _shop.Config, _difficulty, _floor, _runSeed);
         }
         _flow.Show(GameScreen.Battle);
         _battle.StartBattle(team, enemy, _trainer, IsBossFloor, _difficulty.GetEnemyStatMultiplier(_floor));
@@ -286,6 +290,7 @@ public class RunManager : MonoBehaviour
             trainer = _trainer.name,
             difficulty = _difficulty.name,
             floor = _floor,
+            seed = _runSeed,
             lives = _lives,
             starsEarned = _runStars
         };

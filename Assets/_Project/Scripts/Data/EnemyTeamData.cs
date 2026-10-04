@@ -22,4 +22,12 @@ public class EnemyTeamData : ScriptableObject
     public int SlotCount => _members.Length;
 
     public Member GetMember(int slotIndex) => _members[slotIndex];
+
+    // 자동 생성 팀 (EnemyTeamGenerator가 런타임 인스턴스에만 쓴다)
+    public void SetGenerated(string displayName, bool isBoss, Member[] members)
+    {
+        _displayName = displayName;
+        _isBoss = isBoss;
+        _members = members;
+    }
 }
