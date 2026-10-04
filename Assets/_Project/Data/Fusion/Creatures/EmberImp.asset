@@ -37,8 +37,8 @@ MonoBehaviour:
   - 1
   - 1.8
   - 3
-  _sprite: {fileID: 21300000, guid: 0b1c32fc1ef480e47adc28a195d13932, type: 3}
+  _sprite: {fileID: 21300000, guid: c083204ebaaf4b0cbd0e188b635425a2, type: 3}
   _levelSprites:
-  - {fileID: 21300000, guid: 0b1c32fc1ef480e47adc28a195d13932, type: 3}
-  - {fileID: 21300000, guid: b1068d928ce27fa4ab7daec26de44fbe, type: 3}
-  - {fileID: 21300000, guid: 40ebadd991eb28549acdc68e9ea4120b, type: 3}
+  - {fileID: 21300000, guid: c083204ebaaf4b0cbd0e188b635425a2, type: 3}
+  - {fileID: 21300000, guid: 0e53e094eb904bbcb078cd17ec68e353, type: 3}
+  - {fileID: 21300000, guid: 43065e43100b4dc2928ab525f326a155, type: 3}
