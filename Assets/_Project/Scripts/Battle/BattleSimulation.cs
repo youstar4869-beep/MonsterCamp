@@ -16,7 +16,9 @@ public enum BattleEventType
     // 부활함
     Revive,
     // 스킬 발동 (Unit = 표시할 크리처, Source = 스킬 주인, Text = 화면에 띄울 짧은 글, 비어 있으면 표시 안 함)
-    Skill
+    Skill,
+    // 보스 광폭화 발동 (Unit 없음)
+    BossEnrage
 }
 
 public struct BattleEvent
@@ -62,19 +64,40 @@ public class BattleSimulation
     public bool PlayerWon { get; private set; }
     public float ElapsedTime { get; private set; }
 
-    // typeMultipliers: [공격 타입, 방어 타입] (CreatureType 순서). seed가 같으면 같은 결과
+    // 보스 특수 능력 (적 팀 전체, 모두 0이면 없음)
+    private readonly BossEffects _boss;
+    private float _bossRegenTimer;
+    private bool _bossEnraged;
+
+    // 철벽: 전투 시작 몇 초 동안 적 전체 피해 무시
+    public bool IsBossInvulnerable => ElapsedTime < _boss.InvulnerableSeconds;
+
+    // typeMultipliers: [공격 타입, 방어 타입] (CreatureType 순서). seed가 같으면 같은 결과.
+    // boss: 보스 특수 능력 (보통·어려움·보스 아닌 층은 default)
     public BattleSimulation(IEnumerable<BattleUnitSetup> players, IEnumerable<BattleUnitSetup> enemies,
-        float[,] typeMultipliers, int seed)
+        float[,] typeMultipliers, int seed, BossEffects boss = default)
     {
         _typeMultipliers = typeMultipliers;
         _random = new Random(seed);
+        _boss = boss;
+        _bossRegenTimer = boss.RegenInterval;
         foreach (BattleUnitSetup setup in players)
         {
             _players.Add(new BattleSimUnit(setup, true));
         }
         foreach (BattleUnitSetup setup in enemies)
         {
-            _enemies.Add(new BattleSimUnit(setup, false));
+            BattleUnitSetup enemy = setup;
+            // 가시 껍질·질풍: 가시 갑옷·공격 속도 보너스에 더해 기존 반사·공격 간격 계산을 그대로 쓴다
+            if (boss.ThornsPercent > 0f)
+            {
+                enemy.Bonus.ThornsPercent += boss.ThornsPercent;
+            }
+            if (boss.AttackSpeedBonus > 0f)
+            {
+                enemy.Bonus.SpeedBonus += boss.AttackSpeedBonus;
+            }
+            _enemies.Add(new BattleSimUnit(enemy, false));
         }
     }
 
@@ -102,6 +125,7 @@ public class BattleSimulation
         }
 
         ElapsedTime += deltaTime;
+        TickBoss(deltaTime);
         TickUnits(_players, _enemies, deltaTime);
         TickUnits(_enemies, _players, deltaTime);
         TickAttacks(_players, _enemies, deltaTime);
@@ -122,6 +146,30 @@ public class BattleSimulation
         {
             IsOver = true;
             PlayerWon = false;
+        }
+    }
+
+    // 보스 특수 능력: 광폭화(시간이 되면 한 번), 재생(N초마다 적 전체 회복)
+    private void TickBoss(float deltaTime)
+    {
+        if (!_bossEnraged && _boss.EnrageAttackMultiplier > 0f && ElapsedTime >= _boss.EnrageAfterSeconds)
+        {
+            _bossEnraged = true;
+            foreach (BattleSimUnit enemy in _enemies)
+            {
+                enemy.BossAttackMultiplier = _boss.EnrageAttackMultiplier;
+            }
+            Raise(BattleEventType.BossEnrage, null, null, 0, null);
+        }
+
+        if (_boss.RegenPercent > 0f && _boss.RegenInterval > 0f)
+        {
+            _bossRegenTimer -= deltaTime;
+            while (_bossRegenTimer <= 0f)
+            {
+                _bossRegenTimer += _boss.RegenInterval;
+                HealAll(_enemies, _boss.RegenPercent);
+            }
         }
     }
 
@@ -532,6 +580,12 @@ public class BattleSimulation
     private int TakeDamage(BattleSimUnit target, int damage, BattleSimUnit source, DamageKind kind)
     {
         if (!target.IsAlive)
+        {
+            return 0;
+        }
+
+        // 철벽 (보스 특수 능력): 모든 피해 무시 (반사도 없음)
+        if (!target.IsPlayer && IsBossInvulnerable)
         {
             return 0;
         }

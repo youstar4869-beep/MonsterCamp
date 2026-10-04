@@ -1759,7 +1759,12 @@ public static class MainSceneBuilder
         Color playerColor = _theme.PlayerUnit;
         Color enemyColor = _theme.EnemyUnit;
 
-        Text enemyLabel = CreateText(screen.transform, "EnemyLabel", "적 팀", _theme.BodySize, new Vector2(0f, 0.895f), new Vector2(1f, 0.935f));
+        Text enemyLabel = CreateText(screen.transform, "EnemyLabel", "적 팀", _theme.BodySize, new Vector2(0f, 0.912f), new Vector2(1f, 0.945f));
+        // 적 팀 이름 아래 작게 보스 능력 이름 (보스 능력이 없으면 숨김)
+        Text bossAbilityLabel = CreateText(screen.transform, "BossAbilityLabel", "", _theme.SmallSize, new Vector2(0f, 0.89f), new Vector2(1f, 0.914f));
+        bossAbilityLabel.color = _theme.ButtonDanger;
+        bossAbilityLabel.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+        bossAbilityLabel.gameObject.SetActive(false);
         Transform enemyBack = CreateRow(screen.transform, "EnemyBackRow", new Vector2(0.03f, 0.745f), new Vector2(0.97f, 0.89f));
         Transform enemyFront = CreateRow(screen.transform, "EnemyFrontRow", new Vector2(0.2f, 0.595f), new Vector2(0.8f, 0.74f));
 
@@ -1772,6 +1777,15 @@ public static class MainSceneBuilder
         popSo.FindProperty("_text").objectReferenceValue = bannerText;
         popSo.ApplyModifiedPropertiesWithoutUndo();
         bannerPop.enabled = false;
+
+        // 보스 전투 시작 때 "보스 능력: 이름 — 설명" (보스 등장 글 아래, 능력이 둘이면 두 줄)
+        Text bossAbilityText = CreateText(screen.transform, "BossAbilityText", "", _theme.BodySize, new Vector2(0.02f, 0.455f), new Vector2(0.98f, 0.51f));
+        bossAbilityText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+        var bossAbilityPop = bossAbilityText.gameObject.AddComponent<PopText>();
+        var abilityPopSo = new SerializedObject(bossAbilityPop);
+        abilityPopSo.FindProperty("_text").objectReferenceValue = bossAbilityText;
+        abilityPopSo.ApplyModifiedPropertiesWithoutUndo();
+        bossAbilityPop.enabled = false;
 
         Transform playerFront = CreateRow(screen.transform, "PlayerFrontRow", new Vector2(0.2f, 0.32f), new Vector2(0.8f, 0.465f));
         Transform playerBack = CreateRow(screen.transform, "PlayerBackRow", new Vector2(0.03f, 0.17f), new Vector2(0.97f, 0.315f));
@@ -1810,6 +1824,8 @@ public static class MainSceneBuilder
         so.FindProperty("_enemyLabel").objectReferenceValue = enemyLabel;
         so.FindProperty("_bannerText").objectReferenceValue = bannerText;
         so.FindProperty("_bannerPop").objectReferenceValue = bannerPop;
+        so.FindProperty("_bossAbilityPop").objectReferenceValue = bossAbilityPop;
+        so.FindProperty("_bossAbilityLabel").objectReferenceValue = bossAbilityLabel;
         so.FindProperty("_speedLabel").objectReferenceValue = speedLabel;
         so.FindProperty("_floatingTexts").objectReferenceValue = floatingTexts;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -1913,6 +1929,12 @@ public static class MainSceneBuilder
         Round(hitFlashImage);
         hitFlash.transform.SetSiblingIndex(hitFlash.transform.parent.childCount - 1);
 
+        // 보스 철벽 중 반투명 흰 테두리 (칸 바탕 그림에 Outline, 평소엔 꺼짐)
+        var guardFrame = unit.AddComponent<Outline>();
+        guardFrame.effectColor = new Color(1f, 1f, 1f, 0.6f);
+        guardFrame.effectDistance = new Vector2(6f, -6f);
+        guardFrame.enabled = false;
+
         var view = unit.GetComponent<CreatureUnitView>();
         var so = new SerializedObject(view);
         so.FindProperty("_icon").objectReferenceValue = icon;
@@ -1926,6 +1948,7 @@ public static class MainSceneBuilder
         so.FindProperty("_typeBar").objectReferenceValue = typeBar;
         so.FindProperty("_theme").objectReferenceValue = _theme;
         so.FindProperty("_itemIcon").objectReferenceValue = itemIcon;
+        so.FindProperty("_guardFrame").objectReferenceValue = guardFrame;
         so.ApplyModifiedPropertiesWithoutUndo();
         unit.SetActive(false);
         return view;

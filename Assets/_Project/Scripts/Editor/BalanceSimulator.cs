@@ -262,7 +262,8 @@ public class BalanceSimulator
             float margin = 0f;
             bool won = _players.Count > 0
                        && Fight(_players, _enemies, trainer, random.Next(), _typeMultipliers, out timeout, out margin,
-                           _difficulty.GetEnemyStatMultiplier(round), true, _difficulty.EnemyMixedSynergy) > 0.75f;
+                           _difficulty.GetEnemyStatMultiplier(round), true, _difficulty.EnemyMixedSynergy,
+                           BossAbility.Combine(_difficulty.GetBossAbilities(round))) > 0.75f;
             if (_gameLog != null)
             {
                 _gameLog.AppendLine($"  {round}층 골드 {startGold}→{run.Gold} | 팀 {DescribeTeam(run.Team)} | " +
@@ -422,15 +423,15 @@ public class BalanceSimulator
     }
 
     // margin: 이긴 쪽 남은 체력 비율 (0~1, 시간 초과면 0). enemyMultiplier: 층마다 적 능력치 증가.
-    // playerMixed/enemyMixed: 조합 시너지 적용 (1:1 대결·등급 가치는 둘 다 없음)
+    // playerMixed/enemyMixed: 조합 시너지 적용 (1:1 대결·등급 가치는 둘 다 없음). boss: 보스 특수 능력 (불가능 보스 층)
     private float Fight(List<BattleSetupFactory.Member> players, List<BattleSetupFactory.Member> enemies,
         TrainerData trainer, int seed, float[,] multipliers, out bool timeout, out float margin, float enemyMultiplier = 1f,
-        bool playerMixed = false, bool enemyMixed = false)
+        bool playerMixed = false, bool enemyMixed = false, BossEffects boss = default)
     {
         List<BattleUnitSetup> playerSetups = BattleSetupFactory.CreateTeam(players, _synergy, trainer, playerMixed);
         List<BattleUnitSetup> enemySetups = BattleSetupFactory.CreateTeam(enemies, _synergy, null, enemyMixed);
         BattleSetupFactory.ScaleStats(enemySetups, enemyMultiplier);
-        var simulation = new BattleSimulation(playerSetups, enemySetups, multipliers, seed);
+        var simulation = new BattleSimulation(playerSetups, enemySetups, multipliers, seed, boss);
         simulation.Start();
         while (!simulation.IsOver && simulation.ElapsedTime < MaxBattleSeconds)
         {

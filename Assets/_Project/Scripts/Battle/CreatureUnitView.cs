@@ -23,6 +23,8 @@ public class CreatureUnitView : MonoBehaviour
     [SerializeField] private ItemIconView _itemIcon;
     [Tooltip("칸 아래 가는 막대: 크리처 타입 색")]
     [SerializeField] private Image _typeBar;
+    [Tooltip("보스 철벽 중 반투명 흰 테두리 (평소엔 꺼짐)")]
+    [SerializeField] private Outline _guardFrame;
     [SerializeField] private UITheme _theme;
     [Tooltip("내 팀이면 위(적 쪽)로, 적 팀이면 아래로 튀어나간다")]
     [SerializeField] private bool _facesUp = true;
@@ -123,6 +125,15 @@ public class CreatureUnitView : MonoBehaviour
         }
         _disabled = disabled;
         _icon.color = new Color(1f, 1f, 1f, disabled ? DisabledAlpha : 1f);
+    }
+
+    // 보스 철벽 중 반투명 흰 테두리
+    public void SetGuarded(bool guarded)
+    {
+        if (_guardFrame != null && _guardFrame.enabled != guarded)
+        {
+            _guardFrame.enabled = guarded;
+        }
     }
 
     public void PlayAttack()

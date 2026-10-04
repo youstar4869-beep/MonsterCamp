@@ -37,6 +37,12 @@ public class BattleScreen : MonoBehaviour
     [SerializeField] private PopText _bannerPop;
     [Tooltip("보스 등장 글이 보이는 시간 (초)")]
     [SerializeField] private float _bossBannerSeconds = 1f;
+    [Tooltip("보스 전투 시작 때 '보스 능력: 이름 — 설명' 한 줄 (PopText)")]
+    [SerializeField] private PopText _bossAbilityPop;
+    [Tooltip("보스 능력 한 줄이 보이는 시간 (초)")]
+    [SerializeField] private float _bossAbilitySeconds = 2.5f;
+    [Tooltip("전투 중 화면 위에 작게 보스 능력 이름 (보스 능력이 없으면 숨김)")]
+    [SerializeField] private Text _bossAbilityLabel;
     [SerializeField] private Text _speedLabel;
     [Tooltip("승리/패배 표시 후 다음으로 넘어가기까지 (초)")]
     [SerializeField] private float _resultDelay = 1.5f;
@@ -48,6 +54,7 @@ public class BattleScreen : MonoBehaviour
     private readonly List<BattleSetupFactory.Member> _enemyMembers = new List<BattleSetupFactory.Member>();
     private readonly Dictionary<BattleSimUnit, CreatureUnitView> _unitViews = new Dictionary<BattleSimUnit, CreatureUnitView>();
     private BattleSimulation _simulation;
+    private IReadOnlyList<BossAbility> _bossAbilities;
     private float[,] _typeMultipliers;
     private float _speed = 1f;
     private bool _running;
@@ -57,9 +64,10 @@ public class BattleScreen : MonoBehaviour
     // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
     // 매 전투 새로 계산하므로 체력은 항상 가득 찬 상태로 시작한다.
     // trainer는 내 팀에만 적용 (적 팀은 시너지만). enemyStatMultiplier: 층마다 적 체력·공격력 증가,
-    // enemyMixedSynergy: 적 팀에도 조합 시너지 (어려움·불가능). floor·isBoss로 배경 그림을 고른다
+    // enemyMixedSynergy: 적 팀에도 조합 시너지 (어려움·불가능). floor·isBoss로 배경 그림을 고른다.
+    // bossAbilities: 보스 특수 능력 (불가능 보스 층만, 없으면 빈 목록)
     public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer,
-        int floor, bool isBoss, float enemyStatMultiplier, bool enemyMixedSynergy)
+        int floor, bool isBoss, float enemyStatMultiplier, bool enemyMixedSynergy, IReadOnlyList<BossAbility> bossAbilities)
     {
         StopAllCoroutines();
         ShowBackground(floor, isBoss);
@@ -90,7 +98,8 @@ public class BattleScreen : MonoBehaviour
         {
             Debug.Log($"[전투] 시드 {seed}");
         }
-        _simulation = new BattleSimulation(players, enemies, _typeMultipliers, seed);
+        _bossAbilities = bossAbilities;
+        _simulation = new BattleSimulation(players, enemies, _typeMultipliers, seed, BossAbility.Combine(bossAbilities));
         _simulation.Event += OnBattleEvent;
 
         _unitViews.Clear();
@@ -106,6 +115,7 @@ public class BattleScreen : MonoBehaviour
         {
             _bannerPop.Pop("보스 등장!", _theme.ButtonDanger, _bossBannerSeconds);
         }
+        ShowBossAbilities();
         UpdateSpeedLabel();
         _running = true;
     }
@@ -135,13 +145,15 @@ public class BattleScreen : MonoBehaviour
 
         _simulation.Tick(Time.deltaTime * _speed);
 
-        // 기절·묶기 중에는 흐리게
+        // 기절·묶기 중에는 흐리게, 보스 철벽 중에는 적에게 흰 테두리
+        bool guarded = _simulation.IsBossInvulnerable;
         foreach (KeyValuePair<BattleSimUnit, CreatureUnitView> pair in _unitViews)
         {
             if (pair.Key.IsAlive)
             {
                 pair.Value.SetDisabled(pair.Key.IsDisabled);
             }
+            pair.Value.SetGuarded(guarded && !pair.Key.IsPlayer && pair.Key.IsAlive);
         }
 
         if (_simulation.IsOver)
@@ -154,6 +166,12 @@ public class BattleScreen : MonoBehaviour
 
     private void OnBattleEvent(BattleEvent battleEvent)
     {
+        // 크리처가 없는 이벤트
+        if (battleEvent.Type == BattleEventType.BossEnrage)
+        {
+            ShowEnrage();
+            return;
+        }
         if (!_unitViews.TryGetValue(battleEvent.Unit, out CreatureUnitView view))
         {
             return;
@@ -196,6 +214,48 @@ public class BattleScreen : MonoBehaviour
                     AudioManager.Play(Sfx.Skill);
                 }
                 break;
+        }
+    }
+
+    // 보스 능력: 시작 때 "보스 능력: 이름 — 설명" (능력마다 한 줄), 전투 중 화면 위에 이름만 작게
+    private void ShowBossAbilities()
+    {
+        _bossAbilityPop.Clear();
+        int count = _bossAbilities?.Count ?? 0;
+        _bossAbilityLabel.gameObject.SetActive(count > 0);
+        if (count == 0)
+        {
+            return;
+        }
+
+        var lines = new System.Text.StringBuilder();
+        var names = new System.Text.StringBuilder("보스 능력: ");
+        for (int i = 0; i < count; i++)
+        {
+            BossAbility ability = _bossAbilities[i];
+            if (i > 0)
+            {
+                lines.Append('\n');
+                names.Append(" · ");
+            }
+            lines.Append("보스 능력: ").Append(ability.DisplayName).Append(" — ").Append(ability.Description);
+            names.Append(ability.DisplayName);
+        }
+        _bossAbilityPop.Pop(lines.ToString(), _theme.ButtonDanger, _bossAbilitySeconds);
+        _bossAbilityLabel.text = names.ToString();
+    }
+
+    // 광폭화 발동 순간 짧은 문구
+    private void ShowEnrage()
+    {
+        foreach (BossAbility ability in _bossAbilities)
+        {
+            if (ability.Type == BossAbilityType.Enrage)
+            {
+                _bannerPop.Pop($"{ability.DisplayName}! 공격력 {ability.Value2:0.#}배", _theme.ButtonDanger, _bossBannerSeconds);
+                AudioManager.Play(Sfx.Skill);
+                return;
+            }
         }
     }
 

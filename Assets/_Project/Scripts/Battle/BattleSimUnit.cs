@@ -84,6 +84,8 @@ public class BattleSimUnit
     internal float CritChance;
     internal float CritMultiplier;
     internal float SynergyHasteTimer;
+    // 보스 광폭화 공격력 배율 (1이면 없음)
+    internal float BossAttackMultiplier = 1f;
 
     // ---- 스킬 ----
     // None이 아닌 스킬 칸 (첫 스킬, 두 번째 스킬 순). 스킬이 하나면 1칸
@@ -194,7 +196,7 @@ public class BattleSimUnit
         return default;
     }
 
-    // 지금 공격력: 체력이 낮아져 오른 공격력, 약화(공격력 감소) 반영
+    // 지금 공격력: 체력이 낮아져 오른 공격력, 약화(공격력 감소), 보스 광폭화 반영
     public float CurrentAttack
     {
         get
@@ -207,6 +209,10 @@ public class BattleSimUnit
             if (WeakenAmount > 0f)
             {
                 attack *= 1f - WeakenAmount;
+            }
+            if (BossAttackMultiplier != 1f)
+            {
+                attack *= BossAttackMultiplier;
             }
             return attack;
         }

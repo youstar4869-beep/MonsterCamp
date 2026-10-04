@@ -150,7 +150,7 @@ public class RunManager : MonoBehaviour
         }
         _flow.Show(GameScreen.Battle);
         _battle.StartBattle(team, enemy, _trainer, _floor, IsBossFloor, _difficulty.GetEnemyStatMultiplier(_floor),
-            _difficulty.EnemyMixedSynergy);
+            _difficulty.EnemyMixedSynergy, _difficulty.GetBossAbilities(_floor));
         _tutorial.OnBattleStarted();
     }
 

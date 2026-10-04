@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 난이도 하나: 층 수, 목숨, 층마다 적 능력치 증가, 골드 규칙, 클리어 별, 열리는 조건
@@ -47,6 +48,12 @@ public class DifficultyData : ScriptableObject
     [Tooltip("확률 최대")]
     [SerializeField, Range(0f, 1f)] private float _fusionChanceMax = 0.6f;
 
+    [Header("보스 특수 능력 (비우면 없음)")]
+    [Tooltip("보스 층마다 순서대로 1개 (첫 보스 층이 0번, 끝까지 쓰면 처음부터)")]
+    [SerializeField] private BossAbility[] _bossAbilities;
+    [Tooltip("마지막 층 보스는 이 능력들을 모두 (비우면 순서대로)")]
+    [SerializeField] private BossAbility[] _finalBossAbilities;
+
     public string DisplayName => _displayName;
     public string Description => _description;
     public int FloorCount => _floorCount;
@@ -61,6 +68,24 @@ public class DifficultyData : ScriptableObject
 
     public int BossLevelBonus => _bossLevelBonus;
     public bool EnemyMixedSynergy => _enemyMixedSynergy;
+
+    // 그 층 보스의 특수 능력 (보스 층이 아니거나 없으면 빈 목록)
+    public IReadOnlyList<BossAbility> GetBossAbilities(int floor)
+    {
+        if (!IsBossFloor(floor))
+        {
+            return System.Array.Empty<BossAbility>();
+        }
+        if (floor >= _floorCount && _finalBossAbilities != null && _finalBossAbilities.Length > 0)
+        {
+            return _finalBossAbilities;
+        }
+        if (_bossAbilities == null || _bossAbilities.Length == 0)
+        {
+            return System.Array.Empty<BossAbility>();
+        }
+        return new[] { _bossAbilities[(floor / _bossEvery - 1) % _bossAbilities.Length] };
+    }
 
     // 층마다 증가 × 보스 층 배율
     public float GetEnemyStatMultiplier(int floor) =>

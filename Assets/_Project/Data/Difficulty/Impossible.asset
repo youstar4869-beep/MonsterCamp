@@ -33,3 +33,12 @@ MonoBehaviour:
   _fusionChanceAtStart: 0.1
   _fusionChancePerFloor: 0.02
   _fusionChanceMax: 0.6
+  _bossAbilities:
+  - {fileID: 11400000, guid: 51deb218408647ffb31d2b2126c7deb7, type: 2}
+  - {fileID: 11400000, guid: 108c08cc504c4e5eac6b06bcd4c11466, type: 2}
+  - {fileID: 11400000, guid: 41cb18fbdd0f41f69956b992c5c39432, type: 2}
+  - {fileID: 11400000, guid: 68411fc2c98a4350a6500e51dbadfea3, type: 2}
+  - {fileID: 11400000, guid: 982b41d29ff7497db84653873b1ca484, type: 2}
+  _finalBossAbilities:
+  - {fileID: 11400000, guid: 51deb218408647ffb31d2b2126c7deb7, type: 2}
+  - {fileID: 11400000, guid: 108c08cc504c4e5eac6b06bcd4c11466, type: 2}
