@@ -6,6 +6,8 @@ public struct BattleUnitSetup
     public string Name;
     public CreatureType Type;
     public int Tier;
+    // 별 (1~3)
+    public int Level;
     // 0~1 앞줄, 2~4 뒷줄
     public int SlotIndex;
     // 레벨 배율을 적용한 값 (보너스 적용 전)

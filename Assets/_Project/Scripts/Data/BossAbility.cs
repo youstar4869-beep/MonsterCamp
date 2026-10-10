@@ -12,7 +12,9 @@ public enum BossAbilityType
     // 적 전체가 받은 피해의 Value1 비율을 공격자에게 되돌림
     Thorns,
     // 적 전체 공격 속도 +Value1 비율
-    Haste
+    Haste,
+    // 적이 가장 비싼 아군(골드 × 별)부터 노림
+    Hunter
 }
 
 // 보스 특수 능력 하나 (불가능 난이도). 효과 수치는 Value1·Value2 (뜻은 BossAbilityType 설명)
@@ -66,6 +68,9 @@ public class BossAbility : ScriptableObject
                     break;
                 case BossAbilityType.Haste:
                     effects.AttackSpeedBonus += ability._value1;
+                    break;
+                case BossAbilityType.Hunter:
+                    effects.Hunter = true;
                     break;
             }
         }

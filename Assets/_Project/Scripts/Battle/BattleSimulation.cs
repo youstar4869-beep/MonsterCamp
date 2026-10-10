@@ -340,7 +340,7 @@ public class BattleSimulation
     // 대상이 없으면 false
     private bool PerformAttack(BattleSimUnit attacker, List<BattleSimUnit> allies, List<BattleSimUnit> defenders)
     {
-        BattleSimUnit primary = FindTarget(defenders);
+        BattleSimUnit primary = FindAttackTarget(attacker, defenders);
         if (primary == null)
         {
             return false;
@@ -418,7 +418,7 @@ public class BattleSimulation
         if (attacker.HasSkill(SkillType.OnHitChanceExtraAttack) && attacker.IsAlive
             && Roll(attacker.GetSkill(SkillType.OnHitChanceExtraAttack).Chance))
         {
-            BattleSimUnit extraTarget = FindTarget(defenders);
+            BattleSimUnit extraTarget = FindAttackTarget(attacker, defenders);
             if (extraTarget != null)
             {
                 RaiseSkill(attacker, attacker, "연속");
@@ -936,6 +936,24 @@ public class BattleSimulation
     }
 
     // ---------- 대상 찾기 ----------
+
+    // 일반 공격 대상. 사냥꾼(보스 능력)이면 적은 가장 비싼 아군(골드 × 별, 같으면 앞 칸)부터
+    private BattleSimUnit FindAttackTarget(BattleSimUnit attacker, List<BattleSimUnit> defenders)
+    {
+        if (!_boss.Hunter || attacker.IsPlayer)
+        {
+            return FindTarget(defenders);
+        }
+        BattleSimUnit best = null;
+        foreach (BattleSimUnit unit in defenders)
+        {
+            if (unit.IsAlive && (best == null || unit.Setup.Tier * unit.Setup.Level > best.Setup.Tier * best.Setup.Level))
+            {
+                best = unit;
+            }
+        }
+        return best;
+    }
 
     // 살아 있는 앞줄 중 앞 칸부터, 앞줄이 없으면 뒷줄 (목록은 칸 순서)
     private static BattleSimUnit FindTarget(List<BattleSimUnit> defenders)

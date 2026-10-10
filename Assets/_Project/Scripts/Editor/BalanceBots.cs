@@ -9,7 +9,9 @@ public enum BalanceBotKind
     // 한 타입을 정해서 모으거나, 조합 시너지 하나를 정해서 그 타입을 1마리씩 모은다
     Synergy,
     // 6라운드까지 골드를 모아 이자를 받고 7라운드부터 크게 쓴다
-    Saver
+    Saver,
+    // 4·5골드만 사서 같은 크리처를 모아 ★★★를 노린다 (팀 칸이 비면 남은 골드로 싼 크리처를 채움)
+    HighTier
 }
 
 // 밸런스 시뮬레이터의 봇: 상점 단계에서 사고·팔고·새로고침하고 팀을 놓는다.
@@ -23,6 +25,9 @@ public static class BalanceBots
     private const int BasicMaxRefresh = 4;
     private const int SynergyMaxRefresh = 6;
     private const int SaverSpendMaxRefresh = 10;
+    private const int HighTierMaxRefresh = 10;
+    // 고등급 봇이 사는 가장 낮은 등급 (등급 = 가격)
+    private const int HighTierMinTier = 4;
     // 저축 봇: 이 라운드부터 크게 쓴다. 그 전에는 남은 골드를 (라운드 × SaverReservePerRound) 아래로 내리지 않는다
     public const int SaverSpendRound = 7;
     private const int SaverReservePerRound = 6;
@@ -64,6 +69,10 @@ public static class BalanceBots
                 bool spend = run.Round >= SaverSpendRound;
                 int reserve = spend ? 0 : run.Round * SaverReservePerRound;
                 PlaySmart(run, null, reserve, spend ? SaverSpendMaxRefresh : 0);
+                break;
+            case BalanceBotKind.HighTier:
+                PlaySmart(run, null, 0, HighTierMaxRefresh, HighTierMinTier);
+                FillTeam(run);
                 break;
         }
     }
@@ -151,8 +160,8 @@ public static class BalanceBots
 
     // ---------- 기본·시너지·저축 봇 ----------
 
-    // focus: 시너지 봇의 타입 (없으면 null), reserve: 남겨 둘 골드
-    private static void PlaySmart(BalanceRun run, CreatureType? focus, int reserve, int maxRefresh)
+    // focus: 시너지 봇의 타입 (없으면 null), reserve: 남겨 둘 골드, minTier: 이 등급 아래는 사지 않음
+    private static void PlaySmart(BalanceRun run, CreatureType? focus, int reserve, int maxRefresh, int minTier = 1)
     {
         int refreshes = 0;
         System.Array.Clear(Skipped, 0, Skipped.Length);
@@ -162,7 +171,7 @@ public static class BalanceBots
             Arrange(run, focus);
             int spendable = run.Gold - reserve;
 
-            int pick = ChooseOffer(run, focus, spendable);
+            int pick = ChooseOffer(run, focus, spendable, minTier);
             if (pick >= 0)
             {
                 if (!MakeRoom(run, run.Offers[pick], focus) || !run.TryBuy(pick))
@@ -179,8 +188,8 @@ public static class BalanceBots
                 continue;
             }
 
-            // 새로 뽑은 뒤 1골드짜리라도 살 수 있을 때만
-            if (refreshes < maxRefresh && spendable >= run.RefreshCost + 1)
+            // 새로 뽑은 뒤 가장 싼 살 등급(등급 = 가격)이라도 살 수 있을 때만
+            if (refreshes < maxRefresh && spendable >= run.RefreshCost + minTier)
             {
                 run.Refresh();
                 refreshes++;
@@ -193,7 +202,7 @@ public static class BalanceBots
     }
 
     // 살 상점 칸: 합성이 되는 것(가진 것과 같은 크리처) > 시너지 타입 > 가장 비싼 것. 없으면 -1
-    private static int ChooseOffer(BalanceRun run, CreatureType? focus, int spendable)
+    private static int ChooseOffer(BalanceRun run, CreatureType? focus, int spendable, int minTier)
     {
         run.CollectOwned(Owned);
         int best = -1;
@@ -201,7 +210,7 @@ public static class BalanceBots
         for (int i = 0; i < run.Offers.Length; i++)
         {
             CreatureData offer = run.Offers[i];
-            if (offer == null || Skipped[i] || run.Config.GetPrice(offer) > spendable)
+            if (offer == null || Skipped[i] || offer.Tier < minTier || run.Config.GetPrice(offer) > spendable)
             {
                 continue;
             }
@@ -228,6 +237,35 @@ public static class BalanceBots
             }
         }
         return best;
+    }
+
+    // 고등급 봇: 가진 크리처가 팀 칸보다 적으면 남은 골드로 가장 싼 크리처부터 채운다 (나중에 MakeRoom이 먼저 판다)
+    private static void FillTeam(BalanceRun run)
+    {
+        while (true)
+        {
+            run.CollectOwned(Owned);
+            if (Owned.Count >= BalanceRun.TeamSlotCount)
+            {
+                break;
+            }
+            int cheapest = -1;
+            for (int i = 0; i < run.Offers.Length; i++)
+            {
+                CreatureData offer = run.Offers[i];
+                if (offer != null && run.Config.GetPrice(offer) <= run.Gold
+                    && (cheapest < 0 || run.Config.GetPrice(offer) < run.Config.GetPrice(run.Offers[cheapest])))
+                {
+                    cheapest = i;
+                }
+            }
+            if (cheapest < 0 || !run.TryBuy(cheapest))
+            {
+                break;
+            }
+        }
+        FuseAll(run);
+        Arrange(run, null);
     }
 
     // 대기석이 꽉 찼으면 가장 약한 크리처를 판다 (살 크리처가 더 강할 때만, 합성 짝이 있는 것은 팔지 않음)

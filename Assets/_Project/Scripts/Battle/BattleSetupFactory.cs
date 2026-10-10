@@ -8,7 +8,7 @@ public static class BattleSetupFactory
     {
         public CreatureData Creature;
         public int Level;
-        // 내 팀만 (적은 null)
+        // 없으면 null
         public ItemData Item;
         public int SlotIndex;
     }
@@ -24,6 +24,7 @@ public static class BattleSetupFactory
             Name = creature.DisplayName,
             Type = creature.Type,
             Tier = creature.Tier,
+            Level = level,
             SlotIndex = slotIndex,
             MaxHealth = creature.GetMaxHealth(level),
             Attack = creature.GetAttack(level),

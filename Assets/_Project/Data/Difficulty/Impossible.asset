@@ -16,7 +16,7 @@ MonoBehaviour:
   _description: 목숨 5개, 이자 최대 2, 새로고침 2골드. 조합·시너지가 필요해요
   _floorCount: 100
   _lives: 5
-  _enemyStatPerFloor: 0.012
+  _enemyStatPerFloor: 0.008
   _enemyStatFromFloor: 11
   _enemyStatToFloor: 50
   _bossEvery: 10
@@ -32,16 +32,30 @@ MonoBehaviour:
   _levelChanceAtStart: 0.2
   _levelChancePerFloor: 0.015
   _levelChanceToFloor: 50
-  _fusionFromFloor: 20
+  _fusionFromFloor: 15
   _fusionChanceAtStart: 0.1
-  _fusionChancePerFloor: 0.01
-  _fusionChanceMax: 0.3
+  _fusionChancePerFloor: 0.012
+  _fusionChanceMax: 0.4
+  _enemyTopTierFromFloor: 11
+  _enemyTopTierChance: 0.08
+  _counterFromFloor: 11
+  _counterCount: 2
+  _enemyItemFloors: 0b0000001e0000003c000000
+  _eliteFirstFloor: 5
+  _eliteAbilities:
+  - {fileID: 11400000, guid: 982b41d29ff7497db84653873b1ca484, type: 2}
+  - {fileID: 11400000, guid: 68411fc2c98a4350a6500e51dbadfea3, type: 2}
+  - {fileID: 11400000, guid: 41cb18fbdd0f41f69956b992c5c39432, type: 2}
+  - {fileID: 11400000, guid: ab498a6ef57746029787b1ccc38dff0a, type: 2}
+  - {fileID: 11400000, guid: 108c08cc504c4e5eac6b06bcd4c11466, type: 2}
+  - {fileID: 11400000, guid: 51deb218408647ffb31d2b2126c7deb7, type: 2}
   _bossAbilities:
   - {fileID: 11400000, guid: 51deb218408647ffb31d2b2126c7deb7, type: 2}
   - {fileID: 11400000, guid: 108c08cc504c4e5eac6b06bcd4c11466, type: 2}
   - {fileID: 11400000, guid: 41cb18fbdd0f41f69956b992c5c39432, type: 2}
   - {fileID: 11400000, guid: 68411fc2c98a4350a6500e51dbadfea3, type: 2}
   - {fileID: 11400000, guid: 982b41d29ff7497db84653873b1ca484, type: 2}
+  - {fileID: 11400000, guid: ab498a6ef57746029787b1ccc38dff0a, type: 2}
   _finalBossAbilities:
   - {fileID: 11400000, guid: 51deb218408647ffb31d2b2126c7deb7, type: 2}
   - {fileID: 11400000, guid: 108c08cc504c4e5eac6b06bcd4c11466, type: 2}

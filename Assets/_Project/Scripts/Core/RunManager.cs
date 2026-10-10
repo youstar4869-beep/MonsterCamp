@@ -146,7 +146,8 @@ public class RunManager : MonoBehaviour
         EnemyTeamData enemy = _tutorial.GetEnemyTeam(_floor);
         if (enemy == null)
         {
-            enemy = EnemyTeamGenerator.GetTeam(_config, _shop.Config, _battle.Synergy.Mixed, _difficulty, _floor, _runSeed);
+            enemy = EnemyTeamGenerator.GetTeam(_config, _shop.Config, _battle.Synergy.Mixed, _difficulty, _floor, _runSeed,
+                _battle.TypeChart, team);
         }
         _flow.Show(GameScreen.Battle);
         _battle.StartBattle(team, enemy, _trainer, _floor, IsBossFloor, _difficulty.GetEnemyStatMultiplier(_floor),

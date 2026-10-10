@@ -54,11 +54,30 @@ public class DifficultyData : ScriptableObject
     [Tooltip("확률 최대")]
     [SerializeField, Range(0f, 1f)] private float _fusionChanceMax = 0.6f;
 
+    [Header("적 5골드 (11층부터 자동 생성 팀)")]
+    [Tooltip("이 층부터 한 마리씩 확률로 5골드 크리처가 됨. 0이면 없음")]
+    [SerializeField, Min(0)] private int _enemyTopTierFromFloor;
+    [SerializeField, Range(0f, 1f)] private float _enemyTopTierChance;
+
+    [Header("카운터 팀 (11층부터 자동 생성 팀)")]
+    [Tooltip("이 층부터 내 팀에서 가장 많은 타입에 유리한 타입을 섞음. 0이면 없음")]
+    [SerializeField, Min(0)] private int _counterFromFloor;
+    [Tooltip("적 팀 뒤쪽 몇 마리를 그 타입으로")]
+    [SerializeField, Min(0)] private int _counterCount;
+
+    [Header("적 아이템 (11층부터 자동 생성 팀)")]
+    [Tooltip("n번째 값 = 아이템 n개가 되는 층 (예: 20, 40 → 20층 1개, 40층 2개). 비우면 없음")]
+    [SerializeField] private int[] _enemyItemFloors;
+
     [Header("보스 특수 능력 (비우면 없음)")]
     [Tooltip("보스 층마다 순서대로 1개 (첫 보스 층이 0번, 끝까지 쓰면 처음부터)")]
     [SerializeField] private BossAbility[] _bossAbilities;
     [Tooltip("마지막 층 보스는 이 능력들을 모두 (비우면 순서대로)")]
     [SerializeField] private BossAbility[] _finalBossAbilities;
+    [Tooltip("엘리트 층: 이 층부터 보스 간격마다 (보스 층 제외). 0이면 없음")]
+    [SerializeField, Min(0)] private int _eliteFirstFloor;
+    [Tooltip("엘리트 층마다 순서대로 1개 (비우면 엘리트 없음)")]
+    [SerializeField] private BossAbility[] _eliteAbilities;
 
     public string DisplayName => _displayName;
     public string Description => _description;
@@ -75,9 +94,33 @@ public class DifficultyData : ScriptableObject
     public int BossLevelBonus => _bossLevelBonus;
     public bool EnemyMixedSynergy => _enemyMixedSynergy;
 
-    // 그 층 보스의 특수 능력 (보스 층이 아니거나 없으면 빈 목록)
+    public bool IsEliteFloor(int floor) =>
+        _eliteFirstFloor > 0 && _eliteAbilities != null && _eliteAbilities.Length > 0 && floor >= _eliteFirstFloor
+        && (floor - _eliteFirstFloor) % _bossEvery == 0 && !IsBossFloor(floor);
+
+    public float GetEnemyTopTierChance(int floor) =>
+        _enemyTopTierFromFloor > 0 && floor >= _enemyTopTierFromFloor ? _enemyTopTierChance : 0f;
+
+    // 카운터로 바꿀 적 마릿수 (그 층 전이면 0)
+    public int GetCounterCount(int floor) => _counterFromFloor > 0 && floor >= _counterFromFloor ? _counterCount : 0;
+
+    public int GetEnemyItemCount(int floor)
+    {
+        int count = 0;
+        while (_enemyItemFloors != null && count < _enemyItemFloors.Length && floor >= _enemyItemFloors[count])
+        {
+            count++;
+        }
+        return count;
+    }
+
+    // 그 층 보스·엘리트의 특수 능력 (보스·엘리트 층이 아니거나 없으면 빈 목록)
     public IReadOnlyList<BossAbility> GetBossAbilities(int floor)
     {
+        if (IsEliteFloor(floor))
+        {
+            return new[] { _eliteAbilities[(floor - _eliteFirstFloor) / _bossEvery % _eliteAbilities.Length] };
+        }
         if (!IsBossFloor(floor))
         {
             return System.Array.Empty<BossAbility>();

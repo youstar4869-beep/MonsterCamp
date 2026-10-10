@@ -13,7 +13,8 @@ public class BalanceSimulatorWindow : EditorWindow
         Random,
         Basic,
         Synergy,
-        Saver
+        Saver,
+        HighTier
     }
 
     // 프로젝트 폴더(Assets 옆) 기준
@@ -45,7 +46,7 @@ public class BalanceSimulatorWindow : EditorWindow
         _games = Mathf.Max(1, EditorGUILayout.IntField("판 수 (봇마다)", _games));
         _seed = EditorGUILayout.IntField("시드", _seed);
         _difficulty = EditorGUILayout.Popup("난이도", _difficulty, new[] { "보통", "어려움", "불가능" });
-        _bot = (BotChoice)EditorGUILayout.Popup("봇", (int)_bot, new[] { "전체 4종", "랜덤", "기본", "시너지", "저축" });
+        _bot = (BotChoice)EditorGUILayout.Popup("봇", (int)_bot, new[] { "전체 5종", "랜덤", "기본", "시너지", "저축", "고등급" });
         _duels = EditorGUILayout.Toggle("1:1 대결표·등급 가치 포함", _duels);
         _locked = EditorGUILayout.Toggle(
             new GUIContent("처음 계정처럼 잠금", "MetaConfig에서 잠긴 트레이너·크리처(5골드)를 빼고 돌린다"), _locked);
@@ -85,6 +86,7 @@ public class BalanceSimulatorWindow : EditorWindow
             case BotChoice.Basic: return new[] { BalanceBotKind.Basic };
             case BotChoice.Synergy: return new[] { BalanceBotKind.Synergy };
             case BotChoice.Saver: return new[] { BalanceBotKind.Saver };
+            case BotChoice.HighTier: return new[] { BalanceBotKind.HighTier };
             default: return (BalanceBotKind[])System.Enum.GetValues(typeof(BalanceBotKind));
         }
     }

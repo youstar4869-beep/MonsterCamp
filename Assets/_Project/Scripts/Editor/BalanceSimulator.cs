@@ -87,6 +87,7 @@ public class BalanceSimulator
     private readonly bool _fusionUnlocked;
     private readonly CreatureData[] _creatures;
     private readonly float[,] _typeMultipliers;
+    private readonly TypeChart _typeChart;
     private readonly float[,] _neutralMultipliers;
 
     private readonly List<BattleSetupFactory.Member> _players = new List<BattleSetupFactory.Member>();
@@ -107,7 +108,8 @@ public class BalanceSimulator
         _synergy = Load<SynergyConfig>("SynergyConfig");
         _runConfig = Load<RunConfig>("RunConfig");
         _difficulty = Load<DifficultyData>("Difficulty/" + difficulty);
-        _typeMultipliers = BattleSetupFactory.CreateTypeMultipliers(Load<TypeChart>("TypeChart"));
+        _typeChart = Load<TypeChart>("TypeChart");
+        _typeMultipliers = BattleSetupFactory.CreateTypeMultipliers(_typeChart);
         _trainers = LoadAll<TrainerData>(DataFolder + "/Trainers");
         _canAppear = _ => true;
         if (lockedLikeNewAccount)
@@ -254,7 +256,8 @@ public class BalanceSimulator
                 }
             }
             bool isBoss = _difficulty.IsBossFloor(round);
-            EnemyTeamData enemy = EnemyTeamGenerator.GetTeam(_runConfig, _shop, _synergy.Mixed, _difficulty, round, gameSeed);
+            EnemyTeamData enemy = EnemyTeamGenerator.GetTeam(_runConfig, _shop, _synergy.Mixed, _difficulty, round, gameSeed,
+                _typeChart, run.Team);
             SetEnemyTeam(enemy);
 
             // 시간 초과(0.5)는 패배로 센다
@@ -409,7 +412,7 @@ public class BalanceSimulator
             if (member.Creature != null)
             {
                 _enemies.Add(new BattleSetupFactory.Member
-                    { Creature = member.Creature, Level = Mathf.Max(1, member.Level), SlotIndex = i });
+                    { Creature = member.Creature, Level = Mathf.Max(1, member.Level), Item = member.Item, SlotIndex = i });
             }
         }
     }
@@ -781,6 +784,7 @@ public class BalanceSimulator
             case BalanceBotKind.Random: return "랜덤";
             case BalanceBotKind.Basic: return "기본";
             case BalanceBotKind.Synergy: return "시너지";
+            case BalanceBotKind.HighTier: return "고등급";
             default: return "저축";
         }
     }

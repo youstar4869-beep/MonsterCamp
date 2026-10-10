@@ -56,6 +56,7 @@ public class ShopConfig : ScriptableObject
     public int MaxGold => _maxGold;
     public System.Collections.Generic.IReadOnlyList<CreatureData> CreaturePool => _creaturePool;
     public System.Collections.Generic.IReadOnlyList<FusionRecipe> FusionRecipes => _fusionRecipes;
+    public System.Collections.Generic.IReadOnlyList<ItemData> ItemPool => _itemPool;
 
     // 남은 골드 5골드마다 1골드, 최대 maxInterest골드 (최대치는 난이도 에셋)
     public int GetInterest(int leftoverGold, int maxInterest)

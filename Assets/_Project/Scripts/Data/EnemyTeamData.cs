@@ -10,6 +10,8 @@ public class EnemyTeamData : ScriptableObject
     {
         public CreatureData Creature;
         [Range(1, CreatureData.MaxLevel)] public int Level;
+        // 장착 아이템 (자동 생성 팀만, 없으면 null)
+        public ItemData Item;
     }
 
     [SerializeField] private string _displayName;

@@ -13,4 +13,6 @@ public struct BossEffects
     public float ThornsPercent;
     // 공격 속도 +비율 (시너지 공격 속도 보너스에 더함)
     public float AttackSpeedBonus;
+    // 사냥꾼: 적이 가장 비싼 아군(골드 × 별)부터 노림
+    public bool Hunter;
 }

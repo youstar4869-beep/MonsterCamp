@@ -60,12 +60,13 @@ public class BattleScreen : MonoBehaviour
     private bool _running;
 
     public SynergyConfig Synergy => _synergy;
+    public TypeChart TypeChart => _typeChart;
 
     // RunManager에서 호출. playerTeam은 팀 칸 순서 (빈 칸은 null).
     // 매 전투 새로 계산하므로 체력은 항상 가득 찬 상태로 시작한다.
     // trainer는 내 팀에만 적용 (적 팀은 시너지만). enemyStatMultiplier: 층마다 적 체력·공격력 증가,
     // enemyMixedSynergy: 적 팀에도 조합 시너지 (어려움·불가능). floor·isBoss로 배경 그림을 고른다.
-    // bossAbilities: 보스 특수 능력 (불가능 보스 층만, 없으면 빈 목록)
+    // bossAbilities: 보스·엘리트 특수 능력 (불가능 보스·엘리트 층만, 없으면 빈 목록)
     public void StartBattle(CreatureInstance[] playerTeam, EnemyTeamData enemyTeam, TrainerData trainer,
         int floor, bool isBoss, float enemyStatMultiplier, bool enemyMixedSynergy, IReadOnlyList<BossAbility> bossAbilities)
     {
@@ -85,10 +86,10 @@ public class BattleScreen : MonoBehaviour
         for (int i = 0; i < _enemyViews.Length; i++)
         {
             EnemyTeamData.Member member = i < enemyTeam.SlotCount ? enemyTeam.GetMember(i) : default;
-            AddMember(_enemyMembers, member.Creature, Mathf.Max(1, member.Level), null, i, _enemyViews);
+            AddMember(_enemyMembers, member.Creature, Mathf.Max(1, member.Level), member.Item, i, _enemyViews);
         }
 
-        // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력·아이템은 내 팀만 (시너지와 겹쳐서 적용)
+        // 타입 시너지는 내 팀·적 팀 똑같이, 트레이너 능력은 내 팀만, 아이템은 장착한 크리처 (시너지와 겹쳐서 적용)
         List<BattleUnitSetup> players = BattleSetupFactory.CreateTeam(_playerMembers, _synergy, trainer, true);
         List<BattleUnitSetup> enemies = BattleSetupFactory.CreateTeam(_enemyMembers, _synergy, null, enemyMixedSynergy);
         BattleSetupFactory.ScaleStats(enemies, enemyStatMultiplier);
@@ -115,7 +116,7 @@ public class BattleScreen : MonoBehaviour
         {
             _bannerPop.Pop("보스 등장!", _theme.ButtonDanger, _bossBannerSeconds);
         }
-        ShowBossAbilities();
+        ShowBossAbilities(isBoss ? "보스 능력: " : "엘리트 능력: ");
         UpdateSpeedLabel();
         _running = true;
     }
@@ -218,7 +219,8 @@ public class BattleScreen : MonoBehaviour
     }
 
     // 보스 능력: 시작 때 "보스 능력: 이름 — 설명" (능력마다 한 줄), 전투 중 화면 위에 이름만 작게
-    private void ShowBossAbilities()
+    // prefix: 보스 층은 "보스 능력: ", 엘리트 층(불가능)은 "엘리트 능력: "
+    private void ShowBossAbilities(string prefix)
     {
         _bossAbilityPop.Clear();
         int count = _bossAbilities?.Count ?? 0;
@@ -229,7 +231,7 @@ public class BattleScreen : MonoBehaviour
         }
 
         var lines = new System.Text.StringBuilder();
-        var names = new System.Text.StringBuilder("보스 능력: ");
+        var names = new System.Text.StringBuilder(prefix);
         for (int i = 0; i < count; i++)
         {
             BossAbility ability = _bossAbilities[i];
@@ -238,7 +240,7 @@ public class BattleScreen : MonoBehaviour
                 lines.Append('\n');
                 names.Append(" · ");
             }
-            lines.Append("보스 능력: ").Append(ability.DisplayName).Append(" — ").Append(ability.Description);
+            lines.Append(prefix).Append(ability.DisplayName).Append(" — ").Append(ability.Description);
             names.Append(ability.DisplayName);
         }
         _bossAbilityPop.Pop(lines.ToString(), _theme.ButtonDanger, _bossAbilitySeconds);

@@ -9,10 +9,14 @@ public static class EnemyTeamGenerator
     private static EnemyTeamData _generated;
     private static readonly List<CreatureData> Picked = new List<CreatureData>();
     private static readonly List<CreatureData> Candidates = new List<CreatureData>();
+    private static readonly List<int> Unequipped = new List<int>();
+    private static readonly List<ItemData> BattleItems = new List<ItemData>();
+    private static readonly int[] PlayerTypeCounts = new int[TypeSynergy.TypeCount];
 
-    // mixed: 조합 시너지 설정 (어려움·불가능 팀이 노림, null이면 안 노림)
+    // mixed: 조합 시너지 설정 (어려움·불가능 팀이 노림, null이면 안 노림).
+    // chart·playerTeam: 카운터 팀이 켜진 층에서 내 팀 주 타입에 유리한 타입을 고를 때 (빈 칸은 null)
     public static EnemyTeamData GetTeam(RunConfig config, ShopConfig shop, MixedSynergyConfig mixed, DifficultyData difficulty,
-        int floor, int runSeed)
+        int floor, int runSeed, TypeChart chart, IReadOnlyList<CreatureInstance> playerTeam)
     {
         if (floor <= config.FixedTeamCount)
         {
@@ -23,12 +27,12 @@ public static class EnemyTeamGenerator
             _generated = ScriptableObject.CreateInstance<EnemyTeamData>();
             _generated.hideFlags = HideFlags.DontSave;
         }
-        Generate(_generated, config, shop, mixed, difficulty, floor, runSeed);
+        Generate(_generated, config, shop, mixed, difficulty, floor, runSeed, chart, playerTeam);
         return _generated;
     }
 
     private static void Generate(EnemyTeamData team, RunConfig config, ShopConfig shop, MixedSynergyConfig mixed,
-        DifficultyData difficulty, int floor, int runSeed)
+        DifficultyData difficulty, int floor, int runSeed, TypeChart chart, IReadOnlyList<CreatureInstance> playerTeam)
     {
         var random = new System.Random(unchecked(runSeed * 486187739 + floor));
         bool isBoss = difficulty.IsBossFloor(floor);
@@ -53,6 +57,11 @@ public static class EnemyTeamGenerator
             name = mixed.Get(mixedIndex).Name + " 무리";
         }
 
+        // 카운터 팀 (어려움·불가능): 뒤쪽 몇 칸을 내 팀 주 타입에 유리한 타입으로. 난수를 쓰지 않으므로 꺼진 층은 그대로
+        int counterCount = difficulty.GetCounterCount(floor);
+        CreatureType? counter = counterCount > 0 ? FindCounterType(chart, playerTeam) : null;
+        float topTierChance = difficulty.GetEnemyTopTierChance(floor);
+
         // 시너지는 서로 다른 크리처만 세므로 같은 크리처는 다시 고르지 않는다
         Picked.Clear();
         for (int i = 0; i < config.TeamSize; i++)
@@ -71,7 +80,17 @@ public static class EnemyTeamGenerator
                     : i < firstCount + secondCount ? second
                     : (CreatureType)random.Next(typeCount);
             }
-            CreatureData creature = PickCreature(shop.CreaturePool, type, RollTier(tierPercents, random), random);
+            if (counter.HasValue && i >= config.TeamSize - counterCount)
+            {
+                type = counter.Value;
+            }
+            int tier = RollTier(tierPercents, random);
+            // 5골드 확률 (어려움·불가능). 0이면 난수를 쓰지 않는다
+            if (topTierChance > 0f && random.NextDouble() < topTierChance)
+            {
+                tier = CreatureData.MaxTier;
+            }
+            CreatureData creature = PickCreature(shop.CreaturePool, type, tier, random);
             if (creature != null)
             {
                 Picked.Add(creature);
@@ -86,7 +105,7 @@ public static class EnemyTeamGenerator
                 { Creature = Picked[i], Level = Mathf.Clamp(level, 1, CreatureData.MaxLevel) };
         }
 
-        // 조합 크리처 (어려움 25층·불가능 15층부터, 층이 오를수록 많이): 한 마리씩 확률로 같은 타입 조합 크리처로 바꾼다.
+        // 조합 크리처 (어려움·불가능, 층이 오를수록 많이): 한 마리씩 확률로 같은 타입 조합 크리처로 바꾼다.
         // 시작 층 전에는 난수를 쓰지 않으므로 그 전 층·보통의 적 팀은 조합이 없던 때와 같다
         float fusionChance = difficulty.GetEnemyFusionChance(floor);
         for (int i = 0; fusionChance > 0f && i < members.Length; i++)
@@ -104,8 +123,76 @@ public static class EnemyTeamGenerator
         }
         // 앞줄(0~1)부터 체력 높은 순
         System.Array.Sort(members, (a, b) => b.Creature.GetMaxHealth(b.Level).CompareTo(a.Creature.GetMaxHealth(a.Level)));
+        EquipItems(members, shop.ItemPool, difficulty.GetEnemyItemCount(floor), random);
 
         team.SetGenerated(name, isBoss, members);
+    }
+
+    // 내 팀에서 가장 많은 타입(같으면 타입 순서 앞)에 유리한 타입. 팀이 비었거나 유리한 타입이 없으면 null
+    private static CreatureType? FindCounterType(TypeChart chart, IReadOnlyList<CreatureInstance> playerTeam)
+    {
+        if (chart == null || playerTeam == null)
+        {
+            return null;
+        }
+        System.Array.Clear(PlayerTypeCounts, 0, PlayerTypeCounts.Length);
+        int dominant = -1;
+        foreach (CreatureInstance creature in playerTeam)
+        {
+            if (creature?.Data == null)
+            {
+                continue;
+            }
+            int type = (int)creature.Data.Type;
+            PlayerTypeCounts[type]++;
+            if (dominant < 0 || PlayerTypeCounts[type] > PlayerTypeCounts[dominant]
+                || (PlayerTypeCounts[type] == PlayerTypeCounts[dominant] && type < dominant))
+            {
+                dominant = type;
+            }
+        }
+        if (dominant < 0)
+        {
+            return null;
+        }
+        for (int t = 0; t < TypeSynergy.TypeCount; t++)
+        {
+            if (chart.GetMultiplier((CreatureType)t, (CreatureType)dominant) > 1f)
+            {
+                return (CreatureType)t;
+            }
+        }
+        return null;
+    }
+
+    // 아이템 count개를 아직 없는 적에게 하나씩 (행운 동전처럼 전투 효과가 없는 아이템은 빼고)
+    private static void EquipItems(EnemyTeamData.Member[] members, IReadOnlyList<ItemData> pool, int count,
+        System.Random random)
+    {
+        if (count <= 0 || pool == null)
+        {
+            return;
+        }
+        BattleItems.Clear();
+        foreach (ItemData item in pool)
+        {
+            if (item != null && item.Effect != ItemEffect.WinGold)
+            {
+                BattleItems.Add(item);
+            }
+        }
+        Unequipped.Clear();
+        for (int i = 0; i < members.Length; i++)
+        {
+            Unequipped.Add(i);
+        }
+        for (int n = 0; n < count && Unequipped.Count > 0 && BattleItems.Count > 0; n++)
+        {
+            ItemData item = BattleItems[random.Next(BattleItems.Count)];
+            int pick = random.Next(Unequipped.Count);
+            members[Unequipped[pick]].Item = item;
+            Unequipped.RemoveAt(pick);
+        }
     }
 
     // 확률(%)로 1~5골드 하나. 표가 없으면 1

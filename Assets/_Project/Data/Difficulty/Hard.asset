@@ -32,5 +32,10 @@ MonoBehaviour:
   _levelChancePerFloor: 0.015
   _fusionFromFloor: 25
   _fusionChanceAtStart: 0.1
-  _fusionChancePerFloor: 0.01
-  _fusionChanceMax: 0.3
+  _fusionChancePerFloor: 0.012
+  _fusionChanceMax: 0.35
+  _enemyTopTierFromFloor: 20
+  _enemyTopTierChance: 0.05
+  _counterFromFloor: 30
+  _counterCount: 2
+  _enemyItemFloors: 1400000028000000
