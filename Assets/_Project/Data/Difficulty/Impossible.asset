@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Impossible
   m_EditorClassIdentifier: Assembly-CSharp::DifficultyData
   _displayName: 불가능
-  _description: 이자 최대 2, 새로고침 2골드. 조합·시너지가 필요해요
+  _description: 목숨 5개, 이자 최대 2, 새로고침 2골드. 조합·시너지가 필요해요
   _floorCount: 100
   _lives: 5
   _enemyStatPerFloor: 0.012
