@@ -9,7 +9,7 @@ public class HudView : MonoBehaviour
     [SerializeField] private Text _roundText;
     [Tooltip("보스 층일 때만 보이는 표시")]
     [SerializeField] private GameObject _bossTag;
-    [Tooltip("목숨 최대치만큼 (왼쪽부터 채운다)")]
+    [Tooltip("가장 많은 목숨만큼 (왼쪽부터 채운다). 하트 영역 안에서 이번 판 최대 목숨 수로 나눠 놓는다")]
     [SerializeField] private Image[] _hearts;
     [SerializeField] private Sprite _heartSprite;
     [SerializeField] private Sprite _emptyHeartSprite;
@@ -29,10 +29,21 @@ public class HudView : MonoBehaviour
         _bossTag.SetActive(isBoss);
     }
 
-    public void SetLives(int lives)
+    // 하트 maxLives개를 하트 영역에 같은 너비로 나눠 놓는다 (많으면 작아짐), 남은 목숨은 꽉 찬 하트·잃은 목숨은 빈 하트
+    public void SetLives(int lives, int maxLives)
     {
+        int count = Mathf.Clamp(maxLives, 1, _hearts.Length);
         for (int i = 0; i < _hearts.Length; i++)
         {
+            bool shown = i < count;
+            _hearts[i].gameObject.SetActive(shown);
+            if (!shown)
+            {
+                continue;
+            }
+            RectTransform rect = _hearts[i].rectTransform;
+            rect.anchorMin = new Vector2((float)i / count, rect.anchorMin.y);
+            rect.anchorMax = new Vector2((float)(i + 1) / count, rect.anchorMax.y);
             _hearts[i].sprite = i < lives ? _heartSprite : _emptyHeartSprite;
         }
     }

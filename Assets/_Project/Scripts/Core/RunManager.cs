@@ -351,7 +351,7 @@ public class RunManager : MonoBehaviour
     private void UpdateHud()
     {
         _hud.SetFloor(_floor, _difficulty.FloorCount, IsBossFloor);
-        _hud.SetLives(_lives);
+        _hud.SetLives(_lives, _difficulty.Lives);
         _hud.SetStars(_runStars);
     }
 }

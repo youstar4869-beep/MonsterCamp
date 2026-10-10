@@ -1670,13 +1670,15 @@ public static class MainSceneBuilder
         {
             maxLives = Mathf.Max(maxLives, difficulty != null ? difficulty.Lives : 3);
         }
+        // 하트 영역: 보스 표시와 골드 아이콘 사이 고정 (하트 3개 너비). HudView.SetLives가 이번 판 최대 목숨 수로 나눠 놓는다
+        var heartArea = new GameObject("Hearts", typeof(RectTransform));
+        heartArea.transform.SetParent(hud.transform, false);
+        Stretch(heartArea.GetComponent<RectTransform>(), new Vector2(0.33f, 0f), new Vector2(0.534f, 1f));
         var hearts = new Image[maxLives];
-        const float heartsStart = 0.33f;
-        const float heartWidth = 0.068f;
         for (int i = 0; i < maxLives; i++)
         {
-            hearts[i] = CreateHudIcon(hud.transform, "Heart" + i, heartSprite,
-                heartsStart + heartWidth * i, heartsStart + heartWidth * (i + 1));
+            hearts[i] = CreateHudIcon(heartArea.transform, "Heart" + i, heartSprite,
+                (float)i / maxLives, (float)(i + 1) / maxLives);
         }
 
         CreateHudIcon(hud.transform, "GoldIcon", coinSprite, 0.54f, 0.61f);
