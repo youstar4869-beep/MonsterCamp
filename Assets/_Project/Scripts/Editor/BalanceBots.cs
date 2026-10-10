@@ -127,7 +127,7 @@ public static class BalanceBots
             }
         }
 
-        FuseAll(run);
+        FuseAll(run, false);
         // 아무 크리처나 아무 칸에
         run.CollectOwned(Owned);
         Shuffle(Owned, random);
@@ -167,7 +167,7 @@ public static class BalanceBots
         System.Array.Clear(Skipped, 0, Skipped.Length);
         for (int guard = 0; guard < 200; guard++)
         {
-            FuseAll(run);
+            FuseAll(run, run.HiddenUnlocked);
             Arrange(run, focus);
             int spendable = run.Gold - reserve;
 
@@ -264,7 +264,7 @@ public static class BalanceBots
                 break;
             }
         }
-        FuseAll(run);
+        FuseAll(run, run.HiddenUnlocked);
         Arrange(run, null);
     }
 
@@ -302,8 +302,9 @@ public static class BalanceBots
         return run.TrySell(false, weakest);
     }
 
-    // 조합 해금이면 만들 수 있는 조합은 바로 만든다 (조합 크리처가 재료 둘보다 강함)
-    private static void FuseAll(BalanceRun run)
+    // 조합 해금이면 만들 수 있는 조합은 바로 만든다 (조합 크리처가 재료 둘보다 강함).
+    // hidden이면 히든 조합도 (조합식 목록에서 일반 조합 뒤라 일반 조합이 먼저)
+    private static void FuseAll(BalanceRun run, bool hidden)
     {
         if (!run.FusionUnlocked)
         {
@@ -315,8 +316,7 @@ public static class BalanceBots
             made = false;
             foreach (FusionRecipe recipe in run.Config.FusionRecipes)
             {
-                // 히든 조합은 봇이 쓰지 않음
-                if (recipe != null && !recipe.Hidden && run.TryFuse(recipe))
+                if (recipe != null && (hidden || !recipe.Hidden) && run.TryFuse(recipe))
                 {
                     made = true;
                     break;
@@ -325,7 +325,7 @@ public static class BalanceBots
         }
     }
 
-    // 조합 해금이면 ★★ 이상 재료는 짝 재료를 가지고 있는 동안 팔지 않는다
+    // 조합 해금이면 ★★ 이상 재료는 짝 재료를 (히든은 히든 해금일 때만) 가지고 있는 동안 팔지 않는다
     private static bool IsFusionMaterial(BalanceRun run, CreatureInstance creature)
     {
         if (!run.FusionUnlocked || creature.Level < Fusion.MinLevel)
@@ -334,7 +334,7 @@ public static class BalanceBots
         }
         foreach (FusionRecipe recipe in run.Config.FusionRecipes)
         {
-            if (recipe == null || recipe.Hidden)
+            if (recipe == null || (recipe.Hidden && !run.HiddenUnlocked))
             {
                 continue;
             }

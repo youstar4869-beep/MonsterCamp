@@ -29,8 +29,12 @@ public class BalanceRun
     public int Round = 1;
     // 조합 해금 계정 (보통 클리어 후). 조합 규칙은 ShopScreen과 같은 Fusion을 그대로 부른다
     public bool FusionUnlocked;
-    // 통계용: 이번 판에 만든 조합 수
+    // 히든 조합 해금 계정 (어려움 클리어 후). 랜덤 봇은 쓰지 않는다
+    public bool HiddenUnlocked;
+    // 통계용: 이번 판에 만든 조합 수 (히든 포함) / 히든 조합 수 / 만든 히든 조합식
     public int FusionsMade;
+    public int HiddenMade;
+    public readonly HashSet<FusionRecipe> HiddenRecipesMade = new HashSet<FusionRecipe>();
 
     // 통계용: 이번 판에 상점에 나온 크리처 / 산 크리처 (마리 수)
     public readonly Dictionary<CreatureData, int> Offered = new Dictionary<CreatureData, int>();
@@ -202,6 +206,11 @@ public class BalanceRun
         Fusion.Make(recipe, plan, Team, Bench, Items, out _, out _, out int refund);
         Gold += refund;
         FusionsMade++;
+        if (recipe.Hidden)
+        {
+            HiddenMade++;
+            HiddenRecipesMade.Add(recipe);
+        }
         return true;
     }
 

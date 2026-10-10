@@ -44,6 +44,12 @@ public class BalanceSimulator
         // 조합을 한 번이라도 한 판 수 / 만든 조합 수 (조합 해금일 때)
         public int FusionGames;
         public int FusionsMade;
+        // 히든 조합을 한 번이라도 한 판 수 / 만든 히든 수 / 그 판들의 도달 층 합 (히든 해금일 때)
+        public int HiddenGames;
+        public int HiddenMade;
+        public long HiddenReachedSum;
+        // [히든 조합식] = {만든 판 수, 그 판들의 도달 층 합}
+        public readonly Dictionary<FusionRecipe, long[]> HiddenRecipes = new Dictionary<FusionRecipe, long[]>();
         // [조합 시너지] = {판 수, 클리어}. 시너지 봇이 조합 시너지를 노린 판
         public int[,] MixedGoals = new int[0, 2];
         // 앞쪽 몇 판의 라운드별 기록 (봇이 무엇을 사서 어떻게 졌는지 사람이 읽어 보는 용도)
@@ -85,6 +91,8 @@ public class BalanceSimulator
     private readonly System.Func<CreatureData, bool> _canAppear;
     // 조합 해금 계정 (보통 클리어 후)
     private readonly bool _fusionUnlocked;
+    // 히든 조합 해금 계정 (어려움 클리어 후, 조합 해금일 때만 의미 있음)
+    private readonly bool _hiddenUnlocked;
     private readonly CreatureData[] _creatures;
     private readonly float[,] _typeMultipliers;
     private readonly TypeChart _typeChart;
@@ -101,9 +109,12 @@ public class BalanceSimulator
     // lockedLikeNewAccount: true면 MetaConfig에서 잠긴 트레이너·크리처를 빼고 돌린다 (처음 시작한 계정)
     // difficulty: Data/Difficulty 안 에셋 이름 (Normal, Hard, Impossible)
     // fusionUnlocked: 봇이 조합을 쓴다 (보통 클리어 후 계정)
-    public BalanceSimulator(bool lockedLikeNewAccount = false, string difficulty = "Normal", bool fusionUnlocked = false)
+    // hiddenUnlocked: 랜덤 외 봇이 히든 조합도 쓴다 (어려움 클리어 후 계정)
+    public BalanceSimulator(bool lockedLikeNewAccount = false, string difficulty = "Normal", bool fusionUnlocked = false,
+        bool hiddenUnlocked = false)
     {
         _fusionUnlocked = fusionUnlocked;
+        _hiddenUnlocked = fusionUnlocked && hiddenUnlocked;
         _shop = Load<ShopConfig>("ShopConfig");
         _synergy = Load<SynergyConfig>("SynergyConfig");
         _runConfig = Load<RunConfig>("RunConfig");
@@ -220,7 +231,7 @@ public class BalanceSimulator
         // 상점 확률은 ShopConfig가 UnityEngine.Random을 쓰므로 판마다 시드를 정한다
         Random.InitState(gameSeed);
         var random = new System.Random(gameSeed);
-        var run = new BalanceRun(_shop, _difficulty, _canAppear) { FusionUnlocked = _fusionUnlocked };
+        var run = new BalanceRun(_shop, _difficulty, _canAppear) { FusionUnlocked = _fusionUnlocked, HiddenUnlocked = _hiddenUnlocked };
         CreatureType[] mixedTypes = mixedGoal >= 0 ? _synergy.Mixed.Get(mixedGoal).Types : null;
 
         int round = 1;
@@ -319,6 +330,18 @@ public class BalanceSimulator
         stats.ReachedSum += round;
         stats.FusionGames += run.FusionsMade > 0 ? 1 : 0;
         stats.FusionsMade += run.FusionsMade;
+        stats.HiddenGames += run.HiddenMade > 0 ? 1 : 0;
+        stats.HiddenMade += run.HiddenMade;
+        stats.HiddenReachedSum += run.HiddenMade > 0 ? round : 0;
+        foreach (FusionRecipe recipe in run.HiddenRecipesMade)
+        {
+            if (!stats.HiddenRecipes.TryGetValue(recipe, out long[] made))
+            {
+                stats.HiddenRecipes[recipe] = made = new long[2];
+            }
+            made[0]++;
+            made[1] += round;
+        }
         stats.Trainers[trainer][0]++;
         stats.Trainers[trainer][1] += cleared ? 1 : 0;
 
@@ -602,6 +625,19 @@ public class BalanceSimulator
                             $"  마지막 팀 시너지 1단계+ {Pct(Rate(stats.SynergyTier1Games, stats.Games))} · 2단계 {Pct(Rate(stats.SynergyTier2Games, stats.Games))}" +
                             (stats.Timeouts > 0 ? $"  시간 초과 전투 {stats.Timeouts}" : "") +
                             (_fusionUnlocked ? $"  조합한 판 {Pct(Rate(stats.FusionGames, stats.Games))} (판당 {(float)stats.FusionsMade / Mathf.Max(1, stats.Games):0.0}번)" : ""));
+            if (_hiddenUnlocked)
+            {
+                int without = stats.Games - stats.HiddenGames;
+                text.Append($"  히든 조합한 판 {Pct(Rate(stats.HiddenGames, stats.Games))} (판당 {(float)stats.HiddenMade / Mathf.Max(1, stats.Games):0.00}번)" +
+                            $"  평균 층 히든 만든 판 {(stats.HiddenGames > 0 ? (float)stats.HiddenReachedSum / stats.HiddenGames : 0f):0.0}" +
+                            $" / 안 만든 판 {(without > 0 ? (float)(stats.ReachedSum - stats.HiddenReachedSum) / without : 0f):0.0}");
+                text.Append("  히든별(만든 판, 평균 층):");
+                foreach (KeyValuePair<FusionRecipe, long[]> pair in stats.HiddenRecipes.OrderBy(p => p.Key.name))
+                {
+                    text.Append($" {pair.Key.Result.DisplayName} {pair.Value[0]}판 {(float)pair.Value[1] / pair.Value[0]:0.0}");
+                }
+                text.AppendLine();
+            }
             text.Append("  층 승률:");
             for (int round = 1; round < stats.RoundBattles.Length; round++)
             {
