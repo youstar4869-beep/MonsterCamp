@@ -10,10 +10,12 @@ public class DifficultyData : ScriptableObject
     [SerializeField] private string _description;
     [SerializeField, Min(1)] private int _floorCount = 30;
     [SerializeField, Min(1)] private int _lives = 3;
-    [Tooltip("층마다 적 체력·공격력 증가 (0.03 = 3%). 시작 층까지는 그대로, n층은 1 + 값 × (n - 시작 층)배")]
+    [Tooltip("층마다 적 체력·공격력 증가 (0.03 = 3%). 시작 층까지는 그대로, n층은 1 + 값 × (n - 시작 층)배, 멈춤 층부터는 그 층 값")]
     [SerializeField, Min(0f)] private float _enemyStatPerFloor = 0.03f;
     [Tooltip("층마다 증가의 시작 층 (1이면 1층부터)")]
     [SerializeField, Min(1)] private int _enemyStatFromFloor = 1;
+    [Tooltip("층마다 증가가 이 층에서 멈춤 (0이면 마지막 층까지)")]
+    [SerializeField, Min(0)] private int _enemyStatToFloor;
     [Tooltip("이 층마다 보스 (10이면 10, 20, 30...)")]
     [SerializeField, Min(1)] private int _bossEvery = 10;
     [Tooltip("보스 층에만 적 체력·공격력에 더 곱하는 배율 (1이면 그대로)")]
@@ -39,6 +41,8 @@ public class DifficultyData : ScriptableObject
     [SerializeField, Range(0f, 1f)] private float _levelChanceAtStart = 0.2f;
     [Tooltip("시작 층 뒤로 층마다 더하는 확률")]
     [SerializeField, Min(0f)] private float _levelChancePerFloor = 0.03f;
+    [Tooltip("확률 증가가 이 층에서 멈춤 (0이면 마지막 층까지)")]
+    [SerializeField, Min(0)] private int _levelChanceToFloor;
 
     [Header("적 조합 크리처 (11층부터 자동 생성 팀)")]
     [Tooltip("이 층부터 적 팀에 조합 크리처가 섞임. 0이면 없음")]
@@ -89,9 +93,9 @@ public class DifficultyData : ScriptableObject
         return new[] { _bossAbilities[(floor / _bossEvery - 1) % _bossAbilities.Length] };
     }
 
-    // 층마다 증가 × 보스 층 배율
+    // 층마다 증가(시작 층~멈춤 층) × 보스 층 배율
     public float GetEnemyStatMultiplier(int floor) =>
-        (1f + _enemyStatPerFloor * Mathf.Max(0, floor - _enemyStatFromFloor)) * (IsBossFloor(floor) ? _bossStatMultiplier : 1f);
+        (1f + _enemyStatPerFloor * Mathf.Max(0, (_enemyStatToFloor > 0 ? Mathf.Min(floor, _enemyStatToFloor) : floor) - _enemyStatFromFloor)) * (IsBossFloor(floor) ? _bossStatMultiplier : 1f);
 
     // 자동 생성 팀 한 마리가 ★★ / ★★★일 확률 (시작 층 전이면 0)
     public float GetStar2Chance(int floor) => GetLevelChance(_star2FromFloor, floor);
@@ -113,6 +117,7 @@ public class DifficultyData : ScriptableObject
         {
             return 0f;
         }
-        return Mathf.Min(1f, _levelChanceAtStart + _levelChancePerFloor * (floor - fromFloor));
+        int to = _levelChanceToFloor > 0 ? Mathf.Min(floor, _levelChanceToFloor) : floor;
+        return Mathf.Min(1f, _levelChanceAtStart + _levelChancePerFloor * Mathf.Max(0, to - fromFloor));
     }
 }

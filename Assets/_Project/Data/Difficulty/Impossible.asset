@@ -15,25 +15,27 @@ MonoBehaviour:
   _displayName: 불가능
   _description: 이자 최대 2, 새로고침 2골드. 조합·시너지가 필요해요
   _floorCount: 100
-  _lives: 3
-  _enemyStatPerFloor: 0.08
-  _enemyStatFromFloor: 1
+  _lives: 5
+  _enemyStatPerFloor: 0.012
+  _enemyStatFromFloor: 11
+  _enemyStatToFloor: 50
   _bossEvery: 10
-  _bossStatMultiplier: 1
+  _bossStatMultiplier: 0.58
   _bossLevelBonus: 1
   _enemyMixedSynergy: 1
   _maxInterest: 2
   _refreshCost: 2
   _clearStars: 40
   _requiredClear: {fileID: 11400000, guid: ec320aa392484a128287d13577724336, type: 2}
-  _star2FromFloor: 10
-  _star3FromFloor: 25
+  _star2FromFloor: 15
+  _star3FromFloor: 40
   _levelChanceAtStart: 0.2
-  _levelChancePerFloor: 0.03
-  _fusionFromFloor: 15
+  _levelChancePerFloor: 0.015
+  _levelChanceToFloor: 50
+  _fusionFromFloor: 20
   _fusionChanceAtStart: 0.1
-  _fusionChancePerFloor: 0.02
-  _fusionChanceMax: 0.6
+  _fusionChancePerFloor: 0.01
+  _fusionChanceMax: 0.3
   _bossAbilities:
   - {fileID: 11400000, guid: 51deb218408647ffb31d2b2126c7deb7, type: 2}
   - {fileID: 11400000, guid: 108c08cc504c4e5eac6b06bcd4c11466, type: 2}
