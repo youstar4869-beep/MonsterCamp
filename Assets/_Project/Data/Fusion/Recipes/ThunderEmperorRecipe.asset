@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5785a52f1643413ea784240d22a6a93d, type: 3}
+  m_Name: ThunderEmperorRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::FusionRecipe
+  _materialA: {fileID: 11400000, guid: 6f446266bd8159e4290e257bb8c0935c, type: 2}
+  _materialB: {fileID: 11400000, guid: 2a069cca773d5e146ae15aeddd84e28c, type: 2}
+  _result: {fileID: 11400000, guid: 0e266ac978dd0244f8f4a39271d5397f, type: 2}
+  _grade: 3
+  _hidden: 1

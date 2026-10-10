@@ -245,12 +245,13 @@ public class BattleSimulation
             while (unit.BurnTickTimer <= 0f && unit.IsAlive)
             {
                 unit.BurnTickTimer += BurnTickInterval;
-                TakeDamage(unit, Math.Max(1, BattleSimUnit.Round(unit.BurnDamage)), null, DamageKind.Burn);
+                TakeDamage(unit, Math.Max(1, BattleSimUnit.Round(unit.BurnDamage)), unit.BurnSource, DamageKind.Burn);
             }
             if (unit.BurnTimer <= 0f)
             {
                 unit.BurnTimer = 0f;
                 unit.BurnDamage = 0f;
+                unit.BurnSource = null;
             }
         }
     }
@@ -443,7 +444,7 @@ public class BattleSimulation
         // 반사(가시 갑옷, 수정고슴도치): 받은 피해의 일부를 공격자에게. 반사 피해는 다시 반사되지 않는다
         if (dealt > 0 && target.ThornsPercent > 0f && attacker.IsAlive)
         {
-            if (target.HasSkill(SkillType.Thorns))
+            if (target.HasSkill(SkillType.Thorns) || target.HasSkill(SkillType.DamageReductionThorns))
             {
                 RaiseSkill(attacker, target, "반사");
             }
@@ -480,16 +481,35 @@ public class BattleSimulation
                 }
                 break;
             case SkillType.OnHitBurn:
-                if (target.IsAlive)
+                ApplyBurn(attacker, target, skill);
+                break;
+            case SkillType.OnHitBurnAll:
+                // 피해 중에 목록이 바뀌지 않으므로 그대로 돈다 (화상은 다음 틱부터 피해)
+                foreach (BattleSimUnit defender in defenders)
                 {
-                    bool wasBurning = target.BurnTimer > 0f;
-                    target.BurnDamage = Math.Max(target.BurnDamage, attacker.Attack * skill.Value1);
-                    target.BurnTimer = skill.Value2;
-                    if (!wasBurning)
+                    ApplyBurn(attacker, defender, skill);
+                }
+                break;
+            case SkillType.OnHitChanceStun:
+                if (target.IsAlive && Roll(skill.Chance))
+                {
+                    target.StunTimer = Math.Max(target.StunTimer, skill.Value2);
+                    RaiseSkill(target, attacker, "기절");
+                }
+                break;
+            case SkillType.OnHitSplashAll:
+                _skillTargets.Clear();
+                foreach (BattleSimUnit defender in defenders)
+                {
+                    if (defender != target && defender.IsAlive)
                     {
-                        target.BurnTickTimer = BurnTickInterval;
+                        _skillTargets.Add(defender);
                     }
-                    RaiseSkill(target, attacker, wasBurning ? null : "화상");
+                }
+                for (int i = 0; i < _skillTargets.Count; i++)
+                {
+                    RaiseSkill(_skillTargets[i], attacker, "연쇄");
+                    DealSkillDamage(attacker, _skillTargets[i], skill.Value1);
                 }
                 break;
             case SkillType.OnHitChanceWeaken:
@@ -511,6 +531,28 @@ public class BattleSimulation
                 }
                 break;
         }
+    }
+
+    // 화상 (화산곰, 홍염제왕): 1초마다 공격력 ×Value1, Value2초 (다시 걸면 시간만 새로, 피해는 센 쪽)
+    private void ApplyBurn(BattleSimUnit attacker, BattleSimUnit target, SkillSlot skill)
+    {
+        if (!target.IsAlive)
+        {
+            return;
+        }
+        bool wasBurning = target.BurnTimer > 0f;
+        float damage = attacker.Attack * skill.Value1;
+        if (damage >= target.BurnDamage)
+        {
+            target.BurnSource = attacker.HasSkill(SkillType.OnKillAttackUp) ? attacker : null;
+        }
+        target.BurnDamage = Math.Max(target.BurnDamage, damage);
+        target.BurnTimer = skill.Value2;
+        if (!wasBurning)
+        {
+            target.BurnTickTimer = BurnTickInterval;
+        }
+        RaiseSkill(target, attacker, wasBurning ? null : "화상");
     }
 
     private void ApplyNthAttackSkill(BattleSimUnit attacker, SkillSlot skill, List<BattleSimUnit> allies,
@@ -543,6 +585,16 @@ public class BattleSimulation
                 RaiseSkill(attacker, attacker, "해일");
                 DamageAll(attacker, defenders, skill.Value1);
                 HealAll(allies, skill.Value2);
+                break;
+            case SkillType.EveryNthAttackSlowAll:
+                foreach (BattleSimUnit defender in defenders)
+                {
+                    if (defender.IsAlive)
+                    {
+                        ApplySlow(defender, skill.Value1, skill.Value2);
+                    }
+                }
+                RaiseSkill(attacker, attacker, "둔화 파동");
                 break;
         }
     }
@@ -601,7 +653,8 @@ public class BattleSimulation
 
         int reduced = Math.Max(1, BattleSimUnit.Round(damage * (1f - target.DamageReduction)));
         if (target.DamageReduction > 0f && (target.HasSkill(SkillType.DamageReduction)
-                                            || target.HasSkill(SkillType.DamageReductionDeathStun)))
+                                            || target.HasSkill(SkillType.DamageReductionDeathStun)
+                                            || target.HasSkill(SkillType.DamageReductionThorns)))
         {
             RaiseSkill(target, target, null);
         }
@@ -679,11 +732,26 @@ public class BattleSimulation
             return;
         }
 
+        List<BattleSimUnit> allies = unit.IsPlayer ? _players : _enemies;
+        List<BattleSimUnit> opponents = unit.IsPlayer ? _enemies : _players;
+
+        // 녹림여제: 살아 있는 동안 쓰러진 다른 아군 1마리를 부활 (전투당 1번)
+        foreach (BattleSimUnit ally in allies)
+        {
+            if (ally != unit && ally.IsAlive && !ally.AllyReviveUsed && ally.HasSkill(SkillType.ReviveAlly))
+            {
+                ally.AllyReviveUsed = true;
+                unit.Health = Math.Max(1, BattleSimUnit.Round(unit.MaxHealth * ally.GetSkill(SkillType.ReviveAlly).Value1));
+                ClearStatus(unit);
+                Raise(BattleEventType.Revive, unit, ally, unit.Health, null);
+                RaiseSkill(unit, ally, "부활");
+                return;
+            }
+        }
+
         ClearStatus(unit);
         Raise(BattleEventType.Death, unit, killer, 0, null);
 
-        List<BattleSimUnit> allies = unit.IsPlayer ? _players : _enemies;
-        List<BattleSimUnit> opponents = unit.IsPlayer ? _enemies : _players;
         foreach (SkillSlot skill in unit.Skills)
         {
             switch (skill.Type)
@@ -711,6 +779,12 @@ public class BattleSimulation
         {
             killer.KillStacks++;
             RaiseSkill(killer, killer, "가속");
+        }
+        // 홍염제왕: 적을 쓰러뜨리면 공격력 누적 증가
+        if (killer != null && killer.IsAlive && killer.HasSkill(SkillType.OnKillAttackUp) && killer.IsPlayer != unit.IsPlayer)
+        {
+            killer.KillAttackStacks++;
+            RaiseSkill(killer, killer, "공격력 증가");
         }
     }
 
@@ -773,6 +847,7 @@ public class BattleSimulation
         unit.RootTimer = 0f;
         unit.BurnTimer = 0f;
         unit.BurnDamage = 0f;
+        unit.BurnSource = null;
         unit.SlowAmount = 0f;
         unit.SlowTimer = 0f;
         unit.WeakenAmount = 0f;

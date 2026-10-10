@@ -24,6 +24,8 @@ public class MetaSaveData
     // 재료 두 마리가 ★★ 이상으로 처음 모인 조합식 / 한 번이라도 만든 조합식 (FusionRecipe 에셋 이름, 도감에서 씀)
     public List<string> discoveredRecipes = new List<string>();
     public List<string> madeRecipes = new List<string>();
+    // 히든 조합: 어려움을 클리어하면 열림 (예전 저장은 false)
+    public bool hiddenFusionUnlocked;
 }
 
 // run.json: 진행 중인 판 (상점 단계 상태)

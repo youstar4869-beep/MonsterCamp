@@ -391,7 +391,7 @@ public class ShopScreen : MonoBehaviour
         {
             return;
         }
-        Fusion.CollectAvailable(_config.FusionRecipes, _team, _bench, _fusionOptions);
+        Fusion.CollectAvailable(_config.FusionRecipes, _meta.HiddenFusionUnlocked, _team, _bench, _fusionOptions);
         if (_fusionOptions.Count == 0)
         {
             return;
@@ -463,11 +463,12 @@ public class ShopScreen : MonoBehaviour
             return;
         }
 
-        Fusion.CollectAvailable(_config.FusionRecipes, _team, _bench, _fusionOptions);
+        Fusion.CollectAvailable(_config.FusionRecipes, _meta.HiddenFusionUnlocked, _team, _bench, _fusionOptions);
         _fusionButton.interactable = _fusionOptions.Count > 0;
         _fusionLabel.text = _fusionOptions.Count > 0 ? $"조합 {_fusionOptions.Count}" : "조합";
 
         _synergyBuilder.Clear();
+        bool hiddenFound = false;
         foreach (FusionRecipe recipe in _fusionOptions)
         {
             if (_meta.IsDiscovered(recipe))
@@ -475,13 +476,14 @@ public class ShopScreen : MonoBehaviour
                 continue;
             }
             _meta.SetDiscovered(recipe);
+            hiddenFound |= recipe.Hidden;
             _synergyBuilder.Append(_synergyBuilder.Length > 0 ? "\n" : "")
                 .Append(recipe.MaterialA.DisplayName).Append(" + ").Append(recipe.MaterialB.DisplayName)
                 .Append(" → ").Append(recipe.Result.DisplayName);
         }
         if (_synergyBuilder.Length > 0)
         {
-            _tip.Show("새 조합식 발견!", _synergyBuilder + "\n\"조합\" 버튼으로 만들 수 있어요");
+            _tip.Show(hiddenFound ? "히든 조합 발견!" : "새 조합식 발견!", _synergyBuilder + "\n\"조합\" 버튼으로 만들 수 있어요");
         }
     }
 

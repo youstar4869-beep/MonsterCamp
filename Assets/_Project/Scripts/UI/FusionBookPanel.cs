@@ -9,6 +9,8 @@ public class FusionBookPanel : MonoBehaviour
     [SerializeField] private FusionRecipe[] _recipes;
     [SerializeField] private FusionRecipeRowView[] _rows;
     [SerializeField] private Text _countText;
+    [Tooltip("목록 맨 아래 \"히든 n/5\" (히든 해금 전엔 숨김)")]
+    [SerializeField] private Text _hiddenCountText;
     [SerializeField] private ScrollRect _scroll;
 
     private int[] _highlights;
@@ -17,15 +19,7 @@ public class FusionBookPanel : MonoBehaviour
     public void Show(MetaProgress meta, Func<FusionRecipe, int> getHighlight)
     {
         _highlights ??= new int[_recipes.Length];
-        int discovered = 0;
-        for (int i = 0; i < _recipes.Length; i++)
-        {
-            bool known = FusionRecipeRowView.IsKnown(meta, _recipes[i]);
-            _highlights[i] = known ? getHighlight(_recipes[i]) : 0;
-            discovered += known ? 1 : 0;
-            _rows[i].Show(_recipes[i], known, _highlights[i]);
-        }
-        _countText.text = $"발견 {discovered}/{_recipes.Length}";
+        FusionRecipeRowView.ShowAll(meta, _recipes, _rows, getHighlight, _highlights, _countText, _hiddenCountText);
 
         int order = 0;
         for (int level = 2; level >= 0; level--)
@@ -38,6 +32,7 @@ public class FusionBookPanel : MonoBehaviour
                 }
             }
         }
+        _hiddenCountText.transform.SetAsLastSibling();
 
         _scroll.verticalNormalizedPosition = 1f;
         gameObject.SetActive(true);

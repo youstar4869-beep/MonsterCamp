@@ -1053,6 +1053,7 @@ public static class MainSceneBuilder
         recipeCountText.color = _theme.Gold;
         Transform recipeContent = CreateVerticalScroll(recipeTab, "RecipeScroll", new Vector2(0.03f, 0.135f), new Vector2(0.97f, 0.85f));
         FusionRecipeRowView[] recipeRows = CreateFusionRecipeRows(recipeContent, recipes.Length);
+        Text hiddenCountText = CreateHiddenCountText(recipeContent);
         recipeTab.gameObject.SetActive(false);
 
         Text trainerLabel = CreateText(creatureTab, "TrainerLabel", "트레이너", _theme.SmallSize, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
@@ -1106,6 +1107,7 @@ public static class MainSceneBuilder
         SetArray(so.FindProperty("_recipes"), recipes);
         SetArray(so.FindProperty("_recipeRows"), recipeRows);
         so.FindProperty("_recipeCountText").objectReferenceValue = recipeCountText;
+        so.FindProperty("_hiddenCountText").objectReferenceValue = hiddenCountText;
         so.FindProperty("_starsText").objectReferenceValue = starsText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -1131,7 +1133,16 @@ public static class MainSceneBuilder
         return go.transform;
     }
 
-    // 조합식 전부, 등급순(하급→중급→교차→상급), 같은 등급은 이름순
+    // 조합식 목록 맨 아래 "히든 n/5" 줄
+    private static Text CreateHiddenCountText(Transform content)
+    {
+        Text text = CreateText(content, "HiddenCount", "", _theme.BodySize, Vector2.zero, Vector2.one);
+        text.color = _theme.Accent;
+        text.gameObject.AddComponent<LayoutElement>().preferredHeight = 120f;
+        return text;
+    }
+
+    // 조합식 전부, 등급순(하급→중급→교차→상급→히든), 같은 등급은 이름순
     private static FusionRecipe[] GetSortedRecipes()
     {
         string[] guids = AssetDatabase.FindAssets("t:FusionRecipe");
@@ -1141,7 +1152,8 @@ public static class MainSceneBuilder
             recipes[i] = AssetDatabase.LoadAssetAtPath<FusionRecipe>(AssetDatabase.GUIDToAssetPath(guids[i]));
         }
         recipes = System.Array.FindAll(recipes, r => r != null);
-        System.Array.Sort(recipes, (a, b) => a.Grade != b.Grade ? a.Grade.CompareTo(b.Grade) : string.CompareOrdinal(a.name, b.name));
+        System.Array.Sort(recipes, (a, b) => a.Hidden != b.Hidden ? a.Hidden.CompareTo(b.Hidden)
+            : a.Grade != b.Grade ? a.Grade.CompareTo(b.Grade) : string.CompareOrdinal(a.name, b.name));
         return recipes;
     }
 
@@ -1217,12 +1229,14 @@ public static class MainSceneBuilder
         Transform content = CreateVerticalScroll(window, "RecipeScroll", new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.91f));
         FusionRecipe[] recipes = GetSortedRecipes();
         FusionRecipeRowView[] rows = CreateFusionRecipeRows(content, recipes.Length);
+        Text hiddenCountText = CreateHiddenCountText(content);
 
         var panel = root.gameObject.AddComponent<FusionBookPanel>();
         var so = new SerializedObject(panel);
         SetArray(so.FindProperty("_recipes"), recipes);
         SetArray(so.FindProperty("_rows"), rows);
         so.FindProperty("_countText").objectReferenceValue = countText;
+        so.FindProperty("_hiddenCountText").objectReferenceValue = hiddenCountText;
         so.FindProperty("_scroll").objectReferenceValue = content.parent.GetComponent<ScrollRect>();
         so.ApplyModifiedPropertiesWithoutUndo();
 

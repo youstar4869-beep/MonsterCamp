@@ -88,4 +88,20 @@ public enum SkillType
     // ---- 조합 크리처용 (에셋 번호가 바뀌지 않게 맨 뒤에 추가) ----
     // 전투 시작 시 자신에게 최대 체력 ×Value1 보호막
     BattleStartSelfShield,
+
+    // ---- 히든 조합 크리처용 (맨 뒤에 추가) ----
+    // 공격할 때 적 전체에 Value2초 화상: 1초마다 공격력 ×Value1 피해 (OnHitBurn과 같은 화상)
+    OnHitBurnAll,
+    // 적을 쓰러뜨릴 때마다 공격력 +Value1 (누적, 자기 화상으로 쓰러뜨려도 셈)
+    OnKillAttackUp,
+    // Every번째 공격마다 적 전체 공격 속도 Value1 감소, Value2초 (중첩 없음, 센 쪽)
+    EveryNthAttackSlowAll,
+    // 다른 아군이 쓰러지면 최대 체력 ×Value1로 부활시킴 (전투당 1번, 자신이 살아 있을 때)
+    ReviveAlly,
+    // 공격할 때 대상 말고 다른 적 전체에 공격력 ×Value1 피해 (튀는 피해)
+    OnHitSplashAll,
+    // 공격 시 Chance 확률로 대상을 Value2초 기절
+    OnHitChanceStun,
+    // 받는 피해 Value1 감소 + 받은 공격 피해의 Value2만큼 공격자에게 반사
+    DamageReductionThorns,
 }

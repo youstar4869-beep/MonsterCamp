@@ -2,14 +2,17 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-// 메뉴 MonsterCamp > 조합 데이터 만들기 로 조합 크리처 17종 + 조합식 17개 에셋을 Data/Fusion 아래에 만든다.
-// 값은 GAME_DESIGN.md v0.2 "2. 조합식 17종" (★ 기준, 레벨 배율은 기존 크리처와 같음).
-// 그림은 TODO 25 전까지 재료 A의 Lv1~3 그림을 임시로 쓴다. 이미 있는 에셋은 덮어쓰지 않는다 (조정한 값 보호)
+// 메뉴 MonsterCamp > 조합 데이터 만들기 로 조합 크리처 17종 + 히든 5종과 조합식 22개 에셋을 Data/Fusion 아래에 만들고,
+// ShopConfig 조합식 목록에 없는 조합식을 뒤에 붙인다.
+// 값은 GAME_DESIGN.md v0.2 "2. 조합식 17종"·"히든 조합" (★ 기준, 레벨 배율은 기존 크리처와 같음).
+// 그림은 TODO 25 전까지 재료 A의 Lv1~3 그림을 임시로 쓴다 (히든은 재료 A 기본 그림만, 레벨별 칸은 비워 둠).
+// 이미 있는 에셋은 덮어쓰지 않는다 (조정한 값 보호)
 public static class FusionDataBuilder
 {
     private const string CreatureFolder = "Assets/_Project/Data/Creatures";
     private const string FusionCreatureFolder = "Assets/_Project/Data/Fusion/Creatures";
     private const string RecipeFolder = "Assets/_Project/Data/Fusion/Recipes";
+    private const string ShopConfigPath = "Assets/_Project/Data/ShopConfig.asset";
 
     private struct Skill
     {
@@ -45,6 +48,8 @@ public static class FusionDataBuilder
         public string Description;
         public Skill Skill1;
         public Skill Skill2;
+        // 히든 조합 (재료가 조합 크리처, 세기 1골드의 8배)
+        public bool Hidden;
     }
 
     private static Skill S(SkillType type, float every = 0f, float chance = 0f, float value1 = 0f, float value2 = 0f)
@@ -133,6 +138,29 @@ public static class FusionDataBuilder
             Type = CreatureType.Rock, Health = 840, Attack = 48, Speed = 0.75f,
             Description = "받는 피해 40% 감소, 전투 시작 시 아군 전체 최대 체력 15% 보호막, 쓰러지면 적 전체 2초 기절",
             Skill1 = S(SkillType.DamageReductionDeathStun, value1: 0.4f, value2: 2f), Skill2 = S(SkillType.BattleStartTeamShield, value1: 0.15f) },
+
+        // ---- 히든 (재료 = 조합 크리처, 세기 8배: 1골드 체력 100·공격 10에 첫 타입 보정) ----
+        new Seed { Grade = FusionGrade.Upper, Hidden = true, MaterialA = "SolarWolf", MaterialB = "VolcanoRhino", Id = "CrimsonEmperor", Name = "홍염제왕",
+            Type = CreatureType.Fire, SecondType = CreatureType.Rock, Health = 720, Attack = 96, Speed = 1f,
+            Description = "공격할 때 적 전체에 3초 화상 (1초마다 공격력 25%), 적을 쓰러뜨릴 때마다 공격력 +20% (누적)",
+            Skill1 = S(SkillType.OnHitBurnAll, value1: 0.25f, value2: 3f), Skill2 = S(SkillType.OnKillAttackUp, value1: 0.2f) },
+        new Seed { Grade = FusionGrade.Upper, Hidden = true, MaterialA = "AbyssKraken", MaterialB = "TempestWhale", Id = "OceanDragon", Name = "창해신룡",
+            Type = CreatureType.Water, SecondType = CreatureType.Electric, Health = 800, Attack = 80, Speed = 1f,
+            Description = "3번째 공격마다 적 전체에 공격력 80% 피해 + 공격 속도 25% 감소 (3초), 아군 전체 12% 회복",
+            Skill1 = S(SkillType.EveryNthAttackHitAllHealTeam, every: 3f, value1: 0.8f, value2: 0.12f),
+            Skill2 = S(SkillType.EveryNthAttackSlowAll, every: 3f, value1: 0.25f, value2: 3f) },
+        new Seed { Grade = FusionGrade.Upper, Hidden = true, MaterialA = "WorldTree", MaterialB = "BloomVineFox", Id = "ForestEmpress", Name = "녹림여제",
+            Type = CreatureType.Grass, Health = 960, Attack = 72, Speed = 1f,
+            Description = "아군 전체 최대 체력 +40%, 쓰러진 아군 1마리를 체력 30%로 부활 (전투당 1번)",
+            Skill1 = S(SkillType.BattleStartTeamMaxHealth, value1: 0.4f), Skill2 = S(SkillType.ReviveAlly, value1: 0.3f) },
+        new Seed { Grade = FusionGrade.Upper, Hidden = true, MaterialA = "HeavenQilin", MaterialB = "StormWeasel", Id = "ThunderEmperor", Name = "뇌제",
+            Type = CreatureType.Electric, Health = 680, Attack = 72, Speed = 1.3f,
+            Description = "공격할 때 다른 적 전체에 공격력 50% 피해가 튀고, 20% 확률로 대상 1초 기절",
+            Skill1 = S(SkillType.OnHitSplashAll, value1: 0.5f), Skill2 = S(SkillType.OnHitChanceStun, chance: 0.2f, value2: 1f) },
+        new Seed { Grade = FusionGrade.Upper, Hidden = true, MaterialA = "EarthTitan", MaterialB = "CrystalArmor", Id = "CrystalTitanKing", Name = "수정거신왕",
+            Type = CreatureType.Rock, Health = 1120, Attack = 64, Speed = 0.75f,
+            Description = "받는 피해 50% 감소, 받은 공격 피해 30% 반사, 전투 시작 시 아군 전체 최대 체력 20% 보호막",
+            Skill1 = S(SkillType.DamageReductionThorns, value1: 0.5f, value2: 0.3f), Skill2 = S(SkillType.BattleStartTeamShield, value1: 0.2f) },
     };
 
     [MenuItem("MonsterCamp/조합 데이터 만들기")]
@@ -141,6 +169,7 @@ public static class FusionDataBuilder
         Directory.CreateDirectory(FusionCreatureFolder);
         Directory.CreateDirectory(RecipeFolder);
         int created = 0;
+        var recipes = new System.Collections.Generic.List<FusionRecipe>();
         foreach (Seed seed in Seeds)
         {
             CreatureData materialA = LoadMaterial(seed.MaterialA);
@@ -161,29 +190,65 @@ public static class FusionDataBuilder
             }
 
             string recipePath = $"{RecipeFolder}/{seed.Id}Recipe.asset";
-            if (AssetDatabase.LoadAssetAtPath<FusionRecipe>(recipePath) == null)
+            var recipe = AssetDatabase.LoadAssetAtPath<FusionRecipe>(recipePath);
+            if (recipe == null)
             {
-                var recipe = ScriptableObject.CreateInstance<FusionRecipe>();
+                recipe = ScriptableObject.CreateInstance<FusionRecipe>();
                 AssetDatabase.CreateAsset(recipe, recipePath);
                 var so = new SerializedObject(recipe);
                 so.FindProperty("_materialA").objectReferenceValue = materialA;
                 so.FindProperty("_materialB").objectReferenceValue = materialB;
                 so.FindProperty("_result").objectReferenceValue = result;
                 so.FindProperty("_grade").enumValueIndex = (int)seed.Grade;
+                so.FindProperty("_hidden").boolValue = seed.Hidden;
                 so.ApplyModifiedPropertiesWithoutUndo();
                 created++;
             }
+            recipes.Add(recipe);
         }
+        int added = AddToShopConfig(recipes);
         AssetDatabase.SaveAssets();
-        Debug.Log($"[조합 데이터] 새로 만든 에셋 {created}개 ({FusionCreatureFolder}, {RecipeFolder})");
+        Debug.Log($"[조합 데이터] 새로 만든 에셋 {created}개 ({FusionCreatureFolder}, {RecipeFolder}), ShopConfig에 조합식 {added}개 추가");
     }
 
+    // ShopConfig 조합식 목록에 없는 조합식을 뒤에 붙인다 (앞 순서는 그대로: 적·봇 난수가 바뀌지 않게)
+    private static int AddToShopConfig(System.Collections.Generic.List<FusionRecipe> recipes)
+    {
+        var shop = AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath);
+        if (shop == null)
+        {
+            Debug.LogError($"[조합 데이터] ShopConfig가 없습니다: {ShopConfigPath}");
+            return 0;
+        }
+        var so = new SerializedObject(shop);
+        SerializedProperty list = so.FindProperty("_fusionRecipes");
+        int added = 0;
+        foreach (FusionRecipe recipe in recipes)
+        {
+            bool found = false;
+            for (int i = 0; i < list.arraySize && !found; i++)
+            {
+                found = list.GetArrayElementAtIndex(i).objectReferenceValue == recipe;
+            }
+            if (!found)
+            {
+                list.arraySize++;
+                list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = recipe;
+                added++;
+            }
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return added;
+    }
+
+    // 재료: 상점 크리처, 없으면 조합 크리처 (히든 조합의 재료)
     private static CreatureData LoadMaterial(string id)
     {
-        var creature = AssetDatabase.LoadAssetAtPath<CreatureData>($"{CreatureFolder}/{id}.asset");
+        var creature = AssetDatabase.LoadAssetAtPath<CreatureData>($"{CreatureFolder}/{id}.asset")
+                       ?? AssetDatabase.LoadAssetAtPath<CreatureData>($"{FusionCreatureFolder}/{id}.asset");
         if (creature == null)
         {
-            Debug.LogError($"[조합 데이터] 재료 크리처가 없습니다: {CreatureFolder}/{id}.asset");
+            Debug.LogError($"[조합 데이터] 재료 크리처가 없습니다: {id} ({CreatureFolder}, {FusionCreatureFolder})");
         }
         return creature;
     }
@@ -199,6 +264,7 @@ public static class FusionDataBuilder
         so.FindProperty("_secondType").enumValueIndex = (int)(seed.SecondType ?? seed.Type);
         so.FindProperty("_synergyCount").intValue = seed.Grade == FusionGrade.Upper ? 2 : 1;
         so.FindProperty("_fusionOnly").boolValue = true;
+        so.FindProperty("_hidden").boolValue = seed.Hidden;
         so.FindProperty("_maxHealth").intValue = seed.Health;
         so.FindProperty("_attack").intValue = seed.Attack;
         so.FindProperty("_attackSpeed").floatValue = seed.Speed;
@@ -206,7 +272,7 @@ public static class FusionDataBuilder
         WriteSkill(so, "_skill", seed.Skill1);
         WriteSkill(so, "_skill2", seed.Skill2);
 
-        // 임시 그림: 재료 A의 그림 (TODO 25에서 교체)
+        // 임시 그림: 재료 A의 그림 (TODO 25에서 교체). 히든은 기본 그림만, 레벨별 칸은 비워 둔다 (다음 단계에서 채움)
         var source = new SerializedObject(materialA);
         so.FindProperty("_sprite").objectReferenceValue = source.FindProperty("_sprite").objectReferenceValue;
         SerializedProperty sprites = so.FindProperty("_levelSprites");
@@ -215,7 +281,7 @@ public static class FusionDataBuilder
         for (int i = 0; i < CreatureData.MaxLevel; i++)
         {
             sprites.GetArrayElementAtIndex(i).objectReferenceValue =
-                i < sourceSprites.arraySize ? sourceSprites.GetArrayElementAtIndex(i).objectReferenceValue : null;
+                !seed.Hidden && i < sourceSprites.arraySize ? sourceSprites.GetArrayElementAtIndex(i).objectReferenceValue : null;
         }
         so.ApplyModifiedPropertiesWithoutUndo();
     }

@@ -265,7 +265,8 @@ public static class EnemyTeamGenerator
             foreach (FusionRecipe recipe in recipes)
             {
                 CreatureData result = recipe != null ? recipe.Result : null;
-                if (result != null && (int)recipe.Grade == grade && !Picked.Contains(result)
+                // 히든 조합 크리처는 적이 쓰지 않음
+                if (result != null && !recipe.Hidden && (int)recipe.Grade == grade && !Picked.Contains(result)
                     && (result.Type == original.Type || (result.HasSecondType && result.SecondType == original.Type)))
                 {
                     Candidates.Add(result);

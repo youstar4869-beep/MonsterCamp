@@ -17,11 +17,6 @@ MonoBehaviour:
   _maxGold: 50
   _tierPrices: 0100000002000000030000000400000005000000
   _levelSellMultipliers: 010000000300000009000000
-  _lateFromFloor: 11
-  _lateTier4PerFloor: 0.5
-  _lateTier5PerFloor: 0.5
-  _lateTier4Max: 30
-  _lateTier5Max: 20
   _tierOdds:
   - FromRound: 1
     Percents: 4b00000019000000000000000000000000000000
@@ -33,6 +28,11 @@ MonoBehaviour:
     Percents: 140000001e0000001e0000000f00000005000000
   - FromRound: 9
     Percents: 0f000000190000001e000000140000000a000000
+  _lateFromFloor: 11
+  _lateTier4PerFloor: 0.5
+  _lateTier5PerFloor: 0.5
+  _lateTier4Max: 30
+  _lateTier5Max: 20
   _creaturePool:
   - {fileID: 11400000, guid: 32076891a449935468bd3f1d20b8b7ce, type: 2}
   - {fileID: 11400000, guid: 653aed62d59316f40a4c921ae6540631, type: 2}
@@ -94,3 +94,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e2046b32daa1a784d9a50c07d1e0434c, type: 2}
   - {fileID: 11400000, guid: abf7c94cf3e1069409f8edcb3348c49c, type: 2}
   - {fileID: 11400000, guid: fd0d5cfd8a7274043b0dd8fccab9e070, type: 2}
+  - {fileID: 11400000, guid: d71d53d64de226b4c9090218662ab0b9, type: 2}
+  - {fileID: 11400000, guid: 8a8542523c2af7b4097804a009922cb9, type: 2}
+  - {fileID: 11400000, guid: d2454d3c243ce8f4bb10f2bcbfbe8476, type: 2}
+  - {fileID: 11400000, guid: a1281be35af9987458144dc73073deee, type: 2}
+  - {fileID: 11400000, guid: d4cb3f37e697e5e4eade4abcfec3b7c8, type: 2}

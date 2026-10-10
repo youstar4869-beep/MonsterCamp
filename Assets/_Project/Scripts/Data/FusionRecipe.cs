@@ -13,7 +13,7 @@ public enum FusionGrade
     Upper
 }
 
-// 조합식 하나: 재료 A + 재료 B → 결과 (조합 버튼·발견·해금은 TODO 24 2단계)
+// 조합식 하나: 재료 A + 재료 B → 결과. 히든 조합은 등급 칸을 상급으로 두고 _hidden으로 구분
 [CreateAssetMenu(fileName = "FusionRecipe", menuName = "MonsterCamp/Fusion Recipe")]
 public class FusionRecipe : ScriptableObject
 {
@@ -21,11 +21,16 @@ public class FusionRecipe : ScriptableObject
     [SerializeField] private CreatureData _materialB;
     [SerializeField] private CreatureData _result;
     [SerializeField] private FusionGrade _grade;
+    [Tooltip("히든 조합: 재료가 조합 크리처 2마리, 어려움 클리어 후 해금. 해금 전엔 만들 수도, 발견할 수도 없음")]
+    [SerializeField] private bool _hidden;
 
     public CreatureData MaterialA => _materialA;
     public CreatureData MaterialB => _materialB;
     public CreatureData Result => _result;
     public FusionGrade Grade => _grade;
+    public bool Hidden => _hidden;
+
+    public string GradeName => _hidden ? "히든" : GetGradeName(_grade);
 
     public static string GetGradeName(FusionGrade grade)
     {

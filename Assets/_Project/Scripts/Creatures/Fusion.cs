@@ -72,8 +72,8 @@ public static class Fusion
         return result;
     }
 
-    // 지금 만들 수 있는 조합식을 result에 (조합식 목록 순서)
-    public static void CollectAvailable(IReadOnlyList<FusionRecipe> recipes, CreatureInstance[] team,
+    // 지금 만들 수 있는 조합식을 result에 (조합식 목록 순서). 히든 조합은 hiddenUnlocked일 때만
+    public static void CollectAvailable(IReadOnlyList<FusionRecipe> recipes, bool hiddenUnlocked, CreatureInstance[] team,
         CreatureInstance[] bench, List<FusionRecipe> result)
     {
         result.Clear();
@@ -83,7 +83,7 @@ public static class Fusion
         }
         foreach (FusionRecipe recipe in recipes)
         {
-            if (recipe != null && TryPlan(recipe, team, bench, out _))
+            if (recipe != null && (hiddenUnlocked || !recipe.Hidden) && TryPlan(recipe, team, bench, out _))
             {
                 result.Add(recipe);
             }

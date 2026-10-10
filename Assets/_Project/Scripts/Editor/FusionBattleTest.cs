@@ -6,6 +6,7 @@ using UnityEngine;
 
 // 메뉴 MonsterCamp > 조합 크리처 전투 테스트: 조합식마다 조합 크리처 ★★ 1마리 vs 재료 두 마리 ★★ (조합에 쓰는 것과 같은 레벨).
 // 앞줄 첫 칸끼리, 타입 시너지만 (조합 시너지·트레이너·아이템 없음). 반은 조합 쪽이 내 팀, 반은 적 팀 (먼저 계산되는 쪽 유리함 제거)
+// 히든 조합은 추가로 같은 골드대 팀(재료의 재료 4마리 ★★, 판매가 합이 같음)과도 붙여 본다
 public static class FusionBattleTest
 {
     private const string DataFolder = "Assets/_Project/Data";
@@ -79,12 +80,70 @@ public static class FusionBattleTest
                 }
             }
             errors += recipeErrors;
-            text.AppendLine($"{FusionRecipe.GetGradeName(recipe.Grade)} | {recipe.Result.DisplayName} | " +
+            text.AppendLine($"{recipe.GradeName} | {recipe.Result.DisplayName} | " +
                             $"{recipe.MaterialA.DisplayName}+{recipe.MaterialB.DisplayName} | {wins / Battles * 100f:0}% | " +
                             $"{seconds / Battles:0.0}초 | {recipeErrors}");
         }
         text.AppendLine($"조합식 {recipes.Length}개, 오류 {errors}건");
+        errors += SimulateHidden(recipes, synergy, multipliers, text);
+        text.AppendLine($"전체 오류 {errors}건");
         return text.ToString();
+    }
+
+    // 히든 ★★ 1마리 vs 같은 골드대 팀: 재료 두 조합 크리처의 재료 4마리 ★★ (앞줄 2, 뒷줄 2)
+    private static int SimulateHidden(FusionRecipe[] recipes, SynergyConfig synergy, float[,] multipliers, StringBuilder text)
+    {
+        text.AppendLine($"[히든 조합] 히든 ★★ 1마리 vs 같은 골드대 팀 (재료의 재료 4마리 ★★), {Battles}판");
+        text.AppendLine("히든 | 상대 팀 | 히든 승률 | 평균 시간 | 오류");
+        var hidden = new List<BattleSetupFactory.Member>();
+        var team = new List<BattleSetupFactory.Member>();
+        int errors = 0;
+        int count = 0;
+        foreach (FusionRecipe recipe in recipes.Where(r => r.Hidden))
+        {
+            FusionRecipe recipeA = recipes.FirstOrDefault(r => r.Result == recipe.MaterialA);
+            FusionRecipe recipeB = recipes.FirstOrDefault(r => r.Result == recipe.MaterialB);
+            if (recipeA == null || recipeB == null)
+            {
+                text.AppendLine($"{recipe.Result.DisplayName} | 재료 조합식을 못 찾음 | - | - | 1");
+                errors++;
+                continue;
+            }
+            count++;
+            hidden.Clear();
+            hidden.Add(new BattleSetupFactory.Member { Creature = recipe.Result, Level = Level, SlotIndex = 0 });
+            team.Clear();
+            CreatureData[] members = { recipeA.MaterialA, recipeA.MaterialB, recipeB.MaterialA, recipeB.MaterialB };
+            for (int i = 0; i < members.Length; i++)
+            {
+                team.Add(new BattleSetupFactory.Member { Creature = members[i], Level = Level, SlotIndex = i });
+            }
+
+            float wins = 0f;
+            float seconds = 0f;
+            int recipeErrors = 0;
+            for (int i = 0; i < Battles; i++)
+            {
+                bool hiddenIsPlayer = i % 2 == 0;
+                try
+                {
+                    float playerScore = Fight(hiddenIsPlayer ? hidden : team, hiddenIsPlayer ? team : hidden,
+                        synergy, multipliers, 2000 + i, out float elapsed);
+                    wins += hiddenIsPlayer ? playerScore : 1f - playerScore;
+                    seconds += elapsed;
+                }
+                catch (System.Exception exception)
+                {
+                    recipeErrors++;
+                    Debug.LogException(exception);
+                }
+            }
+            errors += recipeErrors;
+            text.AppendLine($"{recipe.Result.DisplayName} | {string.Join("+", members.Select(m => m.DisplayName))} | " +
+                            $"{wins / Battles * 100f:0}% | {seconds / Battles:0.0}초 | {recipeErrors}");
+        }
+        text.AppendLine($"히든 {count}종, 오류 {errors}건");
+        return errors;
     }
 
     // 내 팀 승리 1, 패배 0, 시간 초과 0.5

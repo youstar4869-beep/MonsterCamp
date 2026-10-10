@@ -315,7 +315,8 @@ public static class BalanceBots
             made = false;
             foreach (FusionRecipe recipe in run.Config.FusionRecipes)
             {
-                if (recipe != null && run.TryFuse(recipe))
+                // 히든 조합은 봇이 쓰지 않음
+                if (recipe != null && !recipe.Hidden && run.TryFuse(recipe))
                 {
                     made = true;
                     break;
@@ -333,6 +334,10 @@ public static class BalanceBots
         }
         foreach (FusionRecipe recipe in run.Config.FusionRecipes)
         {
+            if (recipe == null || recipe.Hidden)
+            {
+                continue;
+            }
             CreatureData partner = recipe.MaterialA == creature.Data ? recipe.MaterialB
                 : recipe.MaterialB == creature.Data ? recipe.MaterialA
                 : null;

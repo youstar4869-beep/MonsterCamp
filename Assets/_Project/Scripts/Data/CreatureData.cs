@@ -19,6 +19,8 @@ public class CreatureData : ScriptableObject
     [SerializeField, Range(1, 2)] private int _synergyCount = 1;
     [Tooltip("조합으로만 얻는 크리처: 상점에 안 나오고 도감 일반 목록에서 빠짐")]
     [SerializeField] private bool _fusionOnly;
+    [Tooltip("히든 조합 크리처 (어려움 클리어 후 해금, 적은 쓰지 않음)")]
+    [SerializeField] private bool _hidden;
 
     [Header("능력치 (Lv1)")]
     [SerializeField, Min(1)] private int _maxHealth = 100;
@@ -62,6 +64,7 @@ public class CreatureData : ScriptableObject
     public CreatureType SecondType => _secondType;
     public int SynergyCount => _synergyCount;
     public bool FusionOnly => _fusionOnly;
+    public bool Hidden => _hidden;
     public int MaxHealth => _maxHealth;
     public int Attack => _attack;
     public float AttackSpeed => _attackSpeed;

@@ -72,6 +72,26 @@ public class MetaProgress : MonoBehaviour
         SaveAndNotify();
     }
 
+    public bool HiddenFusionUnlocked => Data.hiddenFusionUnlocked;
+
+    public void SetHiddenFusionUnlocked(bool unlocked)
+    {
+        Data.hiddenFusionUnlocked = unlocked;
+        SaveAndNotify();
+    }
+
+    // 테스트용: 히든 해금과 히든 조합식의 발견·만듦 기록을 지운다
+    public void ResetHidden(System.Collections.Generic.IEnumerable<FusionRecipe> hiddenRecipes)
+    {
+        Data.hiddenFusionUnlocked = false;
+        foreach (FusionRecipe recipe in hiddenRecipes)
+        {
+            Data.discoveredRecipes.Remove(recipe.name);
+            Data.madeRecipes.Remove(recipe.name);
+        }
+        SaveAndNotify();
+    }
+
     public bool IsDiscovered(FusionRecipe recipe) => Data.discoveredRecipes.Contains(recipe.name);
     public bool IsMade(FusionRecipe recipe) => Data.madeRecipes.Contains(recipe.name);
     public void SetDiscovered(FusionRecipe recipe) => AddRecord(Data.discoveredRecipes, recipe.name);

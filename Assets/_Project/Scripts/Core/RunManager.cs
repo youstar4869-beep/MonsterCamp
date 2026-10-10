@@ -51,6 +51,8 @@ public class RunManager : MonoBehaviour
     private const string RetryTipMessage = "같은 팀으로는 같은 결과가 나오기 쉬워요.\n팀 구성을 바꿔 다시 도전해 보세요.";
     private const string FusionUnlockTitle = "조합 해금!";
     private const string FusionUnlockMessage = "정해진 두 크리처를 ★★ 이상으로 모으면\n상점에서 더 강한 크리처로 조합할 수 있어요.";
+    private const string HiddenUnlockTitle = "히든 조합 해금!";
+    private const string HiddenUnlockMessage = "정해진 조합 크리처 두 마리를 ★★ 이상으로 모으면\n숨겨진 조합식을 발견할 수 있어요.";
 
     private bool IsBossFloor => _difficulty.IsBossFloor(_floor);
     private bool IsLastFloor => _floor >= _difficulty.FloorCount;
@@ -185,10 +187,20 @@ public class RunManager : MonoBehaviour
                 {
                     _meta.SetFusionUnlocked(true);
                 }
+                // 어려움을 클리어하면 히든 조합 해금
+                bool unlockHidden = _difficulties.Length > 1 && _difficulty == _difficulties[1] && !_meta.HiddenFusionUnlocked;
+                if (unlockHidden)
+                {
+                    _meta.SetHiddenFusionUnlocked(true);
+                }
                 ShowResult(true);
                 if (unlockFusion)
                 {
                     _tip.Show(FusionUnlockTitle, FusionUnlockMessage);
+                }
+                else if (unlockHidden)
+                {
+                    _tip.Show(HiddenUnlockTitle, HiddenUnlockMessage);
                 }
                 return;
             }

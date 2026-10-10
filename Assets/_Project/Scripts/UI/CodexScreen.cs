@@ -18,11 +18,14 @@ public class CodexScreen : MonoBehaviour
     [SerializeField] private FusionRecipe[] _recipes;
     [SerializeField] private FusionRecipeRowView[] _recipeRows;
     [SerializeField] private Text _recipeCountText;
+    [Tooltip("목록 맨 아래 \"히든 n/5\" (히든 해금 전엔 숨김)")]
+    [SerializeField] private Text _hiddenCountText;
     [Space]
     [SerializeField] private Text _starsText;
     [SerializeField] private Text _messageText;
 
     private bool _showRecipes;
+    private int[] _recipeHighlights;
 
     private void OnEnable()
     {
@@ -71,14 +74,8 @@ public class CodexScreen : MonoBehaviour
         _recipeTab.SetActive(recipes);
         if (recipes)
         {
-            int discovered = 0;
-            for (int i = 0; i < _recipes.Length; i++)
-            {
-                bool known = FusionRecipeRowView.IsKnown(_meta, _recipes[i]);
-                discovered += known ? 1 : 0;
-                _recipeRows[i].Show(_recipes[i], known, 0);
-            }
-            _recipeCountText.text = $"발견 {discovered}/{_recipes.Length}";
+            _recipeHighlights ??= new int[_recipes.Length];
+            FusionRecipeRowView.ShowAll(_meta, _recipes, _recipeRows, null, _recipeHighlights, _recipeCountText, _hiddenCountText);
         }
 
         for (int i = 0; i < _trainerEntries.Length; i++)

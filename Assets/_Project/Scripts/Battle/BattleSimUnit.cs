@@ -102,6 +102,10 @@ public class BattleSimUnit
     internal bool LowHealthTriggered;
     internal bool Revived;
     internal int KillStacks;
+    // 처치 누적 공격력 (히든 홍염제왕)
+    internal int KillAttackStacks;
+    // 아군 부활을 썼으면 true (히든 녹림여제)
+    internal bool AllyReviveUsed;
     internal float HasteTimer;
 
     // ---- 상태이상 ----
@@ -110,6 +114,8 @@ public class BattleSimUnit
     internal float BurnTimer;
     internal float BurnDamage;
     internal float BurnTickTimer;
+    // 화상으로 쓰러지면 처치로 셀 크리처 (처치 누적 스킬이 있는 공격자만, 없으면 null)
+    internal BattleSimUnit BurnSource;
     internal float SlowAmount;
     internal float SlowTimer;
     internal float WeakenAmount;
@@ -153,11 +159,16 @@ public class BattleSimUnit
 
         float skillReduction = HasSkill(SkillType.DamageReduction) ? GetSkill(SkillType.DamageReduction).Value1
             : HasSkill(SkillType.DamageReductionDeathStun) ? GetSkill(SkillType.DamageReductionDeathStun).Value1
+            : HasSkill(SkillType.DamageReductionThorns) ? GetSkill(SkillType.DamageReductionThorns).Value1
             : 0f;
         DamageReduction = skillReduction > 0f
             ? 1f - (1f - bonus.DamageReduction) * (1f - skillReduction)
             : bonus.DamageReduction;
         ThornsPercent = bonus.ThornsPercent + (HasSkill(SkillType.Thorns) ? GetSkill(SkillType.Thorns).Value1 : 0f);
+        if (HasSkill(SkillType.DamageReductionThorns))
+        {
+            ThornsPercent += GetSkill(SkillType.DamageReductionThorns).Value2;
+        }
 
         RegenPercent = bonus.RegenPercent;
         RegenInterval = bonus.RegenInterval;
@@ -207,6 +218,10 @@ public class BattleSimUnit
             if (LowHealthTriggered && HasSkill(SkillType.LowHealthAttackUp))
             {
                 attack *= 1f + GetSkill(SkillType.LowHealthAttackUp).Value2;
+            }
+            if (KillAttackStacks > 0)
+            {
+                attack *= 1f + KillAttackStacks * GetSkill(SkillType.OnKillAttackUp).Value1;
             }
             if (WeakenAmount > 0f)
             {

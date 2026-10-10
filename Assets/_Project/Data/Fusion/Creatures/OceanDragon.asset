@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569c7517aec4acf418a723deb251ff3b, type: 3}
+  m_Name: OceanDragon
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureData
+  _displayName: "\uCC3D\uD574\uC2E0\uB8E1"
+  _type: 1
+  _tier: 5
+  _hasSecondType: 1
+  _secondType: 3
+  _synergyCount: 2
+  _fusionOnly: 1
+  _hidden: 1
+  _maxHealth: 800
+  _attack: 80
+  _attackSpeed: 1
+  _skillDescription: "3\uBC88\uC9F8 \uACF5\uACA9\uB9C8\uB2E4 \uC801 \uC804\uCCB4\uC5D0
+    \uACF5\uACA9\uB825 80% \uD53C\uD574 + \uACF5\uACA9 \uC18D\uB3C4 25% \uAC10\uC18C
+    (3\uCD08), \uC544\uAD70 \uC804\uCCB4 12% \uD68C\uBCF5"
+  _skillType: 5
+  _skillEvery: 3
+  _skillChance: 0
+  _skillValue1: 0.8
+  _skillValue2: 0.12
+  _skill2Type: 35
+  _skill2Every: 3
+  _skill2Chance: 0
+  _skill2Value1: 0.25
+  _skill2Value2: 3
+  _levelMultipliers:
+  - 1
+  - 1.8
+  - 3
+  _sprite: {fileID: 21300000, guid: e6b1d58482674c5398c464e65852e170, type: 3}
+  _levelSprites:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}

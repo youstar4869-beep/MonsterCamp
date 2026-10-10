@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,11 +21,46 @@ public class FusionRecipeRowView : MonoBehaviour
 
     public static bool IsKnown(MetaProgress meta, FusionRecipe recipe) => meta.IsDiscovered(recipe) || meta.IsMade(recipe);
 
+    // 줄 목록 채우기 (도감 조합식 탭·상점 조합식 창 공용). 일반 조합식은 countText에 "발견 n/m".
+    // 히든 조합은 발견 전엔 줄을 숨기고 맨 아래 hiddenText에 "히든 n/5"만 (히든 해금 전엔 그것도 숨김).
+    // getHighlight가 null이면 강조 없음. highlights[i]에 줄마다 강조 값 (숨긴 줄·못 찾은 줄은 0)
+    public static void ShowAll(MetaProgress meta, FusionRecipe[] recipes, FusionRecipeRowView[] rows,
+        Func<FusionRecipe, int> getHighlight, int[] highlights, Text countText, Text hiddenText)
+    {
+        bool hiddenUnlocked = meta.HiddenFusionUnlocked;
+        int discovered = 0, normal = 0, hiddenDiscovered = 0, hidden = 0;
+        for (int i = 0; i < recipes.Length; i++)
+        {
+            FusionRecipe recipe = recipes[i];
+            bool known = IsKnown(meta, recipe);
+            bool visible = !recipe.Hidden || (hiddenUnlocked && known);
+            if (recipe.Hidden)
+            {
+                hidden++;
+                hiddenDiscovered += known ? 1 : 0;
+            }
+            else
+            {
+                normal++;
+                discovered += known ? 1 : 0;
+            }
+            highlights[i] = visible && known && getHighlight != null ? getHighlight(recipe) : 0;
+            rows[i].gameObject.SetActive(visible);
+            if (visible)
+            {
+                rows[i].Show(recipe, known, highlights[i]);
+            }
+        }
+        countText.text = $"발견 {discovered}/{normal}";
+        hiddenText.gameObject.SetActive(hiddenUnlocked && hidden > 0);
+        hiddenText.text = $"히든 {hiddenDiscovered}/{hidden}";
+    }
+
     // highlight: 0 없음, 1 재료 1마리만 있음(반쯤), 2 만들 수 있음(강조)
     public void Show(FusionRecipe recipe, bool known, int highlight)
     {
         CreatureData result = recipe.Result;
-        _gradeText.text = FusionRecipe.GetGradeName(recipe.Grade);
+        _gradeText.text = recipe.GradeName;
         _iconResult.sprite = result.GetSprite(1);
         _iconResult.color = known ? Color.white : Color.black;
         _iconA.gameObject.SetActive(known);
