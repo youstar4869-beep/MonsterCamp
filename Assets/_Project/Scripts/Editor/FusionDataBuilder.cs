@@ -272,7 +272,7 @@ public static class FusionDataBuilder
         WriteSkill(so, "_skill", seed.Skill1);
         WriteSkill(so, "_skill2", seed.Skill2);
 
-        // 임시 그림: 재료 A의 그림 (TODO 25에서 교체). 히든은 기본 그림만, 레벨별 칸은 비워 둔다 (다음 단계에서 채움)
+        // 임시 그림: 재료 A의 그림 (TODO 25에서 교체). 히든은 기본 그림만, 레벨별 칸은 비워 둔다 (만든 뒤 f_hidden.py 그림으로 교체됨)
         var source = new SerializedObject(materialA);
         so.FindProperty("_sprite").objectReferenceValue = source.FindProperty("_sprite").objectReferenceValue;
         SerializedProperty sprites = so.FindProperty("_levelSprites");
