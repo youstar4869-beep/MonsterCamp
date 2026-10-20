@@ -117,6 +117,10 @@ public static class MainSceneBuilder
         AddButton(result, "타이틀로", flow, GameScreen.Title);
 
         BattleScreen battleScreen = BuildBattleUI(battle, run);
+        // 딜량 그래프: 전투 화면·결과 화면 왼쪽 아래 📊 버튼 (창은 하나, 지금·마지막 전투 기록)
+        DamageStatsPanel statsPanel = CreateDamageStatsPanel(canvas, battleScreen);
+        CreateStatsButton(battle, statsPanel);
+        CreateStatsButton(result, statsPanel);
 
         // 팀이 비었는지 확인한 뒤 전투로 넘어간다
         Button battleButton = CreateButton(shop, "전투 시작");
@@ -1985,6 +1989,120 @@ public static class MainSceneBuilder
 
         UnityEventTools.AddVoidPersistentListener(speedButton.onClick, battle.ToggleSpeed);
         return battle;
+    }
+
+    // 📊 버튼: 막대 3개 그림 (글꼴에 그림 문자가 없어서 Image로 그린다). 왼쪽 아래
+    private static void CreateStatsButton(GameObject screen, DamageStatsPanel panel)
+    {
+        Button button = CreateFreeButton(screen.transform, "", new Vector2(0.04f, 0.025f), new Vector2(0.19f, 0.095f), _theme.ButtonInfo);
+        button.name = "StatsButton";
+        float[] heights = { 0.45f, 0.8f, 0.6f };
+        for (int i = 0; i < heights.Length; i++)
+        {
+            RectTransform bar = CreatePanel(button.transform, "Bar" + i, _theme.ButtonText, false);
+            float x = 0.22f + i * 0.2f;
+            Stretch(bar, new Vector2(x, 0.18f), new Vector2(x + 0.15f, 0.18f + heights[i] * 0.7f));
+        }
+        AddHitArea(button, 20f, 20f, 20f, 20f);
+        UnityEventTools.AddObjectPersistentListener<GameObject>(button.onClick, panel.Toggle, screen);
+    }
+
+    // 딜량 그래프 창: 투명 바탕(누르면 닫힘) + 창(내 팀/적 팀, 준 피해/받은 피해/회복, 5줄, 합계)
+    private static DamageStatsPanel CreateDamageStatsPanel(Transform canvas, BattleScreen battle)
+    {
+        RectTransform root = CreatePanel(canvas, "DamageStatsPanel", Color.clear, true);
+        var backgroundButton = root.gameObject.AddComponent<Button>();
+        backgroundButton.transition = Selectable.Transition.None;
+        RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
+        Round(window.GetComponent<Image>(), 36f);
+        Stretch(window, new Vector2(0.04f, 0.2f), new Vector2(0.96f, 0.8f));
+
+        string[] teams = { "내 팀", "적 팀" };
+        var teamButtons = new Image[teams.Length];
+        var teamClicks = new Button[teams.Length];
+        for (int i = 0; i < teams.Length; i++)
+        {
+            float x = 0.04f + i * 0.47f;
+            teamClicks[i] = CreateFreeButton(window, teams[i], new Vector2(x, 0.885f), new Vector2(x + 0.45f, 0.97f), _theme.ButtonInfo);
+            teamClicks[i].GetComponentInChildren<Text>().resizeTextMaxSize = _theme.BodySize;
+            teamButtons[i] = teamClicks[i].GetComponent<Image>();
+        }
+        string[] tabs = { "준 피해", "받은 피해", "회복" };
+        var tabButtons = new Image[tabs.Length];
+        var tabClicks = new Button[tabs.Length];
+        for (int i = 0; i < tabs.Length; i++)
+        {
+            float x = 0.04f + i * 0.31f;
+            tabClicks[i] = CreateFreeButton(window, tabs[i], new Vector2(x, 0.785f), new Vector2(x + 0.29f, 0.865f), _theme.ButtonInfo);
+            tabClicks[i].GetComponentInChildren<Text>().resizeTextMaxSize = _theme.SmallSize;
+            tabButtons[i] = tabClicks[i].GetComponent<Image>();
+        }
+
+        // 크리처 줄 5개 (팀 최대 5마리): 그림 / 이름 별 / 막대 / 숫자 (%)
+        const int rowCount = 5;
+        var rowsGo = new GameObject[rowCount];
+        var icons = new Image[rowCount];
+        var names = new Text[rowCount];
+        var bars = new Image[rowCount];
+        var values = new Text[rowCount];
+        for (int i = 0; i < rowCount; i++)
+        {
+            float top = 0.76f - i * 0.128f;
+            RectTransform row = CreatePanel(window, "Row" + i, _theme.Slot, false);
+            Stretch(row, new Vector2(0.03f, top - 0.118f), new Vector2(0.97f, top));
+            Round(row.GetComponent<Image>());
+            rowsGo[i] = row.gameObject;
+
+            RectTransform icon = CreatePanel(row, "Icon", Color.white, false);
+            Stretch(icon, new Vector2(0.01f, 0.08f), new Vector2(0.13f, 0.92f));
+            icons[i] = icon.GetComponent<Image>();
+            icons[i].preserveAspect = true;
+
+            names[i] = CreateLeftText(row, "Name", _theme.SmallSize, new Vector2(0.15f, 0.1f), new Vector2(0.45f, 0.9f));
+
+            RectTransform barBack = CreatePanel(row, "BarBack", _theme.HealthBarBack, false);
+            Stretch(barBack, new Vector2(0.47f, 0.55f), new Vector2(0.98f, 0.9f));
+            RectTransform bar = CreatePanel(barBack, "Bar", Color.white, false);
+            Stretch(bar, Vector2.zero, Vector2.one);
+            bars[i] = bar.GetComponent<Image>();
+
+            values[i] = CreateLeftText(row, "Value", _theme.TinySize, new Vector2(0.47f, 0.06f), new Vector2(0.98f, 0.52f));
+            values[i].color = _theme.TextSub;
+        }
+        Text totalText = CreateText(window, "Total", "", _theme.SmallSize, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.1f));
+        totalText.color = _theme.Gold;
+
+        var panel = root.gameObject.AddComponent<DamageStatsPanel>();
+        var so = new SerializedObject(panel);
+        so.FindProperty("_battle").objectReferenceValue = battle;
+        so.FindProperty("_theme").objectReferenceValue = _theme;
+        SetArray(so.FindProperty("_teamButtons"), teamButtons);
+        SetArray(so.FindProperty("_tabButtons"), tabButtons);
+        SerializedProperty rows = so.FindProperty("_rows");
+        rows.arraySize = rowCount;
+        for (int i = 0; i < rowCount; i++)
+        {
+            SerializedProperty row = rows.GetArrayElementAtIndex(i);
+            row.FindPropertyRelative("Root").objectReferenceValue = rowsGo[i];
+            row.FindPropertyRelative("Icon").objectReferenceValue = icons[i];
+            row.FindPropertyRelative("Name").objectReferenceValue = names[i];
+            row.FindPropertyRelative("Bar").objectReferenceValue = bars[i];
+            row.FindPropertyRelative("Value").objectReferenceValue = values[i];
+        }
+        so.FindProperty("_totalText").objectReferenceValue = totalText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(backgroundButton.onClick, panel.Close);
+        for (int i = 0; i < teamClicks.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(teamClicks[i].onClick, panel.SetTeam, i);
+        }
+        for (int i = 0; i < tabClicks.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(tabClicks[i].onClick, panel.SetTab, i);
+        }
+        root.gameObject.SetActive(false);
+        return panel;
     }
 
     // 떠오르는 글 count개를 미리 만들어 둔 풀 (처음엔 모두 숨김)

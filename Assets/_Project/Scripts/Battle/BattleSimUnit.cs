@@ -116,6 +116,13 @@ public class BattleSimUnit
     internal float BurnTickTimer;
     // 화상으로 쓰러지면 처치로 셀 크리처 (처치 누적 스킬이 있는 공격자만, 없으면 null)
     internal BattleSimUnit BurnSource;
+    // 딜량 그래프용 화상 주인 (BurnSource는 처치 판정용이라 따로 둔다)
+    internal BattleSimUnit BurnOwner;
+
+    // 딜량 그래프 집계 (전투 결과에는 안 쓰임): 준 피해·받은 피해(피해 감소 후, 보호막에 막힌 양 포함)·회복한 양
+    public int DamageDealt { get; internal set; }
+    public int DamageTaken { get; internal set; }
+    public int Healing { get; internal set; }
     internal float SlowAmount;
     internal float SlowTimer;
     internal float WeakenAmount;

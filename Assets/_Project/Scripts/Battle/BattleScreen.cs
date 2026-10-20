@@ -121,6 +121,31 @@ public class BattleScreen : MonoBehaviour
         _running = true;
     }
 
+    // 딜량 그래프: 지금 전투(끝났으면 마지막 전투)의 크리처별 집계를 result에 (칸 순서). 전투가 없었으면 false
+    public bool GetStats(bool playerTeam, List<DamageStatsPanel.Entry> result)
+    {
+        result.Clear();
+        if (_simulation == null)
+        {
+            return false;
+        }
+        IReadOnlyList<BattleSimUnit> units = playerTeam ? _simulation.Players : _simulation.Enemies;
+        List<BattleSetupFactory.Member> members = playerTeam ? _playerMembers : _enemyMembers;
+        for (int i = 0; i < units.Count && i < members.Count; i++)
+        {
+            BattleSimUnit unit = units[i];
+            result.Add(new DamageStatsPanel.Entry
+            {
+                Creature = members[i].Creature,
+                Level = members[i].Level,
+                Dealt = unit.DamageDealt,
+                Taken = unit.DamageTaken,
+                Healed = unit.Healing,
+            });
+        }
+        return true;
+    }
+
     // 층 구간 배경 (보스 층이면 붉은 하늘). 테스트 메뉴에서도 부른다
     public void ShowBackground(int floor, bool isBoss)
     {

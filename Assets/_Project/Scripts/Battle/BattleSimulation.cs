@@ -245,13 +245,14 @@ public class BattleSimulation
             while (unit.BurnTickTimer <= 0f && unit.IsAlive)
             {
                 unit.BurnTickTimer += BurnTickInterval;
-                TakeDamage(unit, Math.Max(1, BattleSimUnit.Round(unit.BurnDamage)), unit.BurnSource, DamageKind.Burn);
+                TakeDamage(unit, Math.Max(1, BattleSimUnit.Round(unit.BurnDamage)), unit.BurnSource, DamageKind.Burn, unit.BurnOwner);
             }
             if (unit.BurnTimer <= 0f)
             {
                 unit.BurnTimer = 0f;
                 unit.BurnDamage = 0f;
                 unit.BurnSource = null;
+                unit.BurnOwner = null;
             }
         }
     }
@@ -298,7 +299,7 @@ public class BattleSimulation
                         {
                             if (ally.IsAlive)
                             {
-                                Heal(ally, BattleSimUnit.Round(ally.MaxHealth * skill.Value2));
+                                Heal(ally, BattleSimUnit.Round(ally.MaxHealth * skill.Value2), unit);
                             }
                         }
                         // 1초마다라서 글은 띄우지 않고 발동만 센다
@@ -545,6 +546,7 @@ public class BattleSimulation
         if (damage >= target.BurnDamage)
         {
             target.BurnSource = attacker.HasSkill(SkillType.OnKillAttackUp) ? attacker : null;
+            target.BurnOwner = attacker;
         }
         target.BurnDamage = Math.Max(target.BurnDamage, damage);
         target.BurnTimer = skill.Value2;
@@ -568,7 +570,7 @@ public class BattleSimulation
                 BattleSimUnit lowest = FindLowestHealthRatio(allies);
                 if (lowest != null)
                 {
-                    Heal(lowest, BattleSimUnit.Round(lowest.MaxHealth * skill.Value1));
+                    Heal(lowest, BattleSimUnit.Round(lowest.MaxHealth * skill.Value1), attacker);
                     RaiseSkill(lowest, attacker, "회복");
                 }
                 break;
@@ -584,7 +586,7 @@ public class BattleSimulation
             case SkillType.EveryNthAttackHitAllHealTeam:
                 RaiseSkill(attacker, attacker, "해일");
                 DamageAll(attacker, defenders, skill.Value1);
-                HealAll(allies, skill.Value2);
+                HealAll(allies, skill.Value2, attacker);
                 break;
             case SkillType.EveryNthAttackSlowAll:
                 foreach (BattleSimUnit defender in defenders)
@@ -628,8 +630,9 @@ public class BattleSimulation
 
     // ---------- 피해·회복 ----------
 
-    // 실제로 받은 피해(피해 감소 후, 보호막에 막힌 양 포함)를 돌려준다
-    private int TakeDamage(BattleSimUnit target, int damage, BattleSimUnit source, DamageKind kind)
+    // 실제로 받은 피해(피해 감소 후, 보호막에 막힌 양 포함)를 돌려준다.
+    // credit: 딜량 그래프에서 이 피해를 누구 몫으로 셀지 (null이면 source)
+    private int TakeDamage(BattleSimUnit target, int damage, BattleSimUnit source, DamageKind kind, BattleSimUnit credit = null)
     {
         if (!target.IsAlive)
         {
@@ -667,6 +670,12 @@ public class BattleSimulation
             toHealth -= absorbed;
         }
         target.Health = Math.Max(0, target.Health - toHealth);
+        target.DamageTaken += reduced;
+        credit ??= source;
+        if (credit != null)
+        {
+            credit.DamageDealt += reduced;
+        }
         Raise(BattleEventType.Damage, target, source, reduced, null);
 
         if (!target.IsAlive)
@@ -758,7 +767,7 @@ public class BattleSimulation
             {
                 case SkillType.OnDeathHealTeam:
                     RaiseSkill(unit, unit, "치유");
-                    HealAll(allies, skill.Value1);
+                    HealAll(allies, skill.Value1, unit);
                     break;
                 case SkillType.DamageReductionDeathStun:
                     RaiseSkill(unit, unit, "지진");
@@ -788,7 +797,8 @@ public class BattleSimulation
         }
     }
 
-    private void Heal(BattleSimUnit unit, int amount)
+    // healer: 딜량 그래프에서 회복을 누구 몫으로 셀지 (null이면 자기 자신: 시너지·아이템·보스 재생)
+    private void Heal(BattleSimUnit unit, int amount, BattleSimUnit healer = null)
     {
         if (!unit.IsAlive)
         {
@@ -796,16 +806,17 @@ public class BattleSimulation
         }
         int before = unit.Health;
         unit.Health = Math.Min(unit.MaxHealth, unit.Health + Math.Max(1, amount));
+        (healer ?? unit).Healing += unit.Health - before;
         Raise(BattleEventType.Heal, unit, unit, unit.Health - before, null);
     }
 
-    private void HealAll(List<BattleSimUnit> allies, float maxHealthRatio)
+    private void HealAll(List<BattleSimUnit> allies, float maxHealthRatio, BattleSimUnit healer = null)
     {
         foreach (BattleSimUnit ally in allies)
         {
             if (ally.IsAlive)
             {
-                Heal(ally, BattleSimUnit.Round(ally.MaxHealth * maxHealthRatio));
+                Heal(ally, BattleSimUnit.Round(ally.MaxHealth * maxHealthRatio), healer);
             }
         }
     }
@@ -848,6 +859,7 @@ public class BattleSimulation
         unit.BurnTimer = 0f;
         unit.BurnDamage = 0f;
         unit.BurnSource = null;
+        unit.BurnOwner = null;
         unit.SlowAmount = 0f;
         unit.SlowTimer = 0f;
         unit.WeakenAmount = 0f;
