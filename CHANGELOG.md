@@ -602,3 +602,13 @@
   - 점검 (에셋 파일 직접 + 복사본 배치 테스트): 일반 35 + 조합 22(히든 5 포함) 모두 Lv1~3 그림 연결됨(빈 칸 0), 파일 이름 = 영문키, Lv3는 전부 Lv3Woman 의인화, Sprite 임포트·Point 필터, Sprite Atlas에 228장 모두 포함, 투명 그림 0, Lv3Woman·3성 일러스트(Illustrations/Resources) 파일 57종 모두 있음, 이름 다른 파일 0, 상점 목록 35종 모두. 상점·대기석·팀·전투·도감·조합식 칸에 57종 × 1~3성을 띄워 그림·켜짐·투명도 정상, Console 오류·경고 0
   - 수정: 3성 연출 빛줄기 그림을 `??=`로 캐시해서, 도메인 리로드를 끈 에디터(Enter Play Mode Options)에선 두 번째 Play부터 지워진 그림을 써 빛줄기가 안 보일 수 있던 것 → Unity null 검사로 다시 만듦
   - 메뉴 `MonsterCamp > 크리처 그림 점검` 추가: 위 항목(그림 칸·이름·임포트·Atlas·투명·3성 일러스트)을 확인해 Console에 적음 (고치지 않음)
+- 출시용 빌드 설정 + AAB/APK 빌드 메뉴 (TODO 35)
+  - 메뉴 `MonsterCamp > 출시용 Player Settings 적용` (예전 "Android 플레이어 설정 적용"을 바꿈): Company youstar, 홈 화면 이름 "몬스터캠프"(띄어쓰기 없음), 패키지 com.youstar.monstercamp, 버전 1.0.0(1), 세로 고정, IL2CPP, ARM64만, Target API 36 (Google Play: 2026-08-31부터 새 앱·업데이트 API 36 이상, SDK 36 설치돼 있음), 최소 API 25 그대로
+  - 아이콘: 기본 icon_A_pixel_camp_1024, Android Adaptive(배경 adaptive_background_432 / 전경 adaptive_foreground_432), Round(1024를 원으로 잘라 `icon_round_1024.png` 새로 만듦), Legacy(512). 아이콘 텍스처 Point 필터·압축·밉맵 없음
+  - 스플래시: Unity 로고 그대로, 배경만 아이콘 밤하늘 #1E285A
+  - 로그: 스택 트레이스 일반·경고·Assert 없음, Error·Exception만 스크립트. 출시 빌드에서는 `ReleaseLogFilter`가 Error·Exception만 출력. Development Build·프로파일러·디버깅 끔
+  - 빌드에서 뺀 에디터·테스트 코드: `MetaProgress.ResetHidden`·`ResetLv3Illustrations`(에디터 메뉴 전용)를 `#if UNITY_EDITOR`로, 전투 시드 로그를 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`로. 나머지 테스트 메뉴·치트·밸런스 시뮬레이터는 모두 Editor 폴더라 원래 빌드에 안 들어감. 화면에 보이는 테스트 버튼·디버그 UI는 없음
+  - 메뉴 `Build > Release AAB` → `Builds/MonsterCamp_1.0.0_1.aab` (Custom Keystore·파일·별칭·비밀번호가 없으면 빌드하지 않고 안내 창), `Build > Test APK` → `Builds/MonsterCamp_1.0.0_1_test.apk` (출시와 같은 설정, 디버그 키로 서명). 둘 다 빌드 전에 출시 설정을 다시 적용
+  - `.gitignore`: `*.keystore`, `*.jks`, `Builds/`는 이미 들어 있음
+  - 확인 (복사본 배치 빌드): Test APK 성공 (76MB, 8.8분, 오류 0). APK 안: 패키지·1.0.0(1)·targetSdk 36·minSdk 25·이름 몬스터캠프·세로·arm64-v8a만, 네이티브 라이브러리 7개 모두 16KB 정렬(LOAD align 0x4000, Unity 6 기본), Adaptive 전경·배경 레이어 맞음. Release AAB는 키스토어가 없어 안내만 하고 멈춤
+  - 참고: 홈 화면 이름이 바뀌어 에디터 저장 폴더가 `LocalLow/youstar/몬스터캠프`로 바뀜 (기존 meta.json·run.json을 새 폴더에 복사해 둠, 원래 폴더는 그대로). 폰에서는 패키지 이름 기준이라 영향 없음

@@ -95,10 +95,12 @@ public class BattleScreen : MonoBehaviour
         BattleSetupFactory.ScaleStats(enemies, enemyStatMultiplier);
 
         int seed = System.Environment.TickCount;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (_logSeed)
         {
             Debug.Log($"[전투] 시드 {seed}");
         }
+#endif
         _bossAbilities = bossAbilities;
         _simulation = new BattleSimulation(players, enemies, _typeMultipliers, seed, BossAbility.Combine(bossAbilities));
         _simulation.Event += OnBattleEvent;

@@ -39,3 +39,10 @@
 - [x] 32. 3성 첫 달성 일러스트 연출 (크리처별 한 번, meta.json 기록)
 - [x] 33. 3성 도트 의인화(48x48) 교체 + 적용/되돌리기 메뉴
 - [x] 34. 딜량 그래프 (전투·결과 화면, 준 피해/받은 피해/회복)
+- [ ] 35. 출시 준비
+  - [x] 출시용 Player Settings (이름·패키지·1.0.0(1)·IL2CPP·ARM64·API 36·아이콘·스플래시·로그)
+  - [x] Release AAB / Test APK 빌드 메뉴, Test APK 빌드 확인
+  - [ ] 업로드 키스토어 만들기 (직접)
+  - [ ] Release AAB 빌드
+  - [ ] 폰 설치 테스트 (Test APK)
+  - [ ] Play Console 등록 (스토어 이름: 몬스터캠프: 크리처 오토배틀 / Monster Camp: Auto Battler)

@@ -80,7 +80,8 @@ public class MetaProgress : MonoBehaviour
         SaveAndNotify();
     }
 
-    // 테스트용: 히든 해금과 히든 조합식의 발견·만듦 기록을 지운다
+#if UNITY_EDITOR
+    // 테스트용 (에디터 메뉴에서만): 히든 해금과 히든 조합식의 발견·만듦 기록을 지운다
     public void ResetHidden(System.Collections.Generic.IEnumerable<FusionRecipe> hiddenRecipes)
     {
         Data.hiddenFusionUnlocked = false;
@@ -91,6 +92,7 @@ public class MetaProgress : MonoBehaviour
         }
         SaveAndNotify();
     }
+#endif
 
     public bool IsDiscovered(FusionRecipe recipe) => Data.discoveredRecipes.Contains(recipe.name);
     public bool IsMade(FusionRecipe recipe) => Data.madeRecipes.Contains(recipe.name);
@@ -101,12 +103,14 @@ public class MetaProgress : MonoBehaviour
     public bool IsLv3IllustrationSeen(CreatureData creature) => SeenLv3Illustrations.Contains(creature.name);
     public void SetLv3IllustrationSeen(CreatureData creature) => AddRecord(SeenLv3Illustrations, creature.name);
 
-    // 테스트용: 본 기록을 지운다
+#if UNITY_EDITOR
+    // 테스트용 (에디터 메뉴에서만): 본 기록을 지운다
     public void ResetLv3Illustrations()
     {
         SeenLv3Illustrations.Clear();
         SaveAndNotify();
     }
+#endif
 
     // 3성 연출 "이 크리처 다시 보지 않기" (해금 기록과 따로)
     public bool IsLv3ShowcaseSkipped(CreatureData creature) => SkippedLv3Showcases.Contains(creature.name);
