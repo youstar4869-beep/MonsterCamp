@@ -97,6 +97,21 @@ public class MetaProgress : MonoBehaviour
     public void SetDiscovered(FusionRecipe recipe) => AddRecord(Data.discoveredRecipes, recipe.name);
     public void SetMade(FusionRecipe recipe) => AddRecord(Data.madeRecipes, recipe.name);
 
+    // 처음 ★★★ 일러스트 연출 (크리처마다 한 번)
+    public bool IsLv3IllustrationSeen(CreatureData creature) => SeenLv3Illustrations.Contains(creature.name);
+    public void SetLv3IllustrationSeen(CreatureData creature) => AddRecord(SeenLv3Illustrations, creature.name);
+
+    // 테스트용: 본 기록을 지운다
+    public void ResetLv3Illustrations()
+    {
+        SeenLv3Illustrations.Clear();
+        SaveAndNotify();
+    }
+
+    // 예전 저장 파일에 목록이 없으면 빈 목록으로
+    private System.Collections.Generic.List<string> SeenLv3Illustrations =>
+        Data.seenLv3Illustrations ??= new System.Collections.Generic.List<string>();
+
     public bool TutorialCompleted => Data.tutorialCompleted;
     public bool FrontRowTipShown => Data.frontRowTipShown;
 

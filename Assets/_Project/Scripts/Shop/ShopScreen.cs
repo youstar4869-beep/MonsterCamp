@@ -50,6 +50,8 @@ public class ShopScreen : MonoBehaviour
     [SerializeField] private FusionBookPanel _fusionBookPanel;
     [Tooltip("\"새 조합식 발견!\" 알림")]
     [SerializeField] private TipPopup _tip;
+    [Tooltip("처음 ★★★가 되면 보여 주는 일러스트 연출")]
+    [SerializeField] private Lv3Showcase _lv3Showcase;
 
     private CreatureData[] _offers;
     private ItemData _itemOffer;
@@ -442,6 +444,19 @@ public class ShopScreen : MonoBehaviour
         UpdateView();
         GetSlotViews(inTeam ? SlotArea.Team : SlotArea.Bench)[index].Flash();
         AudioManager.Play(Sfx.Merge);
+        if (plan.Level == CreatureData.MaxLevel)
+        {
+            ShowLv3(recipe.Result);
+        }
+    }
+
+    // 처음 ★★★면 일러스트 연출 (상점에서만 생기므로 바로 뜬다)
+    private void ShowLv3(CreatureData creature)
+    {
+        if (_lv3Showcase != null)
+        {
+            _lv3Showcase.Enqueue(creature);
+        }
     }
 
     // 조합 버튼 표시 + 새로 만들 수 있게 된 조합식 발견 기록·알림 (UpdateView에서)
@@ -866,6 +881,10 @@ public class ShopScreen : MonoBehaviour
         UpdateView();
         GetSlotViews(keepArea)[keepIndex].Flash();
         AudioManager.Play(Sfx.Merge);
+        if (kept.Level == CreatureData.MaxLevel)
+        {
+            ShowLv3(kept.Data);
+        }
     }
 
     private void CollectSame(CreatureData data, int level)

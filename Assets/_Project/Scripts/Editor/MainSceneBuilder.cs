@@ -124,6 +124,10 @@ public static class MainSceneBuilder
         BuildTutorialUI(canvas, tutorial, meta, shopScreen, (RectTransform)battleButton.transform, infoPopup);
         // ⚙ 버튼과 설정 창은 튜토리얼 중에도 누를 수 있게 그 위에 (씬에 하나)
         BuildSettingsUI(canvas, gearSprite, flow, run, audio);
+        // 처음 ★★★ 일러스트 연출: 노치까지 화면 전체를 덮도록 캔버스 전체에, 모든 화면·튜토리얼·⚙보다 위
+        var serializedShop = new SerializedObject(shopScreen);
+        serializedShop.FindProperty("_lv3Showcase").objectReferenceValue = CreateLv3Showcase(canvasRoot, meta);
+        serializedShop.ApplyModifiedPropertiesWithoutUndo();
 
         // 트레이너 → 난이도 → 새 런 시작 (1층 상점으로 이동은 RunManager가 한다)
         DifficultySelectScreen difficultySelect = BuildDifficultySelectUI(difficulty, run, flow, meta, difficulties);
@@ -772,6 +776,51 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(okButton.onClick, popup.Close);
         root.gameObject.SetActive(false);
         return popup;
+    }
+
+    // 처음 ★★★ 일러스트 연출: 어두운 바탕(누르면 닫힘) + 도는 빛줄기 + 9:16 일러스트(화면 안에 다 보이게) + 이름·"★★★ 달성!"
+    private static Lv3Showcase CreateLv3Showcase(Transform canvasRoot, MetaProgress meta)
+    {
+        RectTransform root = CreatePanel(canvasRoot, "Lv3Showcase", new Color(0f, 0f, 0f, 0.88f), true);
+        var tapButton = root.gameObject.AddComponent<Button>();
+        tapButton.transition = Selectable.Transition.None;
+
+        // 화면 가운데 큰 정사각형 (돌아도 모서리가 안 보이게 화면보다 크게)
+        RectTransform rays = CreatePanel(root, "Rays", _theme.Gold, false);
+        rays.anchorMin = rays.anchorMax = new Vector2(0.5f, 0.5f);
+        rays.sizeDelta = new Vector2(2600f, 2600f);
+
+        RectTransform art = CreatePanel(root, "Art", Color.white, false);
+        art.GetComponent<Image>().preserveAspect = true;
+
+        var captionGo = new GameObject("Caption", typeof(RectTransform), typeof(CanvasGroup));
+        captionGo.transform.SetParent(root, false);
+        Stretch((RectTransform)captionGo.transform, new Vector2(0f, 0.03f), new Vector2(1f, 0.19f));
+        var caption = captionGo.GetComponent<CanvasGroup>();
+        caption.blocksRaycasts = false;
+        Text nameText = CreateText(captionGo.transform, "Name", "", _theme.HeadingSize + 16, new Vector2(0.05f, 0.45f), new Vector2(0.95f, 1f));
+        Text starText = CreateText(captionGo.transform, "Stars", "★★★ 달성!", _theme.HeadingSize, new Vector2(0.05f, 0f), new Vector2(0.95f, 0.45f));
+        starText.color = _theme.Gold;
+        foreach (Text text in new[] { nameText, starText })
+        {
+            var outline = text.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            outline.effectDistance = new Vector2(3f, -3f);
+        }
+
+        var showcase = root.gameObject.AddComponent<Lv3Showcase>();
+        var so = new SerializedObject(showcase);
+        so.FindProperty("_meta").objectReferenceValue = meta;
+        so.FindProperty("_dim").objectReferenceValue = root.GetComponent<Image>();
+        so.FindProperty("_rays").objectReferenceValue = rays.GetComponent<Image>();
+        so.FindProperty("_art").objectReferenceValue = art.GetComponent<Image>();
+        so.FindProperty("_caption").objectReferenceValue = caption;
+        so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        UnityEventTools.AddVoidPersistentListener(tapButton.onClick, showcase.OnTap);
+        root.gameObject.SetActive(false);
+        return showcase;
     }
 
     // 화면이 바뀔 때 잠깐 덮는 어두운 판 (누르는 것은 막지 않음, 처음엔 꺼짐)

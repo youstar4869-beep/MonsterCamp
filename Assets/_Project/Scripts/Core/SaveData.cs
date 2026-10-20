@@ -26,6 +26,8 @@ public class MetaSaveData
     public List<string> madeRecipes = new List<string>();
     // 히든 조합: 어려움을 클리어하면 열림 (예전 저장은 false)
     public bool hiddenFusionUnlocked;
+    // 처음 ★★★ 일러스트 연출을 본 크리처 (CreatureData 에셋 이름, 크리처마다 한 번. 예전 저장은 빈 목록)
+    public List<string> seenLv3Illustrations = new List<string>();
 }
 
 // run.json: 진행 중인 판 (상점 단계 상태)
