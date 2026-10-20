@@ -125,7 +125,12 @@ public class Lv3Showcase : MonoBehaviour
         {
             _dimAlpha = _dim.color.a;
         }
-        _rays.sprite = _raySprite ??= CreateRaySprite();
+        // ??=는 쓰지 않는다: 도메인 리로드를 끈 에디터에선 Play를 다시 시작해도 지워진 그림이 static에 남아 있음
+        if (_raySprite == null)
+        {
+            _raySprite = CreateRaySprite();
+        }
+        _rays.sprite = _raySprite;
         _loaded = sprite;
         _art.sprite = sprite;
         _nameText.text = creature.DisplayName;
