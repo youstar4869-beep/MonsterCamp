@@ -131,7 +131,7 @@ public static class MainSceneBuilder
         // 튜토리얼 화면은 모든 화면·상단 표시보다 위에 그려지도록 여기서 만든다
         BuildTutorialUI(canvas, tutorial, meta, shopScreen, (RectTransform)battleButton.transform, infoPopup);
         // ⚙ 버튼과 설정 창은 튜토리얼 중에도 누를 수 있게 그 위에 (씬에 하나)
-        BuildSettingsUI(canvas, gearSprite, flow, run, audio);
+        BuildSettingsUI(canvas, gearSprite, flow, run, audio, meta);
         var serializedShop = new SerializedObject(shopScreen);
         serializedShop.FindProperty("_lv3Showcase").objectReferenceValue = lv3Showcase;
         serializedShop.ApplyModifiedPropertiesWithoutUndo();
@@ -331,7 +331,7 @@ public static class MainSceneBuilder
     }
 
     // 모든 화면 오른쪽 위 ⚙ 버튼 (상단 표시 줄 오른쪽 끝, 안전 영역 안) + 설정 창 (창 바깥을 누르면 닫힘)
-    private static void BuildSettingsUI(Transform canvas, Sprite gearSprite, ScreenFlow flow, RunManager run, AudioManager audio)
+    private static void BuildSettingsUI(Transform canvas, Sprite gearSprite, ScreenFlow flow, RunManager run, AudioManager audio, MetaProgress meta)
     {
         Button gearButton = CreateFreeButton(canvas, "", new Vector2(0.905f, 0.948f), new Vector2(0.995f, 0.997f),
             _theme.ButtonSecondary);
@@ -347,20 +347,25 @@ public static class MainSceneBuilder
         RectTransform root = CreateModalRoot(canvas, "SettingsPanel", out Button backgroundButton);
         RectTransform window = CreatePanel(root, "Window", _theme.Panel, true);
         Round(window.GetComponent<Image>(), 36f);
-        Stretch(window, new Vector2(0.06f, 0.3f), new Vector2(0.94f, 0.72f));
+        // 창 높이 0.6 (버튼 한 줄 약 92px)
+        Stretch(window, new Vector2(0.06f, 0.2f), new Vector2(0.94f, 0.8f));
 
-        Text titleText = CreateText(window, "Title", "설정", _theme.HeadingSize, new Vector2(0.05f, 0.86f), new Vector2(0.72f, 0.97f));
+        Text titleText = CreateText(window, "Title", "설정", _theme.HeadingSize, new Vector2(0.05f, 0.89f), new Vector2(0.72f, 0.97f));
         titleText.alignment = TextAnchor.MiddleLeft;
-        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.74f, 0.86f), new Vector2(0.96f, 0.97f),
+        Button closeButton = CreateFreeButton(window, "닫기", new Vector2(0.74f, 0.89f), new Vector2(0.96f, 0.97f),
             _theme.ButtonSecondary);
 
-        Button sfxButton = CreateFreeButton(window, "효과음 켜짐", new Vector2(0.06f, 0.7f), new Vector2(0.94f, 0.81f),
+        Button sfxButton = CreateFreeButton(window, "효과음 켜짐", new Vector2(0.06f, 0.77f), new Vector2(0.94f, 0.85f),
             _theme.ButtonSecondary);
-        Slider sfxSlider = CreateVolumeSlider(window, "효과음", 0.58f, 0.68f);
-        Button bgmButton = CreateFreeButton(window, "배경음 켜짐", new Vector2(0.06f, 0.43f), new Vector2(0.94f, 0.54f),
+        Slider sfxSlider = CreateVolumeSlider(window, "효과음", 0.68f, 0.75f);
+        Button bgmButton = CreateFreeButton(window, "배경음 켜짐", new Vector2(0.06f, 0.58f), new Vector2(0.94f, 0.66f),
             _theme.ButtonSecondary);
-        Slider bgmSlider = CreateVolumeSlider(window, "배경음", 0.31f, 0.41f);
-        Button exitButton = CreateFreeButton(window, "타이틀로 나가기", new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.19f),
+        Slider bgmSlider = CreateVolumeSlider(window, "배경음", 0.49f, 0.56f);
+        Button lv3Button = CreateFreeButton(window, "3성 일러스트 연출 켜짐", new Vector2(0.06f, 0.38f), new Vector2(0.94f, 0.46f),
+            _theme.ButtonSecondary);
+        Button lv3ResetButton = CreateFreeButton(window, "다시 보지 않기 초기화", new Vector2(0.06f, 0.27f), new Vector2(0.94f, 0.35f),
+            _theme.ButtonSecondary);
+        Button exitButton = CreateFreeButton(window, "타이틀로 나가기", new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.16f),
             _theme.ButtonDanger);
 
         // 나가기 확인 창: 설정 창 전체를 어둡게 덮어 뒤의 버튼이 눌리지 않게 한다
@@ -381,6 +386,10 @@ public static class MainSceneBuilder
         so.FindProperty("_flow").objectReferenceValue = flow;
         so.FindProperty("_run").objectReferenceValue = run;
         so.FindProperty("_audio").objectReferenceValue = audio;
+        so.FindProperty("_meta").objectReferenceValue = meta;
+        so.FindProperty("_lv3Label").objectReferenceValue = lv3Button.GetComponentInChildren<Text>();
+        so.FindProperty("_lv3ResetButton").objectReferenceValue = lv3ResetButton;
+        so.FindProperty("_lv3ResetLabel").objectReferenceValue = lv3ResetButton.GetComponentInChildren<Text>();
         so.FindProperty("_sfxLabel").objectReferenceValue = sfxButton.GetComponentInChildren<Text>();
         so.FindProperty("_bgmLabel").objectReferenceValue = bgmButton.GetComponentInChildren<Text>();
         so.FindProperty("_sfxSlider").objectReferenceValue = sfxSlider;
@@ -394,6 +403,8 @@ public static class MainSceneBuilder
         UnityEventTools.AddVoidPersistentListener(closeButton.onClick, panel.Close);
         UnityEventTools.AddVoidPersistentListener(sfxButton.onClick, panel.ToggleSfx);
         UnityEventTools.AddVoidPersistentListener(bgmButton.onClick, panel.ToggleBgm);
+        UnityEventTools.AddVoidPersistentListener(lv3Button.onClick, panel.ToggleLv3Showcase);
+        UnityEventTools.AddVoidPersistentListener(lv3ResetButton.onClick, panel.ResetLv3Skips);
         UnityEventTools.AddPersistentListener(sfxSlider.onValueChanged, panel.SetSfxVolume);
         UnityEventTools.AddPersistentListener(bgmSlider.onValueChanged, panel.SetBgmVolume);
         UnityEventTools.AddVoidPersistentListener(exitButton.onClick, panel.AskExit);
@@ -797,12 +808,14 @@ public static class MainSceneBuilder
         rays.anchorMin = rays.anchorMax = new Vector2(0.5f, 0.5f);
         rays.sizeDelta = new Vector2(2600f, 2600f);
 
+        // 맨 아래 체크박스 줄은 비워 두고 그 위에 일러스트 (9:16 비율 유지)
         RectTransform art = CreatePanel(root, "Art", Color.white, false);
+        Stretch(art, new Vector2(0f, 0.075f), Vector2.one);
         art.GetComponent<Image>().preserveAspect = true;
 
         var captionGo = new GameObject("Caption", typeof(RectTransform), typeof(CanvasGroup));
         captionGo.transform.SetParent(root, false);
-        Stretch((RectTransform)captionGo.transform, new Vector2(0f, 0.03f), new Vector2(1f, 0.19f));
+        Stretch((RectTransform)captionGo.transform, new Vector2(0f, 0.09f), new Vector2(1f, 0.23f));
         var caption = captionGo.GetComponent<CanvasGroup>();
         caption.blocksRaycasts = false;
         Text nameText = CreateText(captionGo.transform, "Name", "", _theme.HeadingSize + 16, new Vector2(0.05f, 0.45f), new Vector2(0.95f, 1f));
@@ -815,6 +828,25 @@ public static class MainSceneBuilder
             outline.effectDistance = new Vector2(3f, -3f);
         }
 
+        // "이 크리처 다시 보지 않기": 화면 맨 아래, 손가락으로 누르기 쉬운 높이(약 110px), 누르면 체크만 바뀜 (닫히지 않음)
+        var skipGo = new GameObject("SkipToggle", typeof(RectTransform), typeof(CanvasGroup));
+        skipGo.transform.SetParent(root, false);
+        Stretch((RectTransform)skipGo.transform, new Vector2(0.1f, 0.012f), new Vector2(0.9f, 0.068f));
+        var skipGroup = skipGo.GetComponent<CanvasGroup>();
+        Button skipButton = CreateFreeButton(skipGo.transform, "", Vector2.zero, Vector2.one, new Color(1f, 1f, 1f, 0.12f));
+        skipButton.name = "SkipButton";
+        RectTransform box = CreatePanel(skipButton.transform, "Box", _theme.ButtonText, false);
+        Stretch(box, new Vector2(0.05f, 0.2f), new Vector2(0.13f, 0.8f));
+        box.GetComponent<Image>().preserveAspect = true;
+        RectTransform boxInner = CreatePanel(box, "Inner", _theme.Panel, false);
+        Stretch(boxInner, new Vector2(0.12f, 0.12f), new Vector2(0.88f, 0.88f));
+        RectTransform checkMark = CreatePanel(boxInner, "Check", _theme.Gold, false);
+        Stretch(checkMark, new Vector2(0.18f, 0.18f), new Vector2(0.82f, 0.82f));
+        Text skipLabel = CreateLeftText(skipButton.transform, "Label", _theme.BodySize, new Vector2(0.17f, 0f), new Vector2(0.98f, 1f));
+        skipLabel.text = "이 크리처 다시 보지 않기";
+        skipLabel.color = _theme.ButtonText;
+        checkMark.gameObject.SetActive(false);
+
         var showcase = root.gameObject.AddComponent<Lv3Showcase>();
         var so = new SerializedObject(showcase);
         so.FindProperty("_meta").objectReferenceValue = meta;
@@ -823,6 +855,8 @@ public static class MainSceneBuilder
         so.FindProperty("_art").objectReferenceValue = art.GetComponent<Image>();
         so.FindProperty("_caption").objectReferenceValue = caption;
         so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.FindProperty("_skipGroup").objectReferenceValue = skipGroup;
+        so.FindProperty("_skipCheckMark").objectReferenceValue = checkMark.gameObject;
         // 일러스트가 있는 크리처 목록 (그림을 불러오지 않고 도감 버튼 표시·수집 수에 씀)
         var available = new System.Collections.Generic.List<string>();
         foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { IllustrationResourcesFolder }))
@@ -842,6 +876,7 @@ public static class MainSceneBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(tapButton.onClick, showcase.OnTap);
+        UnityEventTools.AddVoidPersistentListener(skipButton.onClick, showcase.ToggleSkip);
         root.gameObject.SetActive(false);
         return showcase;
     }

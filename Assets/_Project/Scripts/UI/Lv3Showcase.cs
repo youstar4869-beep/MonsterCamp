@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 크리처가 처음 ★★★가 되면 보여 주는 화면 꽉 찬 일러스트 연출 (크리처마다 한 번, meta.json에 기록)
+// 크리처가 ★★★가 될 때마다 보여 주는 화면 꽉 찬 일러스트 연출.
+// 아래 "이 크리처 다시 보지 않기"를 체크하고 닫으면 그 크리처는 다음부터 안 나옴, 설정에서 전부 끌 수 있음 (meta.json).
+// 도감 일러스트 해금은 3성이 처음 될 때 따로 기록 (다시 보지 않기·끄기와 상관없이)
 // 일러스트는 Art/Illustrations/Resources/{에셋 이름}_Lv3.png. 없으면 연출 없이 넘어간다
 // 보여 줄 때만 불러오고 닫으면 해제한다. 여러 마리면 순서대로 하나씩
 public class Lv3Showcase : MonoBehaviour
@@ -21,6 +23,9 @@ public class Lv3Showcase : MonoBehaviour
     [Tooltip("이름과 \"★★★ 달성!\" (일러스트 뒤에 나타남)")]
     [SerializeField] private CanvasGroup _caption;
     [SerializeField] private Text _nameText;
+    [Tooltip("화면 맨 아래 \"이 크리처 다시 보지 않기\" (3성 달성 때만, 도감 다시 보기에선 숨김)")]
+    [SerializeField] private CanvasGroup _skipGroup;
+    [SerializeField] private GameObject _skipCheckMark;
     [SerializeField] private float _appearSeconds = 0.4f;
     [SerializeField] private float _raysDegreesPerSecond = 25f;
     [Tooltip("일러스트가 있는 크리처 에셋 이름 (Build Main Scene이 폴더를 보고 채움. 그림을 불러오지 않고 있는지 확인용)")]
@@ -33,15 +38,22 @@ public class Lv3Showcase : MonoBehaviour
     private float _dimAlpha = -1f;
     private float _openedAt;
     private bool _playSound;
+    private CreatureData _current;
+    private bool _skipChecked;
 
     public bool IsOpen => _loaded != null;
 
     public bool HasIllustration(CreatureData creature) => creature != null && System.Array.IndexOf(_available, creature.name) >= 0;
 
-    // 처음 ★★★가 된 크리처 (이미 봤으면 무시)
+    // ★★★가 된 크리처. 일러스트가 있으면 해금 기록, 연출이 꺼졌거나 다시 보지 않기면 연출 없이 넘어감
     public void Enqueue(CreatureData creature)
     {
-        if (creature == null || _meta.IsLv3IllustrationSeen(creature))
+        if (creature == null || !HasIllustration(creature))
+        {
+            return;
+        }
+        _meta.SetLv3IllustrationSeen(creature);
+        if (!_meta.Lv3ShowcaseEnabled || _meta.IsLv3ShowcaseSkipped(creature))
         {
             return;
         }
@@ -76,8 +88,19 @@ public class Lv3Showcase : MonoBehaviour
         {
             return;
         }
+        if (_playSound && _skipChecked && _current != null)
+        {
+            _meta.SetLv3ShowcaseSkipped(_current);
+        }
         Unload();
         ShowNext();
+    }
+
+    // "이 크리처 다시 보지 않기" 체크박스 (닫을 때 저장)
+    public void ToggleSkip()
+    {
+        _skipChecked = !_skipChecked;
+        _skipCheckMark.SetActive(_skipChecked);
     }
 
     private void ShowNext()
@@ -89,10 +112,6 @@ public class Lv3Showcase : MonoBehaviour
             if (sprite == null)
             {
                 continue;
-            }
-            if (record)
-            {
-                _meta.SetLv3IllustrationSeen(creature);
             }
             Open(creature, sprite, record);
             return;
@@ -112,6 +131,10 @@ public class Lv3Showcase : MonoBehaviour
         _nameText.text = creature.DisplayName;
         _openedAt = Time.unscaledTime;
         _playSound = record;
+        _current = creature;
+        _skipChecked = false;
+        _skipCheckMark.SetActive(false);
+        _skipGroup.gameObject.SetActive(record);
         gameObject.SetActive(true);
         transform.SetAsLastSibling();
         StopAllCoroutines();
@@ -135,6 +158,7 @@ public class Lv3Showcase : MonoBehaviour
             SetAlpha(_art, eased);
             _art.rectTransform.localScale = Vector3.one * Mathf.Lerp(0.85f, 1f, eased);
             _caption.alpha = caption;
+            _skipGroup.alpha = caption;
             _rays.rectTransform.Rotate(0f, 0f, -_raysDegreesPerSecond * Time.unscaledDeltaTime);
 
             if (!soundPlayed && appear >= 1f)

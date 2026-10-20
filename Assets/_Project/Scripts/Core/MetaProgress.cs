@@ -108,9 +108,31 @@ public class MetaProgress : MonoBehaviour
         SaveAndNotify();
     }
 
+    // 3성 연출 "이 크리처 다시 보지 않기" (해금 기록과 따로)
+    public bool IsLv3ShowcaseSkipped(CreatureData creature) => SkippedLv3Showcases.Contains(creature.name);
+    public void SetLv3ShowcaseSkipped(CreatureData creature) => AddRecord(SkippedLv3Showcases, creature.name);
+    public int Lv3ShowcaseSkipCount => SkippedLv3Showcases.Count;
+
+    public void ResetLv3ShowcaseSkips()
+    {
+        SkippedLv3Showcases.Clear();
+        SaveAndNotify();
+    }
+
+    // 설정 탭 "3성 일러스트 연출" (끄면 전부 안 나옴)
+    public bool Lv3ShowcaseEnabled => !Data.lv3ShowcaseOff;
+
+    public void SetLv3ShowcaseEnabled(bool enabled)
+    {
+        Data.lv3ShowcaseOff = !enabled;
+        SaveAndNotify();
+    }
+
     // 예전 저장 파일에 목록이 없으면 빈 목록으로
     private System.Collections.Generic.List<string> SeenLv3Illustrations =>
         Data.seenLv3Illustrations ??= new System.Collections.Generic.List<string>();
+    private System.Collections.Generic.List<string> SkippedLv3Showcases =>
+        Data.skippedLv3Showcases ??= new System.Collections.Generic.List<string>();
 
     public bool TutorialCompleted => Data.tutorialCompleted;
     public bool FrontRowTipShown => Data.frontRowTipShown;

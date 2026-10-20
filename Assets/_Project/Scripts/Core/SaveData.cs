@@ -28,6 +28,10 @@ public class MetaSaveData
     public bool hiddenFusionUnlocked;
     // 처음 ★★★ 일러스트 연출을 본 크리처 (CreatureData 에셋 이름, 크리처마다 한 번. 예전 저장은 빈 목록)
     public List<string> seenLv3Illustrations = new List<string>();
+    // 3성 연출 "이 크리처 다시 보지 않기"를 체크한 크리처 (해금 기록과 따로. 예전 저장은 빈 목록)
+    public List<string> skippedLv3Showcases = new List<string>();
+    // 설정: 3성 일러스트 연출 끔 (예전 저장은 false = 켜짐)
+    public bool lv3ShowcaseOff;
 }
 
 // run.json: 진행 중인 판 (상점 단계 상태)

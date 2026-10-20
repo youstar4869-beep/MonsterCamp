@@ -8,6 +8,12 @@ public class SettingsPanel : MonoBehaviour
     [SerializeField] private ScreenFlow _flow;
     [SerializeField] private RunManager _run;
     [SerializeField] private AudioManager _audio;
+    [SerializeField] private MetaProgress _meta;
+    [Tooltip("3성 일러스트 연출 켜기/끄기 버튼 글자")]
+    [SerializeField] private Text _lv3Label;
+    [Tooltip("\"다시 보지 않기 초기화\" 버튼 (체크한 크리처가 없으면 흐리게)")]
+    [SerializeField] private Button _lv3ResetButton;
+    [SerializeField] private Text _lv3ResetLabel;
     [Tooltip("효과음 켜기/끄기 버튼 글자")]
     [SerializeField] private Text _sfxLabel;
     [Tooltip("배경음 켜기/끄기 버튼 글자")]
@@ -31,6 +37,7 @@ public class SettingsPanel : MonoBehaviour
         _confirmPanel.SetActive(false);
         UpdateSfxLabel();
         UpdateBgmLabel();
+        UpdateLv3Labels();
         _sfxSlider.SetValueWithoutNotify(_audio.SfxVolume);
         _bgmSlider.SetValueWithoutNotify(_audio.BgmVolume);
 
@@ -73,6 +80,28 @@ public class SettingsPanel : MonoBehaviour
     {
         _audio.SetBgmEnabled(!_audio.BgmEnabled);
         UpdateBgmLabel();
+    }
+
+    // "3성 일러스트 연출 켜짐/꺼짐"
+    public void ToggleLv3Showcase()
+    {
+        _meta.SetLv3ShowcaseEnabled(!_meta.Lv3ShowcaseEnabled);
+        UpdateLv3Labels();
+    }
+
+    // "다시 보지 않기 초기화": 체크한 크리처도 다시 연출이 나옴
+    public void ResetLv3Skips()
+    {
+        _meta.ResetLv3ShowcaseSkips();
+        UpdateLv3Labels();
+    }
+
+    private void UpdateLv3Labels()
+    {
+        _lv3Label.text = _meta.Lv3ShowcaseEnabled ? "3성 일러스트 연출 켜짐" : "3성 일러스트 연출 꺼짐";
+        int count = _meta.Lv3ShowcaseSkipCount;
+        _lv3ResetButton.interactable = count > 0;
+        _lv3ResetLabel.text = count > 0 ? $"다시 보지 않기 초기화 ({count}마리)" : "다시 보지 않기 없음";
     }
 
     public void SetSfxVolume(float volume)
