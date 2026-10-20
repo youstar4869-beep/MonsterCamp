@@ -56,6 +56,9 @@ public class CreatureUnitView : MonoBehaviour
     private float _bouncePhase;
     private bool _disabled;
     private readonly Vector3[] _corners = new Vector3[4];
+    // 씬에 놓인 그림·체력바·별 칸 (큰 그림일 때 바꾸고, 보통 그림이면 되돌린다)
+    private bool _layoutSaved;
+    private Vector2 _iconMin, _iconMax, _barMin, _barMax, _levelMin, _levelMax;
 
     // 연출 타이머 (음수 = 진행 중 아님)
     private float _lungeTime = -1f;
@@ -76,6 +79,7 @@ public class CreatureUnitView : MonoBehaviour
     public void Show(CreatureData creature, int level, ItemData item)
     {
         _icon.sprite = creature.GetSprite(level);
+        FitSprite(_icon.sprite);
         _nameText.text = creature.DisplayName;
         _levelText.text = CreatureInstance.ToStars(level);
         _itemIcon.Show(item);
@@ -86,6 +90,47 @@ public class CreatureUnitView : MonoBehaviour
         SetDisabled(false);
         _bouncePhase = Random.value;
         gameObject.SetActive(true);
+    }
+
+    // 32x32 기준보다 큰 그림(3성 의인화 48x48 = 1.5배)은 발 위치(그림 칸 아래쪽)는 그대로 두고 위·옆으로 크게.
+    // 그림이 체력바에 닿으면 체력바를 그림 바로 위로 올리고, 별은 체력바 위에
+    private void FitSprite(Sprite sprite)
+    {
+        RectTransform icon = _icon.rectTransform;
+        var bar = (RectTransform)_healthFill.parent;
+        RectTransform levelRect = _levelText.rectTransform;
+        if (!_layoutSaved)
+        {
+            _layoutSaved = true;
+            _iconMin = icon.anchorMin;
+            _iconMax = icon.anchorMax;
+            _barMin = bar.anchorMin;
+            _barMax = bar.anchorMax;
+            _levelMin = levelRect.anchorMin;
+            _levelMax = levelRect.anchorMax;
+        }
+
+        float scale = sprite != null && sprite.pixelsPerUnit > 0f ? Mathf.Max(1f, sprite.rect.height / sprite.pixelsPerUnit) : 1f;
+        float centerX = (_iconMin.x + _iconMax.x) * 0.5f;
+        float halfWidth = (_iconMax.x - _iconMin.x) * 0.5f * scale;
+        float top = _iconMin.y + (_iconMax.y - _iconMin.y) * scale;
+        icon.anchorMin = new Vector2(centerX - halfWidth, _iconMin.y);
+        icon.anchorMax = new Vector2(centerX + halfWidth, top);
+
+        float lift = scale > 1f ? Mathf.Max(0f, top + 0.01f - _barMin.y) : 0f;
+        bar.anchorMin = _barMin + new Vector2(0f, lift);
+        bar.anchorMax = _barMax + new Vector2(0f, lift);
+        if (lift > 0f)
+        {
+            float levelHeight = _levelMax.y - _levelMin.y;
+            levelRect.anchorMin = new Vector2(_levelMin.x, bar.anchorMax.y);
+            levelRect.anchorMax = new Vector2(_levelMax.x, bar.anchorMax.y + levelHeight);
+        }
+        else
+        {
+            levelRect.anchorMin = _levelMin;
+            levelRect.anchorMax = _levelMax;
+        }
     }
 
     // health, shield: 최대 체력 대비 비율. 보호막은 체력 칸 뒤에 이어서 (넘치면 끝까지)

@@ -168,6 +168,8 @@ public static class FusionDataBuilder
     {
         Directory.CreateDirectory(FusionCreatureFolder);
         Directory.CreateDirectory(RecipeFolder);
+        // 3성 의인화를 쓰는 중이면 새로 만든 조합 크리처에도 적용한다
+        bool lv3Woman = Lv3WomanMenu.IsApplied();
         int created = 0;
         var recipes = new System.Collections.Generic.List<FusionRecipe>();
         foreach (Seed seed in Seeds)
@@ -207,6 +209,10 @@ public static class FusionDataBuilder
             recipes.Add(recipe);
         }
         int added = AddToShopConfig(recipes);
+        if (lv3Woman)
+        {
+            Lv3WomanMenu.Set(true);
+        }
         AssetDatabase.SaveAssets();
         Debug.Log($"[조합 데이터] 새로 만든 에셋 {created}개 ({FusionCreatureFolder}, {RecipeFolder}), ShopConfig에 조합식 {added}개 추가");
     }

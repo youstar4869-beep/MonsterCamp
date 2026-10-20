@@ -12,6 +12,8 @@ public static class CreatureSpriteLinker
     public static void Link()
     {
         int reimported = FixImportSettings();
+        // 3성 의인화를 쓰는 중이면 연결 후 다시 적용한다 (Lv3 칸이 32x32로 돌아가지 않게)
+        bool lv3Woman = Lv3WomanMenu.IsApplied();
 
         int linked = 0;
         int missing = 0;
@@ -48,6 +50,10 @@ public static class CreatureSpriteLinker
             }
         }
 
+        if (lv3Woman)
+        {
+            Lv3WomanMenu.Set(true);
+        }
         AssetDatabase.SaveAssets();
         Debug.Log($"[크리처 그림] 연결 완료: {linked}종 (그림 없는 칸 {missing}개, 임포트 설정 고친 PNG {reimported}장)");
     }

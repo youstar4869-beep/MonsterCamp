@@ -15,6 +15,11 @@ MonoBehaviour:
   _displayName: "\uBD88\uB625\uC774"
   _type: 0
   _tier: 1
+  _hasSecondType: 0
+  _secondType: 0
+  _synergyCount: 1
+  _fusionOnly: 0
+  _hidden: 0
   _maxHealth: 95
   _attack: 12
   _attackSpeed: 1
@@ -24,6 +29,11 @@ MonoBehaviour:
   _skillChance: 0
   _skillValue1: 1.5
   _skillValue2: 0
+  _skill2Type: 0
+  _skill2Every: 0
+  _skill2Chance: 0
+  _skill2Value1: 0
+  _skill2Value2: 0
   _levelMultipliers:
   - 1
   - 1.8
@@ -32,4 +42,4 @@ MonoBehaviour:
   _levelSprites:
   - {fileID: 21300000, guid: 0b1c32fc1ef480e47adc28a195d13932, type: 3}
   - {fileID: 21300000, guid: b1068d928ce27fa4ab7daec26de44fbe, type: 3}
-  - {fileID: 21300000, guid: 40ebadd991eb28549acdc68e9ea4120b, type: 3}
+  - {fileID: 21300000, guid: 77c83e909f3cbb541a4b714375817c08, type: 3}

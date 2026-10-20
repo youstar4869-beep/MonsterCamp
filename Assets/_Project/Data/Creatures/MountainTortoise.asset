@@ -15,16 +15,26 @@ MonoBehaviour:
   _displayName: "\uC0B0\uB9E5\uAC70\uBD81"
   _type: 4
   _tier: 5
+  _hasSecondType: 0
+  _secondType: 0
   _synergyCount: 2
+  _fusionOnly: 0
+  _hidden: 0
   _maxHealth: 515
   _attack: 31
   _attackSpeed: 0.75
-  _skillDescription: "\uBC1B\uB294 \uD53C\uD574 40% \uAC10\uC18C, \uC4F0\uB7EC\uC9C0\uBA74 \uC801 \uC804\uCCB4 \uAE30\uC808 1.7\uCD08"
+  _skillDescription: "\uBC1B\uB294 \uD53C\uD574 40% \uAC10\uC18C, \uC4F0\uB7EC\uC9C0\uBA74
+    \uC801 \uC804\uCCB4 \uAE30\uC808 1.7\uCD08"
   _skillType: 30
   _skillEvery: 0
   _skillChance: 0
   _skillValue1: 0.4
   _skillValue2: 1.7
+  _skill2Type: 0
+  _skill2Every: 0
+  _skill2Chance: 0
+  _skill2Value1: 0
+  _skill2Value2: 0
   _levelMultipliers:
   - 1
   - 1.8
@@ -33,4 +43,4 @@ MonoBehaviour:
   _levelSprites:
   - {fileID: 21300000, guid: 17030301f5c876f48805816b4ed9e4bd, type: 3}
   - {fileID: 21300000, guid: 2515b34eb80ecaf4ba833838fb3c728f, type: 3}
-  - {fileID: 21300000, guid: 53dc792b9e20e004594cd68a136090c4, type: 3}
+  - {fileID: 21300000, guid: 44d76a29c4fdc9844b979c633ac7381e, type: 3}

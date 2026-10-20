@@ -15,6 +15,11 @@ MonoBehaviour:
   _displayName: "\uB369\uAD74\uD30C\uB9AC\uC9C0\uC625"
   _type: 2
   _tier: 4
+  _hasSecondType: 0
+  _secondType: 0
+  _synergyCount: 1
+  _fusionOnly: 0
+  _hidden: 0
   _maxHealth: 400
   _attack: 31
   _attackSpeed: 1
@@ -25,6 +30,11 @@ MonoBehaviour:
   _skillChance: 0
   _skillValue1: 3
   _skillValue2: 0
+  _skill2Type: 0
+  _skill2Every: 0
+  _skill2Chance: 0
+  _skill2Value1: 0
+  _skill2Value2: 0
   _levelMultipliers:
   - 1
   - 1.8
@@ -33,4 +43,4 @@ MonoBehaviour:
   _levelSprites:
   - {fileID: 21300000, guid: 00cd86e37b7bb0043aa45395300b2573, type: 3}
   - {fileID: 21300000, guid: f71cbca8a821d2c4b8c8d2c103cc5e36, type: 3}
-  - {fileID: 21300000, guid: 0a10526dc25cc634f8739e5e5d50121c, type: 3}
+  - {fileID: 21300000, guid: c20752bb195a1834283aa4d8beb66a34, type: 3}

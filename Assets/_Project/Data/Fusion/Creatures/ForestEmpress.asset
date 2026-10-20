@@ -44,4 +44,4 @@ MonoBehaviour:
   _levelSprites:
   - {fileID: 21300000, guid: bedc1c7abb954ace93778d4c30bb1330, type: 3}
   - {fileID: 21300000, guid: cdf7c9c055664fbba6d28d8436afa57a, type: 3}
-  - {fileID: 21300000, guid: 3b791a55b7f149b9ad830dd3b01d3245, type: 3}
+  - {fileID: 21300000, guid: 174884aa0b54cee4798cf8ba6f4f2bd5, type: 3}

@@ -19,6 +19,7 @@ MonoBehaviour:
   _secondType: 1
   _synergyCount: 1
   _fusionOnly: 1
+  _hidden: 0
   _maxHealth: 250
   _attack: 25
   _attackSpeed: 1
@@ -42,4 +43,4 @@ MonoBehaviour:
   _levelSprites:
   - {fileID: 21300000, guid: 99cbde67f34f4eac8efb2ec995802cf5, type: 3}
   - {fileID: 21300000, guid: 350b145869964a518a4d3d8ee28a7f39, type: 3}
-  - {fileID: 21300000, guid: a159ccf35b9840a087c884e978de060e, type: 3}
+  - {fileID: 21300000, guid: 9403fe58b9df70240a34292d980861b0, type: 3}
