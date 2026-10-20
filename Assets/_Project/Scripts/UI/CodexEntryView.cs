@@ -12,6 +12,9 @@ public class CodexEntryView : MonoBehaviour
     [SerializeField] private GameObject _lockOverlay;
     [SerializeField] private Button _unlockButton;
     [SerializeField] private Text _unlockLabel;
+    [Tooltip("크리처 칸만: 3성 일러스트 버튼 (해금 버튼 자리, 크리처가 열려 있을 때)과 그림 위 작은 ★")]
+    [SerializeField] private IllustrationButton _illustration;
+    [SerializeField] private GameObject _illustrationMark;
 
     public void Show(string displayName, Sprite sprite, string info)
     {
@@ -30,5 +33,12 @@ public class CodexEntryView : MonoBehaviour
         _unlockButton.gameObject.SetActive(locked);
         _unlockButton.interactable = affordable;
         _unlockLabel.text = $"★{cost} 해금";
+    }
+
+    // hasArt: 일러스트 파일이 있음, seen: 3성 연출을 봄(해금), creatureLocked: 크리처가 아직 별로 안 열림
+    public void SetIllustration(bool hasArt, bool seen, bool creatureLocked)
+    {
+        _illustration.Set(hasArt && !creatureLocked, seen);
+        _illustrationMark.SetActive(hasArt && seen);
     }
 }

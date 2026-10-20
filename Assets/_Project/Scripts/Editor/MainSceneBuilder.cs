@@ -29,6 +29,7 @@ public static class MainSceneBuilder
     // 도감 크리처 칸 (1080x1920 기준)
     private const int CodexColumns = 5;
     private const float CodexCellWidth = 186f;
+    private const string IllustrationResourcesFolder = IllustrationImporter.Folder + "Resources";
     private const float CodexRowHeight = 290f;
     private const string TutorialDataPath = "Assets/_Project/Data/Tutorial/TutorialData.asset";
     private static readonly Vector2 ReferenceResolution = new Vector2(1080, 1920);
@@ -102,8 +103,11 @@ public static class MainSceneBuilder
         // 도움말 창은 조합 창보다 위 ("새 조합식 발견!")
         TipPopup tipPopup = CreateTipPopup(canvas);
 
+        // 처음 ★★★ 일러스트 연출: 노치까지 화면 전체를 덮도록 캔버스 전체에 (열 때 맨 위로 올라감). 도감 다시 보기도 같이 씀
+        Lv3Showcase lv3Showcase = CreateLv3Showcase(canvasRoot, meta);
+
         BuildTitleUI(title, flow, run, tutorial);
-        BuildCodexUI(codex, flow, meta);
+        BuildCodexUI(codex, flow, meta, lv3Showcase);
 
         // 결과 화면: 클리어/게임 오버 + 설명 + 별 + 타이틀로
         Text resultTitle = result.transform.Find("Title").GetComponent<Text>();
@@ -124,9 +128,8 @@ public static class MainSceneBuilder
         BuildTutorialUI(canvas, tutorial, meta, shopScreen, (RectTransform)battleButton.transform, infoPopup);
         // ⚙ 버튼과 설정 창은 튜토리얼 중에도 누를 수 있게 그 위에 (씬에 하나)
         BuildSettingsUI(canvas, gearSprite, flow, run, audio);
-        // 처음 ★★★ 일러스트 연출: 노치까지 화면 전체를 덮도록 캔버스 전체에, 모든 화면·튜토리얼·⚙보다 위
         var serializedShop = new SerializedObject(shopScreen);
-        serializedShop.FindProperty("_lv3Showcase").objectReferenceValue = CreateLv3Showcase(canvasRoot, meta);
+        serializedShop.FindProperty("_lv3Showcase").objectReferenceValue = lv3Showcase;
         serializedShop.ApplyModifiedPropertiesWithoutUndo();
 
         // 트레이너 → 난이도 → 새 런 시작 (1층 상점으로 이동은 RunManager가 한다)
@@ -816,6 +819,22 @@ public static class MainSceneBuilder
         so.FindProperty("_art").objectReferenceValue = art.GetComponent<Image>();
         so.FindProperty("_caption").objectReferenceValue = caption;
         so.FindProperty("_nameText").objectReferenceValue = nameText;
+        // 일러스트가 있는 크리처 목록 (그림을 불러오지 않고 도감 버튼 표시·수집 수에 씀)
+        var available = new System.Collections.Generic.List<string>();
+        foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { IllustrationResourcesFolder }))
+        {
+            string file = Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(guid));
+            if (file.EndsWith("_Lv3"))
+            {
+                available.Add(file.Substring(0, file.Length - 4));
+            }
+        }
+        SerializedProperty availableProperty = so.FindProperty("_available");
+        availableProperty.arraySize = available.Count;
+        for (int i = 0; i < available.Count; i++)
+        {
+            availableProperty.GetArrayElementAtIndex(i).stringValue = available[i];
+        }
         so.ApplyModifiedPropertiesWithoutUndo();
 
         UnityEventTools.AddVoidPersistentListener(tapButton.onClick, showcase.OnTap);
@@ -1081,7 +1100,7 @@ public static class MainSceneBuilder
     }
 
     // 도감 화면: 제목 / 별 / 트레이너 3칸 / 크리처 35칸(위아래 스크롤, 줄 = 가격, 같은 가격은 타입 순) / 안내 문구 / 뒤로
-    private static void BuildCodexUI(GameObject screen, ScreenFlow flow, MetaProgress meta)
+    private static void BuildCodexUI(GameObject screen, ScreenFlow flow, MetaProgress meta, Lv3Showcase showcase)
     {
         Stretch((RectTransform)screen.transform.Find("Title"), new Vector2(0f, 0.925f), new Vector2(1f, 0.985f));
         Stretch((RectTransform)screen.transform.Find("ButtonArea"), new Vector2(0.25f, 0.015f), new Vector2(0.75f, 0.1f));
@@ -1104,6 +1123,11 @@ public static class MainSceneBuilder
         FusionRecipeRowView[] recipeRows = CreateFusionRecipeRows(recipeContent, recipes.Length);
         Text hiddenCountText = CreateHiddenCountText(recipeContent);
         recipeTab.gameObject.SetActive(false);
+
+        // 두 탭 공통: 오른쪽 위 "일러스트 n/전체"
+        Text illustrationCountText = CreateText(screen.transform, "IllustrationCount", "", _theme.SmallSize, new Vector2(0.5f, 0.85f), new Vector2(0.97f, 0.88f));
+        illustrationCountText.alignment = TextAnchor.MiddleRight;
+        illustrationCountText.color = _theme.Gold;
 
         Text trainerLabel = CreateText(creatureTab, "TrainerLabel", "트레이너", _theme.SmallSize, new Vector2(0.03f, 0.85f), new Vector2(0.97f, 0.88f));
         trainerLabel.alignment = TextAnchor.MiddleLeft;
@@ -1157,6 +1181,8 @@ public static class MainSceneBuilder
         SetArray(so.FindProperty("_recipeRows"), recipeRows);
         so.FindProperty("_recipeCountText").objectReferenceValue = recipeCountText;
         so.FindProperty("_hiddenCountText").objectReferenceValue = hiddenCountText;
+        so.FindProperty("_showcase").objectReferenceValue = showcase;
+        so.FindProperty("_illustrationCountText").objectReferenceValue = illustrationCountText;
         so.FindProperty("_starsText").objectReferenceValue = starsText;
         so.FindProperty("_messageText").objectReferenceValue = messageText;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -1170,7 +1196,52 @@ public static class MainSceneBuilder
         for (int i = 0; i < creatureEntries.Length; i++)
         {
             UnityEventTools.AddIntPersistentListener(creatureEntries[i].GetComponentInChildren<Button>(true).onClick, codex.UnlockCreature, i);
+            UnityEventTools.AddIntPersistentListener(IllustrationButtonOf(creatureEntries[i]).onClick, codex.ViewCreatureIllustration, i);
         }
+        for (int i = 0; i < recipeRows.Length; i++)
+        {
+            UnityEventTools.AddIntPersistentListener(IllustrationButtonOf(recipeRows[i]).onClick, codex.ViewRecipeIllustration, i);
+        }
+    }
+
+    private static Button IllustrationButtonOf(Component parent) =>
+        parent.GetComponentInChildren<IllustrationButton>(true).GetComponent<Button>();
+
+    // 도감 "3성 일러스트" 버튼 (왼쪽에 자물쇠, 잠겼으면 "3성 달성 시 해금")
+    private static IllustrationButton CreateIllustrationButton(Transform parent, Vector2 anchorMin, Vector2 anchorMax)
+    {
+        Button button = CreateFreeButton(parent, "3성 일러스트", anchorMin, anchorMax, _theme.ButtonInfo);
+        Text label = button.GetComponentInChildren<Text>();
+        label.resizeTextMaxSize = _theme.TinySize;
+        label.fontSize = _theme.TinySize;
+        Stretch(label.rectTransform, new Vector2(0.2f, 0f), new Vector2(0.98f, 1f));
+
+        var lockGo = new GameObject("Lock", typeof(RectTransform), typeof(Image));
+        lockGo.transform.SetParent(button.transform, false);
+        Stretch(lockGo.GetComponent<RectTransform>(), new Vector2(0.03f, 0.15f), new Vector2(0.2f, 0.85f));
+        var lockImage = lockGo.GetComponent<Image>();
+        lockImage.sprite = GetOrCreateLockSprite();
+        lockImage.preserveAspect = true;
+        lockImage.raycastTarget = false;
+
+        var view = button.gameObject.AddComponent<IllustrationButton>();
+        var so = new SerializedObject(view);
+        so.FindProperty("_button").objectReferenceValue = button;
+        so.FindProperty("_label").objectReferenceValue = label;
+        so.FindProperty("_lockIcon").objectReferenceValue = lockGo;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        button.gameObject.SetActive(false);
+        return view;
+    }
+
+    // 일러스트를 해금한 크리처 그림 위 작은 ★
+    private static GameObject CreateIllustrationMark(Transform parent, Vector2 anchorMin, Vector2 anchorMax)
+    {
+        Text mark = CreateText(parent, "IllustrationMark", "★", _theme.SmallSize, anchorMin, anchorMax);
+        mark.color = _theme.Gold;
+        mark.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+        mark.gameObject.SetActive(false);
+        return mark.gameObject;
     }
 
     // 화면 전체 크기의 빈 묶음 (탭 하나를 통째로 켜고 끄는 용도)
@@ -1232,8 +1303,11 @@ public static class MainSceneBuilder
             Image iconResult = CreateRecipeIcon(go.transform, "IconResult", 0.51f, 0.68f);
             Text nameResult = CreateText(go.transform, "NameResult", "", _theme.TinySize, new Vector2(0.49f, 0.04f), new Vector2(0.7f, 0.24f));
             nameResult.color = _theme.Gold;
-            Text infoText = CreateLeftText(go.transform, "Info", _theme.TinySize, new Vector2(0.71f, 0.05f), new Vector2(0.99f, 0.95f));
+            Text infoText = CreateLeftText(go.transform, "Info", _theme.TinySize, new Vector2(0.71f, 0.27f), new Vector2(0.99f, 0.95f));
             infoText.color = _theme.TextSub;
+            // 도감에서만 보임 (상점 조합식 창에선 숨김)
+            IllustrationButton illustration = CreateIllustrationButton(go.transform, new Vector2(0.72f, 0.04f), new Vector2(0.98f, 0.25f));
+            GameObject illustrationMark = CreateIllustrationMark(go.transform, new Vector2(0.62f, 0.78f), new Vector2(0.7f, 0.98f));
 
             rows[i] = go.GetComponent<FusionRecipeRowView>();
             var so = new SerializedObject(rows[i]);
@@ -1246,6 +1320,8 @@ public static class MainSceneBuilder
             so.FindProperty("_nameResult").objectReferenceValue = nameResult;
             so.FindProperty("_infoText").objectReferenceValue = infoText;
             so.FindProperty("_frame").objectReferenceValue = frame;
+            so.FindProperty("_illustration").objectReferenceValue = illustration;
+            so.FindProperty("_illustrationMark").objectReferenceValue = illustrationMark;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
         return rows;
@@ -1391,6 +1467,16 @@ public static class MainSceneBuilder
         // 버튼 높이가 약 60px라 위쪽(이름·설명 글자 쪽)으로 눌리는 범위를 넓힌다
         AddHitArea(unlockButton, 0f, 6f, 0f, 60f);
 
+        // 크리처 칸: 해금 버튼 자리에 3성 일러스트 버튼 (크리처가 열린 뒤), 그림 오른쪽 위에 ★
+        IllustrationButton illustration = null;
+        GameObject illustrationMark = null;
+        if (withIcon)
+        {
+            illustration = CreateIllustrationButton(go.transform, new Vector2(0.06f, 0.03f), new Vector2(0.94f, 0.23f));
+            AddHitArea(illustration, 0f, 6f, 0f, 60f);
+            illustrationMark = CreateIllustrationMark(go.transform, new Vector2(0.76f, 0.8f), new Vector2(0.98f, 0.98f));
+        }
+
         var view = go.GetComponent<CodexEntryView>();
         var so = new SerializedObject(view);
         so.FindProperty("_icon").objectReferenceValue = icon;
@@ -1399,6 +1485,8 @@ public static class MainSceneBuilder
         so.FindProperty("_lockOverlay").objectReferenceValue = lockOverlay;
         so.FindProperty("_unlockButton").objectReferenceValue = unlockButton;
         so.FindProperty("_unlockLabel").objectReferenceValue = unlockLabel;
+        so.FindProperty("_illustration").objectReferenceValue = illustration;
+        so.FindProperty("_illustrationMark").objectReferenceValue = illustrationMark;
         so.ApplyModifiedPropertiesWithoutUndo();
         return view;
     }

@@ -23,6 +23,8 @@ public class Lv3Showcase : MonoBehaviour
     [SerializeField] private Text _nameText;
     [SerializeField] private float _appearSeconds = 0.4f;
     [SerializeField] private float _raysDegreesPerSecond = 25f;
+    [Tooltip("일러스트가 있는 크리처 에셋 이름 (Build Main Scene이 폴더를 보고 채움. 그림을 불러오지 않고 있는지 확인용)")]
+    [SerializeField] private string[] _available = new string[0];
 
     private static Sprite _raySprite;
 
@@ -30,8 +32,11 @@ public class Lv3Showcase : MonoBehaviour
     private Sprite _loaded;
     private float _dimAlpha = -1f;
     private float _openedAt;
+    private bool _playSound;
 
     public bool IsOpen => _loaded != null;
+
+    public bool HasIllustration(CreatureData creature) => creature != null && System.Array.IndexOf(_available, creature.name) >= 0;
 
     // 처음 ★★★가 된 크리처 (이미 봤으면 무시)
     public void Enqueue(CreatureData creature)
@@ -54,7 +59,7 @@ public class Lv3Showcase : MonoBehaviour
         }
     }
 
-    // 테스트용: 본 기록과 상관없이 보여 주고 기록하지 않는다
+    // 도감 다시 보기·테스트용: 본 기록과 상관없이 보여 주고 기록하지 않는다 (효과음 없음)
     public void Preview(CreatureData creature)
     {
         _queue.Enqueue((creature, false));
@@ -89,13 +94,13 @@ public class Lv3Showcase : MonoBehaviour
             {
                 _meta.SetLv3IllustrationSeen(creature);
             }
-            Open(creature, sprite);
+            Open(creature, sprite, record);
             return;
         }
         gameObject.SetActive(false);
     }
 
-    private void Open(CreatureData creature, Sprite sprite)
+    private void Open(CreatureData creature, Sprite sprite, bool record)
     {
         if (_dimAlpha < 0f)
         {
@@ -106,6 +111,7 @@ public class Lv3Showcase : MonoBehaviour
         _art.sprite = sprite;
         _nameText.text = creature.DisplayName;
         _openedAt = Time.unscaledTime;
+        _playSound = record;
         gameObject.SetActive(true);
         transform.SetAsLastSibling();
         StopAllCoroutines();
@@ -115,7 +121,7 @@ public class Lv3Showcase : MonoBehaviour
     // 어둡게 → 빛줄기 → 일러스트가 살짝 커지며 나타남 → 이름. 빛줄기는 열려 있는 동안 계속 돈다
     private IEnumerator Animate()
     {
-        bool soundPlayed = false;
+        bool soundPlayed = !_playSound;
         float time = 0f;
         while (true)
         {
